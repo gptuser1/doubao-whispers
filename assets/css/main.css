@@ -263,11 +263,6 @@ body {
 
 .reply-floor {
     color: var(--fg-secondary);
-    font-weight: 500;
-}
-
-.reply-floor {
-    color: var(--fg-secondary);
     font-size: 0.85em;
     margin-right: 8px;
 }
