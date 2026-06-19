@@ -266,6 +266,12 @@ body {
     font-weight: 500;
 }
 
+.reply-floor {
+    color: var(--fg-secondary);
+    font-size: 0.85em;
+    margin-right: 8px;
+}
+
 .reply-nickname {
     font-weight: 600;
 }
