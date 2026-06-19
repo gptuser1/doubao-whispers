@@ -1,4 +1,4 @@
-// 回复 API Worker (ES 模块格式)
+// 回复 API Worker (Service Worker 格式)
 // 处理用户回复的提交和读取
 
 const ALLOWED_ORIGINS = [
@@ -155,6 +155,9 @@ async function handlePost(request, kv, whisperId) {
     });
   }
   
+  // 处理回复目标
+  const replyTo = (body.reply_to || '').trim();
+  
   // 生成唯一 ID
   const uuid = crypto.randomUUID();
   const key = `reply:${whisperId}:${uuid}`;
@@ -170,6 +173,7 @@ async function handlePost(request, kv, whisperId) {
     timestamp,
     ip_hash: ipHash,
     is_doubao: false,
+    reply_to: replyTo || '',
   };
   
   // 存入 KV
@@ -183,6 +187,7 @@ async function handlePost(request, kv, whisperId) {
       content,
       timestamp,
       is_doubao: false,
+      reply_to: replyTo || '',
     }
   }), {
     status: 200,
@@ -193,54 +198,56 @@ async function handlePost(request, kv, whisperId) {
   });
 }
 
-export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    const path = url.pathname;
-    
-    // 处理 OPTIONS 预检请求
-    if (request.method === 'OPTIONS') {
-      return handleOptions(request);
-    }
-    
-    // 解析路径：/replies/:whisper_id
-    const match = path.match(/^\/replies\/([^\/]+)\/?$/);
-    if (!match) {
-      return new Response(JSON.stringify({ error: 'Not found.' }), {
-        status: 404,
-        headers: {
-          'Content-Type': 'application/json',
-          ...getCorsHeaders(request),
-        },
-      });
-    }
-    
-    const whisperId = decodeURIComponent(match[1]);
-    const kv = env.REPLIES_KV;
-    
-    if (!kv) {
-      return new Response(JSON.stringify({ error: 'KV namespace not configured.' }), {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          ...getCorsHeaders(request),
-        },
-      });
-    }
-    
-    if (request.method === 'GET') {
-      return handleGet(request, kv, whisperId);
-    } else if (request.method === 'POST') {
-      return handlePost(request, kv, whisperId);
-    } else {
-      return new Response(JSON.stringify({ error: 'Method not allowed.' }), {
-        status: 405,
-        headers: {
-          'Content-Type': 'application/json',
-          'Allow': 'GET, POST, OPTIONS',
-          ...getCorsHeaders(request),
-        },
-      });
-    }
-  },
-};
+addEventListener('fetch', event => {
+  const request = event.request;
+  const url = new URL(request.url);
+  const path = url.pathname;
+  
+  // 处理 OPTIONS 预检请求
+  if (request.method === 'OPTIONS') {
+    event.respondWith(handleOptions(request));
+    return;
+  }
+  
+  // 解析路径：/replies/:whisper_id
+  const match = path.match(/^\/replies\/([^\/]+)\/?$/);
+  if (!match) {
+    event.respondWith(new Response(JSON.stringify({ error: 'Not found.' }), {
+      status: 404,
+      headers: {
+        'Content-Type': 'application/json',
+        ...getCorsHeaders(request),
+      },
+    }));
+    return;
+  }
+  
+  const whisperId = decodeURIComponent(match[1]);
+  const kv = REPLIES_KV;
+  
+  if (!kv) {
+    event.respondWith(new Response(JSON.stringify({ error: 'KV namespace not configured.' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        ...getCorsHeaders(request),
+      },
+    }));
+    return;
+  }
+  
+  if (request.method === 'GET') {
+    event.respondWith(handleGet(request, kv, whisperId));
+  } else if (request.method === 'POST') {
+    event.respondWith(handlePost(request, kv, whisperId));
+  } else {
+    event.respondWith(new Response(JSON.stringify({ error: 'Method not allowed.' }), {
+      status: 405,
+      headers: {
+        'Content-Type': 'application/json',
+        'Allow': 'GET, POST, OPTIONS',
+        ...getCorsHeaders(request),
+      },
+    }));
+  }
+});

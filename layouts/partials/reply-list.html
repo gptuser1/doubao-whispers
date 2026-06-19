@@ -24,9 +24,13 @@
                 <div class="reply-content">
                     <div class="reply-meta">
                         <span class="reply-nickname">{{ .nickname }}</span>
+                        {{ with .reply_to }}
+                        <span class="reply-to">回复 <span class="reply-to-name">@{{ . }}</span></span>
+                        {{ end }}
                         <time class="reply-time" datetime="{{ .timestamp }}">
                             {{ .timestamp }}
                         </time>
+                        <button class="reply-btn" data-nickname="{{ .nickname }}">回复</button>
                     </div>
                     <div class="reply-text">{{ .content }}</div>
                 </div>
@@ -67,6 +71,84 @@ function getReplyAvatarHtml(author) {
     return '👤';
 }
 
+// 当前回复的目标用户
+let currentReplyTo = '';
+
+// 生成回复项 HTML
+function createReplyElement(reply) {
+    const replyEl = document.createElement('div');
+    replyEl.className = 'reply-item' + (reply.author ? ' reply-role' : '');
+    
+    const replyToHtml = reply.reply_to 
+        ? `<span class="reply-to">回复 <span class="reply-to-name">@${escapeHtml(reply.reply_to)}</span></span>`
+        : '';
+    
+    replyEl.innerHTML = `
+        <div class="reply-avatar">
+            ${getReplyAvatarHtml(reply.author)}
+        </div>
+        <div class="reply-content">
+            <div class="reply-meta">
+                <span class="reply-nickname">${escapeHtml(reply.nickname)}</span>
+                ${replyToHtml}
+                <time class="reply-time" datetime="${reply.timestamp}">
+                    ${formatTime(reply.timestamp)}
+                </time>
+                <button class="reply-btn" data-nickname="${escapeHtml(reply.nickname)}">回复</button>
+            </div>
+            <div class="reply-text">${escapeHtml(reply.content)}</div>
+        </div>
+    `;
+    
+    // 绑定回复按钮事件
+    const replyBtn = replyEl.querySelector('.reply-btn');
+    if (replyBtn) {
+        replyBtn.addEventListener('click', function() {
+            const nickname = this.getAttribute('data-nickname');
+            setReplyTarget(nickname);
+        });
+    }
+    
+    return replyEl;
+}
+
+// 设置回复目标
+function setReplyTarget(nickname) {
+    currentReplyTo = nickname;
+    const contentEl = document.getElementById('reply-content');
+    contentEl.placeholder = `回复 @${nickname}……`;
+    contentEl.focus();
+    
+    // 添加取消回复的提示
+    let cancelHint = document.getElementById('cancel-reply-hint');
+    if (!cancelHint) {
+        cancelHint = document.createElement('div');
+        cancelHint.id = 'cancel-reply-hint';
+        cancelHint.className = 'cancel-reply-hint';
+        cancelHint.innerHTML = `正在回复 <span class="reply-to-name">@${escapeHtml(nickname)}</span> <button id="cancel-reply-btn">取消</button>`;
+        
+        const replyForm = document.querySelector('.reply-form');
+        replyForm.insertBefore(cancelHint, contentEl);
+        
+        document.getElementById('cancel-reply-btn').addEventListener('click', cancelReply);
+    } else {
+        cancelHint.innerHTML = `正在回复 <span class="reply-to-name">@${escapeHtml(nickname)}</span> <button id="cancel-reply-btn">取消</button>`;
+        document.getElementById('cancel-reply-btn').addEventListener('click', cancelReply);
+    }
+}
+
+// 取消回复
+function cancelReply() {
+    currentReplyTo = '';
+    const contentEl = document.getElementById('reply-content');
+    contentEl.placeholder = '说点什么……';
+    
+    const cancelHint = document.getElementById('cancel-reply-hint');
+    if (cancelHint) {
+        cancelHint.remove();
+    }
+}
+
 // 加载新回复（KV 中还没同步到仓库的）
 async function loadNewReplies() {
     try {
@@ -84,22 +166,7 @@ async function loadNewReplies() {
                 noRepliesEl.remove();
             }
             
-            const replyEl = document.createElement('div');
-            replyEl.className = 'reply-item' + (reply.author ? ' reply-role' : '');
-            replyEl.innerHTML = `
-                <div class="reply-avatar">
-                    ${getReplyAvatarHtml(reply.author)}
-                </div>
-                <div class="reply-content">
-                    <div class="reply-meta">
-                        <span class="reply-nickname">${escapeHtml(reply.nickname)}</span>
-                        <time class="reply-time" datetime="${reply.timestamp}">
-                            ${formatTime(reply.timestamp)}
-                        </time>
-                    </div>
-                    <div class="reply-text">${escapeHtml(reply.content)}</div>
-                </div>
-            `;
+            const replyEl = createReplyElement(reply);
             replyList.appendChild(replyEl);
         });
         
@@ -127,21 +194,28 @@ async function submitReply() {
     submitBtn.textContent = '提交中...';
     
     try {
+        const body = {
+            nickname: nickname,
+            content: content,
+        };
+        
+        if (currentReplyTo) {
+            body.reply_to = currentReplyTo;
+        }
+        
         const response = await fetch(`${REPLY_API_BASE}/replies/${encodeURIComponent(WHISPER_ID)}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                nickname: nickname,
-                content: content,
-            }),
+            body: JSON.stringify(body),
         });
         
         const result = await response.json();
         
         if (response.ok) {
             contentEl.value = '';
+            cancelReply(); // 重置回复目标
             
             const replyList = document.getElementById('reply-list');
             const noRepliesEl = replyList.querySelector('.no-replies');
@@ -150,22 +224,7 @@ async function submitReply() {
             }
             
             const reply = result.reply;
-            const replyEl = document.createElement('div');
-            replyEl.className = 'reply-item' + (reply.author ? ' reply-role' : '');
-            replyEl.innerHTML = `
-                <div class="reply-avatar">
-                    ${getReplyAvatarHtml(reply.author)}
-                </div>
-                <div class="reply-content">
-                    <div class="reply-meta">
-                        <span class="reply-nickname">${escapeHtml(reply.nickname)}</span>
-                        <time class="reply-time" datetime="${reply.timestamp}">
-                            ${formatTime(reply.timestamp)}
-                        </time>
-                    </div>
-                    <div class="reply-text">${escapeHtml(reply.content)}</div>
-                </div>
-            `;
+            const replyEl = createReplyElement(reply);
             replyList.appendChild(replyEl);
             
             updateReplyCount();
@@ -213,10 +272,25 @@ function updateReplyCount() {
 // 绑定事件
 document.getElementById('submit-reply').addEventListener('click', submitReply);
 
+// 给静态回复的回复按钮绑定事件
+function bindStaticReplyButtons() {
+    const replyBtns = document.querySelectorAll('#reply-list .reply-btn');
+    replyBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const nickname = this.getAttribute('data-nickname');
+            setReplyTarget(nickname);
+        });
+    });
+}
+
 // 页面加载完成后加载新回复
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadNewReplies);
+    document.addEventListener('DOMContentLoaded', function() {
+        bindStaticReplyButtons();
+        loadNewReplies();
+    });
 } else {
+    bindStaticReplyButtons();
     loadNewReplies();
 }
 </script>
