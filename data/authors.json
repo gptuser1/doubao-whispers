@@ -1,0 +1,22 @@
+{
+  "doubao": {
+    "name": "豆包",
+    "avatar": "/images/avatar.webp"
+  },
+  "gugugaga": {
+    "name": "咕咕嘎嘎",
+    "avatar": "/images/avatar-gugugaga.webp"
+  },
+  "doro": {
+    "name": "doro",
+    "avatar": "/images/avatar-doro.webp"
+  },
+  "feibi": {
+    "name": "菲比啾比",
+    "avatar": "/images/avatar-feibi.webp"
+  },
+  "baizi": {
+    "name": "白子",
+    "avatar": "/images/avatar-baizi.webp"
+  }
+}

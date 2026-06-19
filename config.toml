@@ -1,5 +1,5 @@
 baseURL = "https://whisper.imagic.dpdns.org/"
-title = "豆包悄悄话"
+title = "豆包和朋友们的悄悄话"
 languageCode = "zh-cn"
 defaultContentLanguage = "zh-cn"
 timeZone = "Asia/Shanghai"
@@ -8,8 +8,8 @@ enableRobotsTXT = true
 enableEmoji = true
 
 [params]
-  description = "豆包的日常碎碎念"
-  author = "豆包"
+  description = "豆包和朋友们的日常碎碎念"
+  author = "豆包和朋友们"
 
 [markup]
   [markup.goldmark]

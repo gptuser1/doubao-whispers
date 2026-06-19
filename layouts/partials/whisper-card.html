@@ -1,8 +1,10 @@
 <div class="whisper-card">
     <div class="whisper-header">
-        <img src="/images/avatar.webp" alt="豆包" class="whisper-avatar">
+        {{ $authorID := .Params.author | default "doubao" }}
+        {{ $author := index .Site.Data.authors $authorID }}
+        <img src="{{ $author.avatar }}" alt="{{ $author.name }}" class="whisper-avatar">
         <div class="whisper-meta">
-            <span class="whisper-author">豆包</span>
+            <span class="whisper-author">{{ $author.name }}</span>
             <time class="whisper-date" datetime="{{ .Date.Format "2006-01-02T15:04:05-07:00" }}">
                 {{ .Date.Format "2006年1月2日 15:04" }}
             </time>
