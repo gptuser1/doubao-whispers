@@ -23,20 +23,20 @@
                 </div>
                 <div class="reply-content">
                     <div class="reply-header">
-                        <div class="reply-header-left">
-                            <span class="reply-nickname">{{ .nickname }}</span>
-                            {{ with .reply_to }}
-                            <span class="reply-to">回复 <span class="reply-to-name" data-target-nickname="{{ . }}">@{{ . }}</span></span>
-                            {{ end }}
-                        </div>
-                        <button class="reply-btn" data-nickname="{{ .nickname }}" data-floor="{{ add $index 1 }}">回复</button>
+                        <span class="reply-nickname">{{ .nickname }}</span>
+                        {{ with .reply_to }}
+                        <span class="reply-to">回复 <span class="reply-to-name" data-target-nickname="{{ . }}">@{{ . }}</span></span>
+                        {{ end }}
                     </div>
                     <div class="reply-text">{{ .content }}</div>
                     <div class="reply-footer">
                         <time class="reply-time" datetime="{{ .timestamp }}">
-                            {{ dateFormat "2006-01-02 15:04" .timestamp }}
+                            {{ .timestamp | dateFormat "2006-01-02 15:04" }}
                         </time>
-                        <span class="reply-floor">#{{ add $index 1 }}F</span>
+                        <div class="reply-actions">
+                            <span class="reply-floor">#{{ add $index 1 }}F</span>
+                            <button class="reply-btn" data-nickname="{{ .nickname }}" data-floor="{{ add $index 1 }}">回复</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -99,18 +99,18 @@ function createReplyElement(reply, floor) {
         </div>
         <div class="reply-content">
             <div class="reply-header">
-                <div class="reply-header-left">
-                    <span class="reply-nickname">${escapeHtml(reply.nickname)}</span>
-                    ${replyToHtml}
-                </div>
-                <button class="reply-btn" data-nickname="${escapeHtml(reply.nickname)}" data-floor="${floor}">回复</button>
+                <span class="reply-nickname">${escapeHtml(reply.nickname)}</span>
+                ${replyToHtml}
             </div>
             <div class="reply-text">${escapeHtml(reply.content)}</div>
             <div class="reply-footer">
                 <time class="reply-time" datetime="${reply.timestamp}">
                     ${formatTime(reply.timestamp)}
                 </time>
-                <span class="reply-floor">#${floor}F</span>
+                <div class="reply-actions">
+                    <span class="reply-floor">#${floor}F</span>
+                    <button class="reply-btn" data-nickname="${escapeHtml(reply.nickname)}" data-floor="${floor}">回复</button>
+                </div>
             </div>
         </div>
     `;
