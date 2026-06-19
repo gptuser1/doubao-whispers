@@ -35,11 +35,14 @@
         "min_interval_hours": 0.25,
         "random_offset_min_minutes": 0,
         "random_offset_max_minutes": 5,
-        "only_between_hours": [9, 23]
+        "only_between_hours": [
+          9,
+          23
+        ]
       }
     },
     "sync_kv": {
-      "enabled": true,
+      "enabled": false,
       "name": "同步KV到仓库",
       "priority": 3,
       "schedule": {
