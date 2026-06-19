@@ -1,5 +1,5 @@
 // Pages Functions: 回复 API
-// 处理用户回复的提交和读取
+// 处理用户回复的提交和读取（通过 Cloudflare KV API 访问）
 
 const ALLOWED_ORIGINS = [
   'https://doubao-whispers.pages.dev',
@@ -41,17 +41,102 @@ function getCorsHeaders(request) {
   return headers;
 }
 
+// KV API 封装
+class KVApi {
+  constructor(accountId, namespaceId, apiToken) {
+    this.accountId = accountId;
+    this.namespaceId = namespaceId;
+    this.apiToken = apiToken;
+    this.baseUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}`;
+  }
+  
+  async get(key, { type = 'text' } = {}) {
+    try {
+      const response = await fetch(`${this.baseUrl}/values/${encodeURIComponent(key)}`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiToken}`,
+        },
+      });
+      
+      if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error(`KV get failed: ${response.status}`);
+      }
+      
+      if (type === 'json') {
+        return await response.json();
+      }
+      return await response.text();
+    } catch (e) {
+      console.error('KV get error:', e);
+      return null;
+    }
+  }
+  
+  async put(key, value, { expirationTtl } = {}) {
+    try {
+      let url = `${this.baseUrl}/values/${encodeURIComponent(key)}`;
+      if (expirationTtl) {
+        url += `?expiration_ttl=${expirationTtl}`;
+      }
+      
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${this.apiToken}`,
+          'Content-Type': 'text/plain',
+        },
+        body: typeof value === 'string' ? value : JSON.stringify(value),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`KV put failed: ${response.status}`);
+      }
+      
+      return true;
+    } catch (e) {
+      console.error('KV put error:', e);
+      return false;
+    }
+  }
+  
+  async list({ prefix } = {}) {
+    try {
+      let url = `${this.baseUrl}/keys`;
+      if (prefix) {
+        url += `?prefix=${encodeURIComponent(prefix)}`;
+      }
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${this.apiToken}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`KV list failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.result || [];
+    } catch (e) {
+      console.error('KV list error:', e);
+      return [];
+    }
+  }
+}
+
 // 检查频率限制
 async function checkRateLimit(kv, ipHash, whisperId) {
   const key = `ratelimit:${ipHash}:${whisperId}`;
-  const count = await kv.get(key, { type: 'json' }) || 0;
+  const count = parseInt(await kv.get(key)) || 0;
   
   if (count >= MAX_REPLIES_PER_WINDOW) {
     return false;
   }
   
   // 增加计数
-  await kv.put(key, count + 1, { expirationTtl: WINDOW_SECONDS });
+  await kv.put(key, (count + 1).toString(), { expirationTtl: WINDOW_SECONDS });
   return true;
 }
 
@@ -67,13 +152,18 @@ function handleOptions(request) {
 async function handleGet(request, kv, whisperId) {
   // 列出该 whisper 的所有回复
   const prefix = `reply:${whisperId}:`;
-  const list = await kv.list({ prefix });
+  const keys = await kv.list({ prefix });
   
   const replies = [];
-  for (const key of list.keys) {
-    const reply = await kv.get(key.name, { type: 'json' });
-    if (reply) {
-      replies.push(reply);
+  for (const keyObj of keys) {
+    const replyStr = await kv.get(keyObj.name);
+    if (replyStr) {
+      try {
+        const reply = JSON.parse(replyStr);
+        replies.push(reply);
+      } catch (e) {
+        // 忽略解析错误
+      }
     }
   }
   
@@ -173,7 +263,17 @@ async function handlePost(request, kv, whisperId) {
   };
   
   // 存入 KV
-  await kv.put(key, JSON.stringify(reply));
+  const success = await kv.put(key, JSON.stringify(reply));
+  
+  if (!success) {
+    return new Response(JSON.stringify({ error: 'Failed to save reply.' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        ...getCorsHeaders(request),
+      },
+    });
+  }
   
   // 返回成功响应
   return new Response(JSON.stringify({ 
@@ -197,7 +297,6 @@ async function handlePost(request, kv, whisperId) {
 export async function onRequest(context) {
   const { request, env, params } = context;
   const url = new URL(request.url);
-  const path = url.pathname;
   
   // 处理 OPTIONS 预检请求
   if (request.method === 'OPTIONS') {
@@ -215,10 +314,15 @@ export async function onRequest(context) {
     });
   }
   
-  const kv = env.REPLIES_KV;
+  // 初始化 KV API 客户端
+  const kv = new KVApi(
+    env.CF_ACCOUNT_ID,
+    env.KV_NAMESPACE_ID,
+    env.CF_API_TOKEN
+  );
   
-  if (!kv) {
-    return new Response(JSON.stringify({ error: 'KV namespace not configured.' }), {
+  if (!env.CF_API_TOKEN || !env.KV_NAMESPACE_ID || !env.CF_ACCOUNT_ID) {
+    return new Response(JSON.stringify({ error: 'KV configuration missing.' }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
