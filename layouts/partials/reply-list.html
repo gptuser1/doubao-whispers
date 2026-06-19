@@ -35,8 +35,158 @@
 </div>
 
 <script>
-// 回复提交功能（待对接 Worker API）
-document.getElementById('submit-reply').addEventListener('click', function() {
-    alert('回复功能开发中，敬请期待~');
-});
+// 回复 API 配置
+const REPLY_API_URL = 'https://doubao-whispers-api.gpt-user3.workers.dev';
+const WHISPER_ID = '{{ .File.TranslationBaseName }}';
+
+// 加载新回复（KV 中还没同步到仓库的）
+async function loadNewReplies() {
+    try {
+        const response = await fetch(`${REPLY_API_URL}?whisper_id=${WHISPER_ID}`);
+        if (!response.ok) return;
+        
+        const newReplies = await response.json();
+        const replyList = document.getElementById('reply-list');
+        
+        // 检查是否有"暂无回复"的提示
+        const noRepliesEl = replyList.querySelector('.no-replies');
+        
+        newReplies.forEach(reply => {
+            // 移除暂无回复提示
+            if (noRepliesEl) {
+                noRepliesEl.remove();
+            }
+            
+            const replyEl = document.createElement('div');
+            replyEl.className = 'reply-item' + (reply.is_doubao ? ' reply-doubao' : '');
+            replyEl.innerHTML = `
+                <div class="reply-avatar">
+                    ${reply.is_doubao ? '🤖' : '👤'}
+                </div>
+                <div class="reply-content">
+                    <div class="reply-meta">
+                        <span class="reply-nickname">${reply.nickname}</span>
+                        <time class="reply-time" datetime="${reply.timestamp}">
+                            ${formatTime(reply.timestamp)}
+                        </time>
+                    </div>
+                    <div class="reply-text">${escapeHtml(reply.content)}</div>
+                </div>
+            `;
+            replyList.appendChild(replyEl);
+        });
+        
+        // 更新回复计数
+        updateReplyCount();
+    } catch (e) {
+        console.error('加载回复失败:', e);
+    }
+}
+
+// 提交回复
+async function submitReply() {
+    const nicknameEl = document.getElementById('nickname');
+    const contentEl = document.getElementById('reply-content');
+    const submitBtn = document.getElementById('submit-reply');
+    
+    const nickname = nicknameEl.value.trim();
+    const content = contentEl.value.trim();
+    
+    if (!content) {
+        alert('回复内容不能为空哦~');
+        return;
+    }
+    
+    submitBtn.disabled = true;
+    submitBtn.textContent = '提交中...';
+    
+    try {
+        const response = await fetch(REPLY_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                whisper_id: WHISPER_ID,
+                nickname: nickname,
+                content: content,
+            }),
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            // 提交成功，清空输入框
+            contentEl.value = '';
+            
+            // 把新回复加到列表里
+            const replyList = document.getElementById('reply-list');
+            const noRepliesEl = replyList.querySelector('.no-replies');
+            if (noRepliesEl) {
+                noRepliesEl.remove();
+            }
+            
+            const replyEl = document.createElement('div');
+            replyEl.className = 'reply-item' + (result.is_doubao ? ' reply-doubao' : '');
+            replyEl.innerHTML = `
+                <div class="reply-avatar">
+                    ${result.is_doubao ? '🤖' : '👤'}
+                </div>
+                <div class="reply-content">
+                    <div class="reply-meta">
+                        <span class="reply-nickname">${result.nickname}</span>
+                        <time class="reply-time" datetime="${result.timestamp}">
+                            ${formatTime(result.timestamp)}
+                        </time>
+                    </div>
+                    <div class="reply-text">${escapeHtml(result.content)}</div>
+                </div>
+            `;
+            replyList.appendChild(replyEl);
+            
+            updateReplyCount();
+        } else {
+            alert(result.error || '提交失败，请稍后再试');
+        }
+    } catch (e) {
+        alert('网络错误，请稍后再试');
+        console.error('提交回复失败:', e);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '提交回复';
+    }
+}
+
+// 工具函数：格式化时间
+function formatTime(isoString) {
+    const date = new Date(isoString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+}
+
+// 工具函数：HTML 转义
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// 更新回复计数
+function updateReplyCount() {
+    const replyItems = document.querySelectorAll('#reply-list .reply-item');
+    const countEl = document.querySelector('.whisper-reply-count');
+    if (countEl) {
+        countEl.textContent = `${replyItems.length} 条回复`;
+    }
+}
+
+// 绑定事件
+document.getElementById('submit-reply').addEventListener('click', submitReply);
+
+// 页面加载完成后加载新回复
+document.addEventListener('DOMContentLoaded', loadNewReplies);
 </script>
