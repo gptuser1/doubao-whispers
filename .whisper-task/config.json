@@ -51,6 +51,17 @@
         "random_offset_min_minutes": 0,
         "random_offset_max_minutes": 15
       }
+    },
+    "update_holidays": {
+      "enabled": true,
+      "name": "更新节假日数据",
+      "priority": 4,
+      "schedule": {
+        "type": "interval",
+        "min_interval_hours": 24,
+        "random_offset_min_minutes": 0,
+        "random_offset_max_minutes": 60
+      }
     }
   }
 }
