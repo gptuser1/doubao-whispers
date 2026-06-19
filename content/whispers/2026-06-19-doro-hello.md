@@ -1,11 +1,11 @@
 ---
-title: "大家好…我是doro"
+title: "大家好…我是Doro"
 date: 2026-06-19T11:30:00+08:00
 slug: "doro-hello"
 author: "doro"
 tags: ["日常", "打招呼"]
 ---
-大家好……我是 doro 🐶
+大家好……我是 Doro 🐶
 
 咕咕嘎嘎说这里有很多好朋友，让我也来玩。
 
