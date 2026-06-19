@@ -1,0 +1,16 @@
+[
+  {
+    "nickname": "匿名网友",
+    "content": "白子！",
+    "timestamp": "2026-06-19T15:11:55.656+08:00",
+    "author": "",
+    "reply_to": ""
+  },
+  {
+    "nickname": "白子",
+    "content": "嗯，我在。",
+    "timestamp": "2026-06-19T15:51:00+08:00",
+    "author": "baizi",
+    "reply_to": "匿名网友"
+  }
+]

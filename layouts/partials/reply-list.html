@@ -7,8 +7,8 @@
         {{ $authors := .Site.Data.authors }}
         {{ if fileExists $replyFile }}
             {{ $replies := getJSON $replyFile }}
-            {{ range $replies }}
-            <div class="reply-item {{ if .author }}reply-role{{ end }}">
+            {{ range $index, $reply := $replies }}
+            <div class="reply-item {{ if .author }}reply-role{{ end }}" data-nickname="{{ .nickname }}" data-floor="{{ add $index 1 }}">
                 <div class="reply-avatar">
                     {{ if .author }}
                         {{ $author := index $authors .author }}
@@ -23,14 +23,15 @@
                 </div>
                 <div class="reply-content">
                     <div class="reply-meta">
+                        <span class="reply-floor">#{{ add $index 1 }}F</span>
                         <span class="reply-nickname">{{ .nickname }}</span>
                         {{ with .reply_to }}
-                        <span class="reply-to">回复 <span class="reply-to-name">@{{ . }}</span></span>
+                        <span class="reply-to">回复 <span class="reply-to-name" data-target-nickname="{{ . }}">@{{ . }}</span></span>
                         {{ end }}
                         <time class="reply-time" datetime="{{ .timestamp }}">
                             {{ .timestamp }}
                         </time>
-                        <button class="reply-btn" data-nickname="{{ .nickname }}">回复</button>
+                        <button class="reply-btn" data-nickname="{{ .nickname }}" data-floor="{{ add $index 1 }}">回复</button>
                     </div>
                     <div class="reply-text">{{ .content }}</div>
                 </div>
@@ -40,14 +41,12 @@
             <p class="no-replies">还没有回复，来说点什么吧~</p>
         {{ end }}
     </div>
-
     <div class="reply-form">
         <input type="text" id="nickname" placeholder="昵称（可选）" maxlength="20">
         <textarea id="reply-content" placeholder="说点什么……" maxlength="200" rows="3"></textarea>
         <button id="submit-reply">提交回复</button>
     </div>
 </div>
-
 <script>
 // 回复 API 配置
 const REPLY_API_BASE = 'https://api.whisper.imagic.dpdns.org';
@@ -71,17 +70,24 @@ function getReplyAvatarHtml(author) {
     return '👤';
 }
 
-// 当前回复的目标用户
+// 当前回复的目标用户和楼层
 let currentReplyTo = '';
+let currentReplyToFloor = '';
 
 // 生成回复项 HTML
-function createReplyElement(reply) {
+function createReplyElement(reply, floor) {
     const replyEl = document.createElement('div');
     replyEl.className = 'reply-item' + (reply.author ? ' reply-role' : '');
+    replyEl.setAttribute('data-nickname', reply.nickname);
+    replyEl.setAttribute('data-floor', floor);
     
-    const replyToHtml = reply.reply_to 
-        ? `<span class="reply-to">回复 <span class="reply-to-name">@${escapeHtml(reply.reply_to)}</span></span>`
-        : '';
+    let replyToHtml = '';
+    if (reply.reply_to) {
+        // 查找目标回复的楼层
+        const targetFloor = findReplyFloorByNickname(reply.reply_to);
+        const floorText = targetFloor ? ` #${targetFloor}F` : '';
+        replyToHtml = `<span class="reply-to">回复 <span class="reply-to-name" data-target-nickname="${escapeHtml(reply.reply_to)}">@${escapeHtml(reply.reply_to)}${floorText}</span></span>`;
+    }
     
     replyEl.innerHTML = `
         <div class="reply-avatar">
@@ -89,12 +95,13 @@ function createReplyElement(reply) {
         </div>
         <div class="reply-content">
             <div class="reply-meta">
+                <span class="reply-floor">#${floor}F</span>
                 <span class="reply-nickname">${escapeHtml(reply.nickname)}</span>
                 ${replyToHtml}
                 <time class="reply-time" datetime="${reply.timestamp}">
                     ${formatTime(reply.timestamp)}
                 </time>
-                <button class="reply-btn" data-nickname="${escapeHtml(reply.nickname)}">回复</button>
+                <button class="reply-btn" data-nickname="${escapeHtml(reply.nickname)}" data-floor="${floor}">回复</button>
             </div>
             <div class="reply-text">${escapeHtml(reply.content)}</div>
         </div>
@@ -105,18 +112,67 @@ function createReplyElement(reply) {
     if (replyBtn) {
         replyBtn.addEventListener('click', function() {
             const nickname = this.getAttribute('data-nickname');
-            setReplyTarget(nickname);
+            const floor = this.getAttribute('data-floor');
+            setReplyTarget(nickname, floor);
         });
     }
     
     return replyEl;
 }
 
+// 根据昵称查找回复的楼层号
+function findReplyFloorByNickname(nickname) {
+    const replyItems = document.querySelectorAll('#reply-list .reply-item');
+    for (const item of replyItems) {
+        if (item.getAttribute('data-nickname') === nickname) {
+            return item.getAttribute('data-floor');
+        }
+    }
+    return null;
+}
+
+// 更新所有回复的楼层号（新增回复后调用）
+function updateAllReplyFloors() {
+    const replyItems = document.querySelectorAll('#reply-list .reply-item');
+    replyItems.forEach((item, index) => {
+        const floor = index + 1;
+        item.setAttribute('data-floor', floor);
+        
+        // 更新楼层显示
+        const floorEl = item.querySelector('.reply-floor');
+        if (floorEl) {
+            floorEl.textContent = `#${floor}F`;
+        }
+        
+        // 更新回复按钮的楼层
+        const replyBtn = item.querySelector('.reply-btn');
+        if (replyBtn) {
+            replyBtn.setAttribute('data-floor', floor);
+        }
+    });
+    
+    // 更新所有回复的回复目标楼层显示
+    replyItems.forEach(item => {
+        const replyToNameEl = item.querySelector('.reply-to-name');
+        if (replyToNameEl) {
+            const targetNickname = replyToNameEl.getAttribute('data-target-nickname');
+            if (targetNickname) {
+                const targetFloor = findReplyFloorByNickname(targetNickname);
+                const floorText = targetFloor ? ` #${targetFloor}F` : '';
+                replyToNameEl.textContent = `@${targetNickname}${floorText}`;
+            }
+        }
+    });
+}
+
 // 设置回复目标
-function setReplyTarget(nickname) {
+function setReplyTarget(nickname, floor) {
     currentReplyTo = nickname;
+    currentReplyToFloor = floor;
+    
     const contentEl = document.getElementById('reply-content');
-    contentEl.placeholder = `回复 @${nickname}……`;
+    const floorText = floor ? ` #${floor}F` : '';
+    contentEl.placeholder = `回复 @${nickname}${floorText}……`;
     contentEl.focus();
     
     // 添加取消回复的提示
@@ -125,14 +181,14 @@ function setReplyTarget(nickname) {
         cancelHint = document.createElement('div');
         cancelHint.id = 'cancel-reply-hint';
         cancelHint.className = 'cancel-reply-hint';
-        cancelHint.innerHTML = `正在回复 <span class="reply-to-name">@${escapeHtml(nickname)}</span> <button id="cancel-reply-btn">取消</button>`;
+        cancelHint.innerHTML = `正在回复 <span class="reply-to-name">@${escapeHtml(nickname)}${floorText}</span> <button id="cancel-reply-btn">取消</button>`;
         
         const replyForm = document.querySelector('.reply-form');
         replyForm.insertBefore(cancelHint, contentEl);
         
         document.getElementById('cancel-reply-btn').addEventListener('click', cancelReply);
     } else {
-        cancelHint.innerHTML = `正在回复 <span class="reply-to-name">@${escapeHtml(nickname)}</span> <button id="cancel-reply-btn">取消</button>`;
+        cancelHint.innerHTML = `正在回复 <span class="reply-to-name">@${escapeHtml(nickname)}${floorText}</span> <button id="cancel-reply-btn">取消</button>`;
         document.getElementById('cancel-reply-btn').addEventListener('click', cancelReply);
     }
 }
@@ -140,6 +196,8 @@ function setReplyTarget(nickname) {
 // 取消回复
 function cancelReply() {
     currentReplyTo = '';
+    currentReplyToFloor = '';
+    
     const contentEl = document.getElementById('reply-content');
     contentEl.placeholder = '说点什么……';
     
@@ -161,14 +219,22 @@ async function loadNewReplies() {
         const replyList = document.getElementById('reply-list');
         const noRepliesEl = replyList.querySelector('.no-replies');
         
+        // 先获取当前最后一个楼层号
+        const existingReplies = replyList.querySelectorAll('.reply-item');
+        let currentFloor = existingReplies.length;
+        
         newReplies.forEach(reply => {
             if (noRepliesEl) {
                 noRepliesEl.remove();
             }
             
-            const replyEl = createReplyElement(reply);
+            currentFloor++;
+            const replyEl = createReplyElement(reply, currentFloor);
             replyList.appendChild(replyEl);
         });
+        
+        // 重新计算所有楼层号（因为新回复可能有reply_to指向之前的回复，需要更新显示）
+        updateAllReplyFloors();
         
         updateReplyCount();
     } catch (e) {
@@ -224,8 +290,13 @@ async function submitReply() {
             }
             
             const reply = result.reply;
-            const replyEl = createReplyElement(reply);
+            // 新回复的楼层暂时设为当前数量+1，后面会统一更新
+            const currentCount = replyList.querySelectorAll('.reply-item').length;
+            const replyEl = createReplyElement(reply, currentCount + 1);
             replyList.appendChild(replyEl);
+            
+            // 重新计算所有楼层号
+            updateAllReplyFloors();
             
             updateReplyCount();
         } else {
@@ -278,19 +349,24 @@ function bindStaticReplyButtons() {
     replyBtns.forEach(btn => {
         btn.addEventListener('click', function() {
             const nickname = this.getAttribute('data-nickname');
-            setReplyTarget(nickname);
+            const floor = this.getAttribute('data-floor');
+            setReplyTarget(nickname, floor);
         });
     });
 }
 
-// 页面加载完成后加载新回复
+// 页面加载完成后
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
         bindStaticReplyButtons();
+        // 更新静态回复的回复目标楼层显示
+        updateAllReplyFloors();
         loadNewReplies();
     });
 } else {
     bindStaticReplyButtons();
+    // 更新静态回复的回复目标楼层显示
+    updateAllReplyFloors();
     loadNewReplies();
 }
 </script>
