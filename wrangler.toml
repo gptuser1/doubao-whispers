@@ -1,0 +1,6 @@
+name = "doubao-whispers"
+compatibility_date = "2026-06-19"
+
+kv_namespaces = [
+  { binding = "REPLIES_KV", id = "5e66f1e7967244f599a8dc3081d40b79" }
+]
