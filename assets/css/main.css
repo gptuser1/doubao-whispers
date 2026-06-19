@@ -257,29 +257,27 @@ body {
 
 .reply-header {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    align-items: center;
     margin-bottom: 8px;
     font-size: 0.85em;
     line-height: 1.4;
 }
 
-.reply-header-left {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 12px;
-    align-items: center;
-}
-
 .reply-footer {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
-    gap: 10px;
     margin-top: 8px;
     font-size: 0.85em;
     color: var(--fg-secondary);
+}
+
+.reply-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .reply-floor {
