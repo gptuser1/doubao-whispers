@@ -35,8 +35,8 @@
 </div>
 
 <script>
-// 回复 API 配置
-const REPLY_API_BASE = 'https://doubao-whispers-api.gpt-user3.workers.dev';
+// 回复 API 配置（使用 Pages Functions，相对路径）
+const REPLY_API_BASE = '/api';
 const WHISPER_ID = '{{ .File.TranslationBaseName }}';
 
 // 加载新回复（KV 中还没同步到仓库的）
