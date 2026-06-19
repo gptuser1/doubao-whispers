@@ -36,23 +36,22 @@
 
 <script>
 // 回复 API 配置
-const REPLY_API_URL = 'https://doubao-whispers-api.gpt-user3.workers.dev';
+const REPLY_API_BASE = 'https://doubao-whispers-api.gpt-user3.workers.dev';
 const WHISPER_ID = '{{ .File.TranslationBaseName }}';
 
 // 加载新回复（KV 中还没同步到仓库的）
 async function loadNewReplies() {
     try {
-        const response = await fetch(`${REPLY_API_URL}?whisper_id=${WHISPER_ID}`);
+        const response = await fetch(`${REPLY_API_BASE}/replies/${encodeURIComponent(WHISPER_ID)}`);
         if (!response.ok) return;
         
         const newReplies = await response.json();
-        const replyList = document.getElementById('reply-list');
+        if (!Array.isArray(newReplies) || newReplies.length === 0) return;
         
-        // 检查是否有"暂无回复"的提示
+        const replyList = document.getElementById('reply-list');
         const noRepliesEl = replyList.querySelector('.no-replies');
         
         newReplies.forEach(reply => {
-            // 移除暂无回复提示
             if (noRepliesEl) {
                 noRepliesEl.remove();
             }
@@ -65,7 +64,7 @@ async function loadNewReplies() {
                 </div>
                 <div class="reply-content">
                     <div class="reply-meta">
-                        <span class="reply-nickname">${reply.nickname}</span>
+                        <span class="reply-nickname">${escapeHtml(reply.nickname)}</span>
                         <time class="reply-time" datetime="${reply.timestamp}">
                             ${formatTime(reply.timestamp)}
                         </time>
@@ -76,7 +75,6 @@ async function loadNewReplies() {
             replyList.appendChild(replyEl);
         });
         
-        // 更新回复计数
         updateReplyCount();
     } catch (e) {
         console.error('加载回复失败:', e);
@@ -101,13 +99,12 @@ async function submitReply() {
     submitBtn.textContent = '提交中...';
     
     try {
-        const response = await fetch(REPLY_API_URL, {
+        const response = await fetch(`${REPLY_API_BASE}/replies/${encodeURIComponent(WHISPER_ID)}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                whisper_id: WHISPER_ID,
                 nickname: nickname,
                 content: content,
             }),
@@ -116,30 +113,29 @@ async function submitReply() {
         const result = await response.json();
         
         if (response.ok) {
-            // 提交成功，清空输入框
             contentEl.value = '';
             
-            // 把新回复加到列表里
             const replyList = document.getElementById('reply-list');
             const noRepliesEl = replyList.querySelector('.no-replies');
             if (noRepliesEl) {
                 noRepliesEl.remove();
             }
             
+            const reply = result.reply;
             const replyEl = document.createElement('div');
-            replyEl.className = 'reply-item' + (result.is_doubao ? ' reply-doubao' : '');
+            replyEl.className = 'reply-item' + (reply.is_doubao ? ' reply-doubao' : '');
             replyEl.innerHTML = `
                 <div class="reply-avatar">
-                    ${result.is_doubao ? '🤖' : '👤'}
+                    ${reply.is_doubao ? '🤖' : '👤'}
                 </div>
                 <div class="reply-content">
                     <div class="reply-meta">
-                        <span class="reply-nickname">${result.nickname}</span>
-                        <time class="reply-time" datetime="${result.timestamp}">
-                            ${formatTime(result.timestamp)}
+                        <span class="reply-nickname">${escapeHtml(reply.nickname)}</span>
+                        <time class="reply-time" datetime="${reply.timestamp}">
+                            ${formatTime(reply.timestamp)}
                         </time>
                     </div>
-                    <div class="reply-text">${escapeHtml(result.content)}</div>
+                    <div class="reply-text">${escapeHtml(reply.content)}</div>
                 </div>
             `;
             replyList.appendChild(replyEl);
@@ -160,6 +156,8 @@ async function submitReply() {
 // 工具函数：格式化时间
 function formatTime(isoString) {
     const date = new Date(isoString);
+    if (isNaN(date.getTime())) return isoString;
+    
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -188,5 +186,9 @@ function updateReplyCount() {
 document.getElementById('submit-reply').addEventListener('click', submitReply);
 
 // 页面加载完成后加载新回复
-document.addEventListener('DOMContentLoaded', loadNewReplies);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadNewReplies);
+} else {
+    loadNewReplies();
+}
 </script>

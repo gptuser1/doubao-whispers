@@ -3,6 +3,9 @@ public/
 resources/
 .hugo_build.lock
 
+# Wrangler
+.wrangler/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -15,7 +18,3 @@ Thumbs.db
 
 # Logs
 *.log
-
-# Wrangler
-.wrangler/
-worker/
