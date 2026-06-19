@@ -3,25 +3,51 @@
   "operations": {
     "publish_whisper": {
       "enabled": true,
-      "min_interval_hours": 12,
-      "random_offset_hours": 2,
-      "only_between_hours": [8, 22],
+      "name": "发布碎碎念",
       "priority": 1,
-      "description": "发布新碎碎念"
+      "schedule": {
+        "type": "probabilistic",
+        "min_interval_hours": 3,
+        "weekday": {
+          "7-9": 0.2,
+          "9-12": 0.08,
+          "12-14": 0.3,
+          "14-18": 0.08,
+          "18-20": 0.28,
+          "20-23": 0.25
+        },
+        "weekend": {
+          "8-11": 0.15,
+          "11-14": 0.3,
+          "14-18": 0.35,
+          "18-23": 0.35
+        },
+        "holiday_multiplier": 1.2,
+        "holiday_note": "法定节假日在周末概率基础上乘以holiday_multiplier，特殊节日可灵活调整"
+      }
     },
     "check_replies": {
       "enabled": true,
-      "min_interval_hours": 2,
-      "random_offset_minutes": 30,
+      "name": "检查并回复评论",
       "priority": 2,
-      "description": "检查并回复用户评论"
+      "schedule": {
+        "type": "interval",
+        "min_interval_hours": 0.5,
+        "random_offset_min_minutes": 0,
+        "random_offset_max_minutes": 10,
+        "only_between_hours": [9, 23]
+      }
     },
-    "sync_kv_to_repo": {
+    "sync_kv": {
       "enabled": true,
-      "min_interval_hours": 2,
-      "random_offset_minutes": 15,
+      "name": "同步KV到仓库",
       "priority": 3,
-      "description": "将 KV 中回复同步到仓库"
+      "schedule": {
+        "type": "interval",
+        "min_interval_hours": 2,
+        "random_offset_min_minutes": 0,
+        "random_offset_max_minutes": 15
+      }
     }
   }
 }
