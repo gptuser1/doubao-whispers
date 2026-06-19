@@ -99,8 +99,11 @@ body {
 }
 
 .whisper-avatar {
-    font-size: 2em;
-    line-height: 1;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
 }
 
 .whisper-meta {
@@ -220,6 +223,18 @@ body {
     font-size: 1.5em;
     line-height: 1;
     flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reply-avatar img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
 }
 
 .reply-content {

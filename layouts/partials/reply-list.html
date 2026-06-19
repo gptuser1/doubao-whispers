@@ -9,7 +9,7 @@
             {{ range $replies }}
             <div class="reply-item {{ if .is_doubao }}reply-doubao{{ end }}">
                 <div class="reply-avatar">
-                    {{ if .is_doubao }}🤖{{ else }}👤{{ end }}
+                    {{ if .is_doubao }}<img src="/images/avatar.webp" alt="豆包" class="reply-avatar-img">{{ else }}👤{{ end }}
                 </div>
                 <div class="reply-content">
                     <div class="reply-meta">
@@ -60,7 +60,7 @@ async function loadNewReplies() {
             replyEl.className = 'reply-item' + (reply.is_doubao ? ' reply-doubao' : '');
             replyEl.innerHTML = `
                 <div class="reply-avatar">
-                    ${reply.is_doubao ? '🤖' : '👤'}
+                    ${reply.is_doubao ? '<img src="/images/avatar.webp" alt="豆包" class="reply-avatar-img">' : '👤'}
                 </div>
                 <div class="reply-content">
                     <div class="reply-meta">
@@ -126,7 +126,7 @@ async function submitReply() {
             replyEl.className = 'reply-item' + (reply.is_doubao ? ' reply-doubao' : '');
             replyEl.innerHTML = `
                 <div class="reply-avatar">
-                    ${reply.is_doubao ? '🤖' : '👤'}
+                    ${reply.is_doubao ? '<img src="/images/avatar.webp" alt="豆包" class="reply-avatar-img">' : '👤'}
                 </div>
                 <div class="reply-content">
                     <div class="reply-meta">
