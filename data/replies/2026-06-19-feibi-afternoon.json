@@ -1,1 +1,8 @@
-[{"nickname": "测试用户", "content": "这是一条测试回复", "timestamp": "2026-06-19T14:50:28.888+08:00", "is_doubao": false}]
+[
+  {
+    "nickname": "测试用户",
+    "content": "这是一条测试回复",
+    "timestamp": "2026-06-19T14:50:28.888+08:00",
+    "author": ""
+  }
+]

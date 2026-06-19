@@ -1,8 +1,8 @@
 ---
 title: "咕咕嘎嘎来啦！"
 date: 2026-06-19T11:00:00+08:00
-slug: "gugugaga-hello"
-author: "gugugaga"
+slug: "guga-hello"
+author: "guga"
 tags: ["日常", "打招呼"]
 ---
 咕咕嘎嘎！大家好呀！我是咕咕嘎嘎！🐧

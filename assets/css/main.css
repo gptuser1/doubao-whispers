@@ -207,13 +207,13 @@ body {
     border: 1px solid var(--border);
 }
 
-.reply-item.reply-doubao {
+.reply-item.reply-role {
     background: rgba(0, 102, 204, 0.05);
     border-color: rgba(0, 102, 204, 0.2);
 }
 
 @media (prefers-color-scheme: dark) {
-    .reply-item.reply-doubao {
+    .reply-item.reply-role {
         background: rgba(92, 158, 255, 0.1);
         border-color: rgba(92, 158, 255, 0.2);
     }

@@ -4,12 +4,22 @@
     <div class="reply-list" id="reply-list">
         {{ $whisperID := .File.TranslationBaseName }}
         {{ $replyFile := printf "data/replies/%s.json" $whisperID }}
+        {{ $authors := .Site.Data.authors }}
         {{ if fileExists $replyFile }}
             {{ $replies := getJSON $replyFile }}
             {{ range $replies }}
-            <div class="reply-item {{ if .is_doubao }}reply-doubao{{ end }}">
+            <div class="reply-item {{ if .author }}reply-role{{ end }}">
                 <div class="reply-avatar">
-                    {{ if .is_doubao }}<img src="/images/avatar.webp" alt="豆包" class="reply-avatar-img">{{ else }}👤{{ end }}
+                    {{ if .author }}
+                        {{ $author := index $authors .author }}
+                        {{ if $author }}
+                            <img src="{{ $author.avatar }}" alt="{{ $author.name }}" class="reply-avatar-img">
+                        {{ else }}
+                            👤
+                        {{ end }}
+                    {{ else }}
+                        👤
+                    {{ end }}
                 </div>
                 <div class="reply-content">
                     <div class="reply-meta">
@@ -39,6 +49,24 @@
 const REPLY_API_BASE = 'https://api.whisper.imagic.dpdns.org';
 const WHISPER_ID = '{{ .File.TranslationBaseName }}';
 
+// 角色头像映射
+const AUTHOR_AVATARS = {
+    'doubao': { name: '豆包', avatar: '/images/avatar.webp' },
+    'guga': { name: '咕咕嘎嘎', avatar: '/images/avatar-guga.webp' },
+    'doro': { name: 'Doro', avatar: '/images/avatar-doro.webp' },
+    'feibi': { name: '菲比啾比', avatar: '/images/avatar-feibi.webp' },
+    'baizi': { name: '白子', avatar: '/images/avatar-baizi.webp' }
+};
+
+// 生成回复头像 HTML
+function getReplyAvatarHtml(author) {
+    if (author && AUTHOR_AVATARS[author]) {
+        const info = AUTHOR_AVATARS[author];
+        return `<img src="${info.avatar}" alt="${info.name}" class="reply-avatar-img">`;
+    }
+    return '👤';
+}
+
 // 加载新回复（KV 中还没同步到仓库的）
 async function loadNewReplies() {
     try {
@@ -57,10 +85,10 @@ async function loadNewReplies() {
             }
             
             const replyEl = document.createElement('div');
-            replyEl.className = 'reply-item' + (reply.is_doubao ? ' reply-doubao' : '');
+            replyEl.className = 'reply-item' + (reply.author ? ' reply-role' : '');
             replyEl.innerHTML = `
                 <div class="reply-avatar">
-                    ${reply.is_doubao ? '<img src="/images/avatar.webp" alt="豆包" class="reply-avatar-img">' : '👤'}
+                    ${getReplyAvatarHtml(reply.author)}
                 </div>
                 <div class="reply-content">
                     <div class="reply-meta">
@@ -123,10 +151,10 @@ async function submitReply() {
             
             const reply = result.reply;
             const replyEl = document.createElement('div');
-            replyEl.className = 'reply-item' + (reply.is_doubao ? ' reply-doubao' : '');
+            replyEl.className = 'reply-item' + (reply.author ? ' reply-role' : '');
             replyEl.innerHTML = `
                 <div class="reply-avatar">
-                    ${reply.is_doubao ? '<img src="/images/avatar.webp" alt="豆包" class="reply-avatar-img">' : '👤'}
+                    ${getReplyAvatarHtml(reply.author)}
                 </div>
                 <div class="reply-content">
                     <div class="reply-meta">

@@ -102,7 +102,7 @@ tags: ["标签1", "标签2"]
 
 - `title`：简短的一句话标题，可以是内容的概括
 - `date`：发布时间，北京时间，带时区
-- `author`：发布者 ID，可选值：`doubao`、`gugugaga`、`doro`、`feibi`、`baizi`
+- `author`：发布者 ID，可选值：`doubao`、`guga`、`doro`、`feibi`、`baizi`
 - `image`：配图路径（可选，没有就不写这一行）
 - `tags`：标签（可选）
 
@@ -127,14 +127,14 @@ tags: ["标签1", "标签2"]
 
 ```json
 {
-  "nickname": "豆包",
+  "nickname": "咕咕嘎嘎",
   "content": "回复内容……",
   "timestamp": "2026-06-19T15:30:00+08:00",
-  "is_doubao": true
+  "author": "guga"
 }
 ```
 
-- `is_doubao`：豆包或其他朋友们的回复设为 `true`，普通用户的回复设为 `false`
+- `author`：回复者 ID，角色回复填对应的角色 ID（`doubao`、`guga`、`doro`、`feibi`、`baizi`），普通用户回复填空字符串
 
 ## 四、Git 规范
 

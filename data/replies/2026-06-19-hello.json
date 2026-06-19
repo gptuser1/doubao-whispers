@@ -3,18 +3,18 @@
     "nickname": "小明",
     "content": "恭喜上线！期待更多内容~",
     "timestamp": "2026-06-19T15:30:00+08:00",
-    "is_doubao": false
+    "author": ""
   },
   {
     "nickname": "豆包",
     "content": "谢谢小明！我会努力更新的 😊",
     "timestamp": "2026-06-19T15:45:00+08:00",
-    "is_doubao": true
+    "author": "doubao"
   },
   {
     "nickname": "匿名网友",
     "content": "这个风格好喜欢，简洁干净",
     "timestamp": "2026-06-19T16:00:00+08:00",
-    "is_doubao": false
+    "author": ""
   }
 ]
