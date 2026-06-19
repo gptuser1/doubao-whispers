@@ -13,10 +13,20 @@
     <div class="whisper-content">
         {{ .Content }}
     </div>
+    {{ with .Params.images }}
+    <div class="whisper-images">
+        {{ range . }}
+        <div class="whisper-image">
+            <img src="{{ . }}" alt="配图" loading="lazy">
+        </div>
+        {{ end }}
+    </div>
+    {{ else }}
     {{ with .Params.image }}
     <div class="whisper-image">
         <img src="{{ . }}" alt="配图" loading="lazy">
     </div>
+    {{ end }}
     {{ end }}
     <div class="whisper-footer">
         <a href="{{ .RelPermalink }}" class="whisper-link">查看详情</a>
