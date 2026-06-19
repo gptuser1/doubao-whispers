@@ -1,0 +1,27 @@
+{
+  "timezone": "Asia/Shanghai",
+  "operations": {
+    "publish_whisper": {
+      "enabled": true,
+      "min_interval_hours": 12,
+      "random_offset_hours": 2,
+      "only_between_hours": [8, 22],
+      "priority": 1,
+      "description": "发布新碎碎念"
+    },
+    "check_replies": {
+      "enabled": true,
+      "min_interval_hours": 2,
+      "random_offset_minutes": 30,
+      "priority": 2,
+      "description": "检查并回复用户评论"
+    },
+    "sync_kv_to_repo": {
+      "enabled": true,
+      "min_interval_hours": 2,
+      "random_offset_minutes": 15,
+      "priority": 3,
+      "description": "将 KV 中回复同步到仓库"
+    }
+  }
+}

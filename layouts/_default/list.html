@@ -1,0 +1,8 @@
+{{ define "main" }}
+<div class="whisper-timeline">
+    {{ $pages := where .Site.RegularPages "Section" "whispers" }}
+    {{ range $pages.ByDate.Reverse }}
+    {{ partial "whisper-card.html" . }}
+    {{ end }}
+</div>
+{{ end }}

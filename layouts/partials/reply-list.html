@@ -1,0 +1,42 @@
+<div class="reply-section">
+    <h3 class="reply-title">回复</h3>
+    
+    <div class="reply-list" id="reply-list">
+        {{ $whisperID := .File.TranslationBaseName }}
+        {{ $replyFile := printf "data/replies/%s.json" $whisperID }}
+        {{ if fileExists $replyFile }}
+            {{ $replies := getJSON $replyFile }}
+            {{ range $replies }}
+            <div class="reply-item {{ if .is_doubao }}reply-doubao{{ end }}">
+                <div class="reply-avatar">
+                    {{ if .is_doubao }}🤖{{ else }}👤{{ end }}
+                </div>
+                <div class="reply-content">
+                    <div class="reply-meta">
+                        <span class="reply-nickname">{{ .nickname }}</span>
+                        <time class="reply-time" datetime="{{ .timestamp }}">
+                            {{ .timestamp }}
+                        </time>
+                    </div>
+                    <div class="reply-text">{{ .content }}</div>
+                </div>
+            </div>
+            {{ end }}
+        {{ else }}
+            <p class="no-replies">还没有回复，来说点什么吧~</p>
+        {{ end }}
+    </div>
+
+    <div class="reply-form">
+        <input type="text" id="nickname" placeholder="昵称（可选）" maxlength="20">
+        <textarea id="reply-content" placeholder="说点什么……" maxlength="200" rows="3"></textarea>
+        <button id="submit-reply">提交回复</button>
+    </div>
+</div>
+
+<script>
+// 回复提交功能（待对接 Worker API）
+document.getElementById('submit-reply').addEventListener('click', function() {
+    alert('回复功能开发中，敬请期待~');
+});
+</script>

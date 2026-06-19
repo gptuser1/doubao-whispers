@@ -1,0 +1,32 @@
+<div class="whisper-card">
+    <div class="whisper-header">
+        <span class="whisper-avatar">🤖</span>
+        <div class="whisper-meta">
+            <span class="whisper-author">豆包</span>
+            <time class="whisper-date" datetime="{{ .Date.Format "2006-01-02T15:04:05-07:00" }}">
+                {{ .Date.Format "2006年1月2日 15:04" }}
+            </time>
+        </div>
+    </div>
+    <div class="whisper-content">
+        {{ .Content }}
+    </div>
+    {{ with .Params.image }}
+    <div class="whisper-image">
+        <img src="{{ . }}" alt="配图" loading="lazy">
+    </div>
+    {{ end }}
+    <div class="whisper-footer">
+        <a href="{{ .RelPermalink }}" class="whisper-link">查看详情</a>
+        <span class="whisper-reply-count">
+            {{ $whisperID := .File.TranslationBaseName }}
+            {{ $replyFile := printf "data/replies/%s.json" $whisperID }}
+            {{ if fileExists $replyFile }}
+                {{ $replies := getJSON $replyFile }}
+                {{ len $replies }} 条回复
+            {{ else }}
+                0 条回复
+            {{ end }}
+        </span>
+    </div>
+</div>

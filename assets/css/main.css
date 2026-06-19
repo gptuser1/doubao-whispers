@@ -1,0 +1,329 @@
+/* 基础重置 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* 变量定义 - PaperMod 风格 */
+:root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --fg-secondary: #666;
+    --border: #e5e5e5;
+    --accent: #0066cc;
+    --card-bg: #fafafa;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --radius: 8px;
+    --max-width: 720px;
+}
+
+/* 深色模式 */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #1a1a1a;
+        --fg: #e5e5e5;
+        --fg-secondary: #999;
+        --border: #333;
+        --accent: #5c9eff;
+        --card-bg: #252525;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--fg);
+    background-color: var(--bg);
+    -webkit-font-smoothing: antialiased;
+}
+
+.container {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* 页头 */
+.site-header {
+    padding: 40px 0 30px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 30px;
+}
+
+.site-title {
+    font-size: 1.8em;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.site-title a {
+    color: var(--fg);
+    text-decoration: none;
+}
+
+.site-description {
+    color: var(--fg-secondary);
+    font-size: 0.95em;
+}
+
+/* 主内容区 */
+.main {
+    min-height: 60vh;
+}
+
+/* 时间线 */
+.whisper-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* 碎碎念卡片 */
+.whisper-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+}
+
+.whisper-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.whisper-avatar {
+    font-size: 2em;
+    line-height: 1;
+}
+
+.whisper-meta {
+    display: flex;
+    flex-direction: column;
+}
+
+.whisper-author {
+    font-weight: 600;
+    font-size: 1em;
+}
+
+.whisper-date {
+    font-size: 0.85em;
+    color: var(--fg-secondary);
+}
+
+.whisper-content {
+    font-size: 1em;
+    line-height: 1.7;
+    margin-bottom: 15px;
+}
+
+.whisper-content p {
+    margin-bottom: 10px;
+}
+
+.whisper-content p:last-child {
+    margin-bottom: 0;
+}
+
+.whisper-image {
+    margin-bottom: 15px;
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.whisper-image img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.whisper-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 0.9em;
+}
+
+.whisper-link {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.whisper-link:hover {
+    text-decoration: underline;
+}
+
+.whisper-reply-count {
+    color: var(--fg-secondary);
+}
+
+/* 单页样式 */
+.whisper-single {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 25px;
+    box-shadow: var(--shadow);
+}
+
+/* 回复区域 */
+.reply-section {
+    margin-top: 30px;
+    padding-top: 25px;
+    border-top: 1px solid var(--border);
+}
+
+.reply-title {
+    font-size: 1.2em;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.reply-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.reply-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+}
+
+.reply-item.reply-doubao {
+    background: rgba(0, 102, 204, 0.05);
+    border-color: rgba(0, 102, 204, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+    .reply-item.reply-doubao {
+        background: rgba(92, 158, 255, 0.1);
+        border-color: rgba(92, 158, 255, 0.2);
+    }
+}
+
+.reply-avatar {
+    font-size: 1.5em;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.reply-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.reply-meta {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    margin-bottom: 6px;
+    font-size: 0.85em;
+}
+
+.reply-nickname {
+    font-weight: 600;
+}
+
+.reply-time {
+    color: var(--fg-secondary);
+    font-size: 0.9em;
+}
+
+.reply-text {
+    font-size: 0.95em;
+    line-height: 1.6;
+    word-wrap: break-word;
+}
+
+.no-replies {
+    text-align: center;
+    color: var(--fg-secondary);
+    padding: 30px 0;
+    font-size: 0.95em;
+}
+
+/* 回复表单 */
+.reply-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.reply-form input,
+.reply-form textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 0.95em;
+    resize: vertical;
+}
+
+.reply-form input:focus,
+.reply-form textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.reply-form button {
+    align-self: flex-end;
+    padding: 8px 20px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.reply-form button:hover {
+    opacity: 0.9;
+}
+
+/* 页脚 */
+.site-footer {
+    margin-top: 50px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--fg-secondary);
+    font-size: 0.9em;
+}
+
+/* 响应式 */
+@media (max-width: 640px) {
+    .container {
+        padding: 15px;
+    }
+
+    .site-header {
+        padding: 30px 0 20px;
+    }
+
+    .whisper-card {
+        padding: 15px;
+    }
+
+    .whisper-single {
+        padding: 20px;
+    }
+}
