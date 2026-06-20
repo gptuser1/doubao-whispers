@@ -25,7 +25,7 @@
                     <div class="reply-header">
                         <span class="reply-nickname">{{ .nickname }}</span>
                         {{ with .reply_to }}
-                        <span class="reply-to">回复 <span class="reply-to-name" data-target-nickname="{{ . }}" data-target-floor="{{ if $.reply_to_floor }}{{ $.reply_to_floor }}{{ end }}">@{{ . }}{{ if $.reply_to_floor }} #{{ $.reply_to_floor }}F{{ end }}</span></span>
+                        <span class="reply-to">回复 <span class="reply-to-name" data-target-nickname="{{ . }}" data-target-floor="{{ if $reply.reply_to_floor }}{{ $reply.reply_to_floor }}{{ end }}">@{{ . }}{{ if $reply.reply_to_floor }} #{{ $reply.reply_to_floor }}F{{ end }}</span></span>
                         {{ end }}
                     </div>
                     <div class="reply-text">{{ .content }}</div>
