@@ -143,6 +143,11 @@
    - 如果是节假日，**知道具体是什么节日**（比如端午节、春节）
    - 判断当天是不是调休上班日
    - 如果当年的数据不存在，先联网搜索并更新文件
+   - **快捷方式**：可以直接用工具脚本快速判断，返回 JSON 格式结果：
+     ```bash
+     python .whisper-task/scripts/check_holiday.py 2026-06-20 --holidays-file .whisper-task/holidays.json
+     ```
+     返回字段：`type`（workday/weekend/holiday）、`holiday_name`（节日名）、`is_workday`（是否工作日）、`weekday`（星期几）
 3. 根据确认结果，判断当天属于哪种场景：
    - 工作日（周一至周五，非节假日，调休上班的周末也算）
    - 周末（周六周日，非节假日，没有调休）
@@ -218,7 +223,13 @@
 
 #### 2.3.4 处理工具与方法
 
-使用 **Python Pillow 库** 处理图片，处理流程：
+**推荐使用工具脚本**（最简单，直接调用就行）：
+```bash
+python .whisper-task/scripts/process_image.py 输入图片路径 输出图片.webp
+```
+自动完成：按最大边 1200px 缩放、转 WebP 格式、质量 80、超过 500KB 自动降质量。
+
+**如果需要手动处理**，使用 **Python Pillow 库**，处理流程：
 
 1. 下载或生成原图
 2. 用 Pillow 打开图片：`Image.open()`
@@ -264,8 +275,20 @@
 
 ### 2.5 文件格式
 
-每条碎碎念一个 Markdown 文件，放在 `content/whispers/` 目录下。
+每条碎碎念一个 Markdown 文件，放在 `content/whispers/` 目录下，按年/月分目录（如 `content/whispers/2026/06/`）。
 
+**推荐使用工具脚本创建**（自动处理目录、文件名、front matter 格式）：
+```bash
+python .whisper-task/scripts/create_post.py \
+  --date "2026-06-20T14:30:00+08:00" \
+  --author guga \
+  --title "今天吃了好吃的" \
+  --content "今天吃了超好吃的包子！咕咕嘎嘎～" \
+  --images "/images/2026-06-20-xxx-1.webp" \
+  --tags "美食" "日常"
+```
+
+**手动创建格式**：
 文件名格式：`YYYY-MM-DD-{slug}.md`
 
 文件内容：
@@ -284,7 +307,7 @@ tags: ["标签1", "标签2"]
 
 - `title`：简短的一句话标题，可以是内容的概括
 - `date`：发布时间，北京时间，带时区
-- `author`：发布者 ID，可选值：`doubao`、`guga`、`doro`、`feibi`、`baizi`
+- `author`：发布者 ID，可选值：`doubao`、`guga`、`doro`、`feibi`、`baizi`、`nuonuo`
 - `images`：配图路径数组（可选，没有就不写这一项；单张也可以用 `image` 字段，兼容旧格式）
 - `tags`：标签（可选）
 
@@ -344,7 +367,11 @@ tags: ["标签1", "标签2"]
      - 将生成的角色回复也追加到回复数组中
      - 按 timestamp 升序排序，重新计算楼层号（floor 字段）
      - 写回月文件
-   - 注意：用户回复的 `author` 字段为空字符串，角色回复的 `author` 字段填对应的角色 ID（doubao/guga/doro/feibi/baizi）
+   - **推荐使用工具脚本**（自动处理排序、重算楼层号、月文件不存在的情况）：
+     ```bash
+     python .whisper-task/scripts/reply_utils.py add data/replies/2026-06.json 2026-06-20-xxx '[{"nickname":"...", "content":"...", ...}]'
+     ```
+   - 注意：用户回复的 `author` 字段为空字符串，角色回复的 `author` 字段填对应的角色 ID（doubao/guga/doro/feibi/baizi/nuonuo）
    - 回复文件按月份归档，每月一个 JSON 文件，按 whisper_id 索引
 
 5. **从 KV 中删除已处理的回复（非常重要！绝对不能跳过）**
@@ -449,7 +476,7 @@ tags: ["标签1", "标签2"]
 }
 \`\`\`
 
-- `author`：回复者 ID，角色回复填对应的角色 ID（`doubao`、`guga`、`doro`、`feibi`、`baizi`），普通用户回复填空字符串
+- `author`：回复者 ID，角色回复填对应的角色 ID（`doubao`、`guga`、`doro`、`feibi`、`baizi`、`nuonuo`），普通用户回复填空字符串
 - `reply_to`：回复的目标用户昵称（可选）
   - **回复某条具体的评论时**：填对方的昵称，前端会显示「回复 @XXX #楼层号」
   - **直接回复碎碎念动态时**：填空字符串或不写这个字段，前端不会显示「回复 @XXX」
