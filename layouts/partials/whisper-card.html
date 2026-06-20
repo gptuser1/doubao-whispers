@@ -32,13 +32,10 @@
         <a href="{{ .RelPermalink }}" class="whisper-link">查看详情</a>
         <span class="whisper-reply-count">
             {{ $whisperID := .File.TranslationBaseName }}
-            {{ $replyFile := printf "data/replies/%s.json" $whisperID }}
-            {{ if fileExists $replyFile }}
-                {{ $replies := getJSON $replyFile }}
-                {{ len $replies }} 条回复
-            {{ else }}
-                0 条回复
-            {{ end }}
+            {{ $yearMonth := .Date.Format "2006-01" }}
+            {{ $monthReplies := index .Site.Data.replies $yearMonth | default dict }}
+            {{ $replies := index $monthReplies $whisperID | default slice }}
+            {{ len $replies }} 条回复
         </span>
     </div>
 </div>
