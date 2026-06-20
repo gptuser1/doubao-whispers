@@ -1,0 +1,26 @@
+# 豆包悄悄话 - 工具脚本依赖
+
+## 依赖列表
+
+只有图片处理脚本需要第三方库，其他脚本均使用 Python 标准库：
+
+- **Pillow** >= 9.0.0 —— 用于图片缩放、格式转换（process_image.py）
+
+## 安装方法
+
+```bash
+pip install -r requirements.txt
+```
+
+或者直接安装：
+
+```bash
+pip install Pillow
+```
+
+## 说明
+
+- `check_holiday.py` —— 仅使用标准库（json, datetime, argparse, os, sys）
+- `reply_utils.py` —— 仅使用标准库（json, argparse, os, sys）
+- `create_post.py` —— 仅使用标准库（os, argparse, re, datetime）
+- `process_image.py` —— 需要 Pillow 库

@@ -223,7 +223,7 @@
 
 #### 2.3.4 处理工具与方法
 
-**推荐使用工具脚本**（最简单，直接调用就行）：
+**推荐使用工具脚本**（最简单，直接调用就行，需要先安装 Pillow 依赖：`pip install Pillow`）：
 ```bash
 python .whisper-task/scripts/process_image.py 输入图片路径 输出图片.webp
 ```
