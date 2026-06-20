@@ -3,10 +3,11 @@
     
     <div class="reply-list" id="reply-list">
         {{ $whisperID := .File.TranslationBaseName }}
-        {{ $replyFile := printf "data/replies/%s.json" $whisperID }}
+        {{ $yearMonth := .Date.Format "2006-01" }}
         {{ $authors := .Site.Data.authors }}
-        {{ if fileExists $replyFile }}
-            {{ $replies := getJSON $replyFile }}
+        {{ $monthReplies := index .Site.Data.replies $yearMonth | default dict }}
+        {{ $replies := index $monthReplies $whisperID | default slice }}
+        {{ if gt (len $replies) 0 }}
             {{ range $index, $reply := $replies }}
             <div class="reply-item {{ if .author }}reply-role{{ end }}{{ if .reply_to }} reply-nested{{ end }}" data-nickname="{{ .nickname }}" data-floor="{{ add $index 1 }}">
                 <div class="reply-avatar">

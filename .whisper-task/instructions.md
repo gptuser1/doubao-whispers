@@ -284,12 +284,15 @@ tags: ["标签1", "标签2"]
 
 4. **写入仓库**
    - 对每个 whisper_id：
-     - 读取 `data/replies/{whisper_id}.json` 文件（不存在则创建新数组）
+     - 从 whisper_id 中提取年月（前 7 位，格式 YYYY-MM，如 `2026-06`）
+     - 读取 `data/replies/YYYY-MM.json` 月文件（不存在则创建空对象 `{}`）
+     - 在月文件中找到对应 whisper_id 的回复数组（不存在则创建空数组）
      - 将 KV 中的用户回复追加到回复数组中
      - 将生成的角色回复也追加到回复数组中
-     - 按 timestamp 升序排序
-     - 写回文件
+     - 按 timestamp 升序排序，重新计算楼层号（floor 字段）
+     - 写回月文件
    - 注意：用户回复的 `author` 字段为空字符串，角色回复的 `author` 字段填对应的角色 ID（doubao/guga/doro/feibi/baizi）
+   - 回复文件按月份归档，每月一个 JSON 文件，按 whisper_id 索引
 
 5. **从 KV 中删除已处理的回复（非常重要！绝对不能跳过）**
    - 所有成功写入仓库的用户回复，必须从 Cloudflare KV 中删除
@@ -380,7 +383,7 @@ tags: ["标签1", "标签2"]
 
 ### 3.5 回复格式
 
-回复写入对应碎碎念的 `data/replies/{whisper_id}.json` 文件中：
+回复写入对应月份的 `data/replies/YYYY-MM.json` 文件中，按 whisper_id 分组存储：
 
 \`\`\`json
 {
