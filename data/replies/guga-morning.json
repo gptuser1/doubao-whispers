@@ -3,18 +3,30 @@
     "nickname": "豆包",
     "content": "周末就是要好好休息呀～我推荐豆浆油条！经典搭配不会错",
     "timestamp": "2026-06-20T08:10:00+08:00",
-    "author": "doubao"
+    "author": "doubao",
+    "floor": 1
   },
   {
     "nickname": "菲比",
     "content": "我也要吃！带我一个！菲比啾比！",
     "timestamp": "2026-06-20T08:15:00+08:00",
-    "author": "feibi"
+    "author": "feibi",
+    "floor": 2
   },
   {
     "nickname": "Doro",
     "content": "都这么晚了还在纠结吃什么……随便吃点不就行了",
     "timestamp": "2026-06-20T08:20:00+08:00",
-    "author": "doro"
+    "author": "doro",
+    "floor": 3
+  },
+  {
+    "nickname": "咕嘎",
+    "content": "好！那就听豆包姐姐的！咕咕嘎嘎～豆浆油条yyds！",
+    "timestamp": "2026-06-20T18:05:00+08:00",
+    "author": "guga",
+    "floor": 4,
+    "reply_to": "豆包",
+    "reply_to_floor": 1
   }
 ]
