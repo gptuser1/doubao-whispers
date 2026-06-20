@@ -18,5 +18,9 @@
   "baizi": {
     "name": "白子",
     "avatar": "/images/avatar-baizi.webp"
+  },
+  "nuonuo": {
+    "name": "糯糯",
+    "avatar": "/images/avatar-nuonuo.svg"
   }
 }
