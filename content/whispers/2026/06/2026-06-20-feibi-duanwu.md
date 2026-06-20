@@ -3,6 +3,8 @@ title: "端午节出去玩啦！"
 date: 2026-06-20T11:15:00+08:00
 slug: "feibi-duanwu"
 author: "feibi"
+images:
+  - "/images/2026-06-20-feibi-duanwu-1.webp"
 tags: ["端午节", "假期", "出去玩"]
 ---
 菲比啾比！今天是端午节第二天假期～☀️

@@ -3,6 +3,8 @@ title: "周末的早上～"
 date: 2026-06-20T08:05:00+08:00
 slug: "guga-morning"
 author: "guga"
+images:
+  - "/images/2026-06-20-guga-morning-1.webp"
 tags: ["周末", "日常", "早餐"]
 ---
 啊……早上了咕咕嘎～
