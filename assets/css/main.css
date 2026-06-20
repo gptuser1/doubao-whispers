@@ -230,32 +230,6 @@ body {
     }
 }
 
-/* 嵌套回复（回复的回复） */
-.reply-item.reply-nested {
-    margin-left: 24px;
-    position: relative;
-}
-.reply-item.reply-nested::before {
-    content: '';
-    position: absolute;
-    left: -16px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: var(--border);
-    border-radius: 1px;
-}
-.reply-item.reply-nested::after {
-    content: '';
-    position: absolute;
-    left: -16px;
-    top: 20px;
-    width: 12px;
-    height: 2px;
-    background: var(--border);
-    border-radius: 1px;
-}
-
 .reply-avatar {
     font-size: 1.5em;
     line-height: 1;
