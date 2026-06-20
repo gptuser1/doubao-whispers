@@ -142,12 +142,21 @@ async function handleGet(request, env, whisperId) {
   replies.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
   
   // 移除 ip_hash 等内部字段
-  const publicReplies = replies.map(r => ({
-    nickname: r.nickname,
-    content: r.content,
-    timestamp: r.timestamp,
-    is_doubao: r.is_doubao || false,
-  }));
+  const publicReplies = replies.map(r => {
+    const reply = {
+      nickname: r.nickname,
+      content: r.content,
+      timestamp: r.timestamp,
+      is_doubao: r.is_doubao || false,
+    };
+    if (r.reply_to) {
+      reply.reply_to = r.reply_to;
+    }
+    if (r.reply_to_floor) {
+      reply.reply_to_floor = r.reply_to_floor;
+    }
+    return reply;
+  });
   
   return new Response(JSON.stringify(publicReplies), {
     status: 200,
@@ -232,6 +241,10 @@ async function handlePost(request, env, whisperId) {
   const now = new Date();
   const timestamp = new Date(now.getTime() + 8 * 60 * 60 * 1000).toISOString().replace('Z', '+08:00');
   
+  // 处理 reply_to 和 reply_to_floor
+  const reply_to = body.reply_to ? String(body.reply_to).trim() : '';
+  const reply_to_floor = body.reply_to_floor ? parseInt(body.reply_to_floor, 10) : null;
+  
   // 构建回复对象
   const reply = {
     nickname,
@@ -241,18 +254,34 @@ async function handlePost(request, env, whisperId) {
     is_doubao: false,
   };
   
+  if (reply_to) {
+    reply.reply_to = reply_to;
+  }
+  if (reply_to_floor && reply_to_floor > 0) {
+    reply.reply_to_floor = reply_to_floor;
+  }
+  
   // 存入 KV
   await kvPut(env, key, JSON.stringify(reply));
+  
+  // 构建返回的回复对象
+  const publicReply = {
+    nickname,
+    content,
+    timestamp,
+    is_doubao: false,
+  };
+  if (reply_to) {
+    publicReply.reply_to = reply_to;
+  }
+  if (reply_to_floor && reply_to_floor > 0) {
+    publicReply.reply_to_floor = reply_to_floor;
+  }
   
   // 返回成功响应
   return new Response(JSON.stringify({ 
     success: true,
-    reply: {
-      nickname,
-      content,
-      timestamp,
-      is_doubao: false,
-    }
+    reply: publicReply
   }), {
     status: 200,
     headers: {

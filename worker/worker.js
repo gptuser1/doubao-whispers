@@ -157,6 +157,7 @@ async function handlePost(request, kv, whisperId) {
   
   // 处理回复目标
   const replyTo = (body.reply_to || '').trim();
+  const replyToFloor = body.reply_to_floor ? parseInt(body.reply_to_floor) : null;
   
   // 生成唯一 ID
   const uuid = crypto.randomUUID();
@@ -176,19 +177,29 @@ async function handlePost(request, kv, whisperId) {
     reply_to: replyTo || '',
   };
   
+  if (replyToFloor) {
+    reply.reply_to_floor = replyToFloor;
+  }
+  
   // 存入 KV
   await kv.put(key, JSON.stringify(reply));
   
   // 返回成功响应
+  const responseReply = {
+    nickname,
+    content,
+    timestamp,
+    is_doubao: false,
+    reply_to: replyTo || '',
+  };
+  
+  if (replyToFloor) {
+    responseReply.reply_to_floor = replyToFloor;
+  }
+  
   return new Response(JSON.stringify({ 
     success: true,
-    reply: {
-      nickname,
-      content,
-      timestamp,
-      is_doubao: false,
-      reply_to: replyTo || '',
-    }
+    reply: responseReply,
   }), {
     status: 200,
     headers: {

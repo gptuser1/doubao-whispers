@@ -8,7 +8,7 @@
         {{ if fileExists $replyFile }}
             {{ $replies := getJSON $replyFile }}
             {{ range $index, $reply := $replies }}
-            <div class="reply-item {{ if .author }}reply-role{{ end }}" data-nickname="{{ .nickname }}" data-floor="{{ add $index 1 }}">
+            <div class="reply-item {{ if .author }}reply-role{{ end }}{{ if .reply_to }} reply-nested{{ end }}" data-nickname="{{ .nickname }}" data-floor="{{ add $index 1 }}">
                 <div class="reply-avatar">
                     {{ if .author }}
                         {{ $author := index $authors .author }}
@@ -25,7 +25,7 @@
                     <div class="reply-header">
                         <span class="reply-nickname">{{ .nickname }}</span>
                         {{ with .reply_to }}
-                        <span class="reply-to">回复 <span class="reply-to-name" data-target-nickname="{{ . }}">@{{ . }}</span></span>
+                        <span class="reply-to">回复 <span class="reply-to-name" data-target-nickname="{{ . }}" data-target-floor="{{ if $.reply_to_floor }}{{ $.reply_to_floor }}{{ end }}">@{{ . }}{{ if $.reply_to_floor }} #{{ $.reply_to_floor }}F{{ end }}</span></span>
                         {{ end }}
                     </div>
                     <div class="reply-text">{{ .content }}</div>
@@ -81,16 +81,19 @@ let currentReplyToFloor = '';
 // 生成回复项 HTML
 function createReplyElement(reply, floor) {
     const replyEl = document.createElement('div');
-    replyEl.className = 'reply-item' + (reply.author ? ' reply-role' : '');
+    replyEl.className = 'reply-item' + (reply.author ? ' reply-role' : '') + (reply.reply_to ? ' reply-nested' : '');
     replyEl.setAttribute('data-nickname', reply.nickname);
     replyEl.setAttribute('data-floor', floor);
     
     let replyToHtml = '';
     if (reply.reply_to) {
-        // 查找目标回复的楼层
-        const targetFloor = findReplyFloorByNickname(reply.reply_to);
+        // 优先使用 reply_to_floor 字段，没有的话再根据昵称查找
+        let targetFloor = reply.reply_to_floor;
+        if (!targetFloor) {
+            targetFloor = findReplyFloorByNickname(reply.reply_to);
+        }
         const floorText = targetFloor ? ` #${targetFloor}F` : '';
-        replyToHtml = `<span class="reply-to">回复 <span class="reply-to-name" data-target-nickname="${escapeHtml(reply.reply_to)}">@${escapeHtml(reply.reply_to)}${floorText}</span></span>`;
+        replyToHtml = `<span class="reply-to">回复 <span class="reply-to-name" data-target-nickname="${escapeHtml(reply.reply_to)}" data-target-floor="${targetFloor || ''}">@${escapeHtml(reply.reply_to)}${floorText}</span></span>`;
     }
     
     replyEl.innerHTML = `
@@ -275,6 +278,9 @@ async function submitReply() {
         
         if (currentReplyTo) {
             body.reply_to = currentReplyTo;
+            if (currentReplyToFloor) {
+                body.reply_to_floor = parseInt(currentReplyToFloor);
+            }
         }
         
         const response = await fetch(`${REPLY_API_BASE}/replies/${encodeURIComponent(WHISPER_ID)}`, {
