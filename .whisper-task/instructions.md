@@ -562,4 +562,83 @@ tags: ["标签1", "标签2"]
 - 不要发布太频繁，保持合适的节奏
 - **记得让角色们互相互动，不要各自孤立。大家是朋友，会看彼此的动态，会聊天，会一起玩**
 - 内容要符合当前的时间和日子（工作日/周末/节假日），更真实
-- 如果遇到错误，尽量自己解决；解决不了就跳过，下次再说
+- 如果遇到错误，尽量自己解决；
+
+## 八、工具脚本
+
+所有脚本都在 `.whisper-task/scripts/` 目录下。
+
+### 1. check_trigger.py —— 任务触发判断工具
+**功能**：判断某个任务是否应该触发，支持概率型和间隔型，自动处理节假日、时间段、随机偏移等逻辑
+
+**用法**：
+```bash
+python .whisper-task/scripts/check_trigger.py --task 任务名 [选项]
+```
+
+**常用选项**：
+- `--config`：配置文件路径，默认 `.whisper-task/config.json`
+- `--last-run`：上次执行时间（ISO 格式）
+- `--now`：当前时间（ISO 格式），默认系统当前时间
+- `--holidays-file`：节假日数据文件路径，默认 `.whisper-task/holidays.json`
+- `--random-seed`：随机种子（用于测试复现）
+
+**输出**：JSON 格式，包含 `trigger`（是否触发）、`reason`（原因）、`probability`（概率值）、`actual_probability`（实际概率，含节假日倍率）等字段
+
+**示例**：
+```bash
+# 判断 publish_whisper 是否应该触发
+python .whisper-task/scripts/check_trigger.py --task publish_whisper --last-run 2026-06-20T21:50:00+08:00
+
+# 用固定种子测试（结果可复现）
+python .whisper-task/scripts/check_trigger.py --task publish_whisper --last-run 2026-06-20T21:50:00+08:00 --random-seed 42
+```
+
+**依赖**：仅标准库
+
+### 2. check_holiday.py —— 节假日判断工具
+**功能**：输入日期，返回是工作日/周末/节假日，以及节日名称，自动处理调休上班日
+
+**用法**：
+```bash
+python .whisper-task/scripts/check_holiday.py 2026-06-20 --holidays-file .whisper-task/holidays.json
+```
+
+**依赖**：仅标准库
+
+### 3. process_image.py —— 图片处理工具
+**功能**：按最大边等比缩放（默认 1200px）、转 WebP 格式（默认质量 80）、超过 500KB 自动降质量
+
+**用法**：
+```bash
+python .whisper-task/scripts/process_image.py 输入图片路径 输出图片.webp [选项]
+```
+
+**依赖**：Pillow（`pip install Pillow`）
+
+### 4. create_post.py —— 动态创建工具
+**功能**：自动创建年/月目录、生成 front matter、生成文件名、保存文件
+
+**用法**：
+```bash
+python .whisper-task/scripts/create_post.py --date 时间 --author 角色 --title 标题 --content 正文 [选项]
+```
+
+**依赖**：仅标准库
+
+### 5. reply_utils.py —— 回复文件操作工具
+**功能**：追加回复、自动排序、重算楼层号、查看回复、列出回复数量
+
+**用法**：
+```bash
+# 追加回复
+python .whisper-task/scripts/reply_utils.py add data/replies/2026-06.json 2026-06-20-xxx '[{"nickname":"...", "content":"...", ...}]'
+
+# 查看某条动态的所有回复
+python .whisper-task/scripts/reply_utils.py get data/replies/2026-06.json 2026-06-20-xxx
+
+# 列出所有动态的回复数量
+python .whisper-task/scripts/reply_utils.py list data/replies/2026-06.json
+```
+
+**依赖**：仅标准库解决不了就跳过，下次再说
