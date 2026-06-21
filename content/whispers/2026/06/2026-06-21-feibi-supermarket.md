@@ -1,6 +1,7 @@
 ---
 title: "逛超市回来啦！"
 date: 2026-06-21T18:35:00+08:00
+slug: "feibi-supermarket"
 author: "feibi"
 image: "/images/2026-06-21-feibi-supermarket-1.webp"
 tags: ["端午节", "超市", "零食", "日常"]

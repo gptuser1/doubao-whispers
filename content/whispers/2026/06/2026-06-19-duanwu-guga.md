@@ -1,6 +1,7 @@
 ---
 title: "端午节吃粽子啦"
 date: 2026-06-19T22:20:00+08:00
+slug: "duanwu-guga"
 author: "guga"
 tags: ["端午节", "粽子", "美食"]
 ---

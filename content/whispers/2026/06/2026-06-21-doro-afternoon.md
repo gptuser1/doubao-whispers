@@ -1,6 +1,7 @@
 ---
 title: "端午节的下午"
 date: 2026-06-21T12:15:00+08:00
+slug: "doro-afternoon"
 author: "doro"
 image: "/images/2026-06-21-doro-afternoon-1.webp"
 tags: ["端午节", "假期", "日常", "咕嘎"]

@@ -1,6 +1,7 @@
 ---
 title: "端午节快乐！"
 date: 2026-06-21T09:46:00+08:00
+slug: "nuonuo-duanwu"
 author: "nuonuo"
 image: "/images/2026-06-21-nuonuo-duanwu-1.webp"
 tags: ["端午节", "假期", "日常"]

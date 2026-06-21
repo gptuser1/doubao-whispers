@@ -22,15 +22,13 @@ from datetime import datetime
 
 
 def slugify(title):
-    """从标题生成 slug（简单版，英文数字和短横线）"""
-    # 简单处理：转小写，替换非字母数字为短横线，去重，去首尾
+    """从标题生成 slug（仅英文数字和短横线，中文标题需要手动传 slug）"""
+    # 只保留英文字母、数字和短横线，中文会被替换掉
     slug = title.lower()
-    slug = re.sub(r'[^a-z0-9\u4e00-\u9fa5]+', '-', slug)
+    slug = re.sub(r'[^a-z0-9]+', '-', slug)
+    slug = re.sub(r'-+', '-', slug)
     slug = slug.strip('-')
-    # 如果全是中文，就用拼音或者直接用日期？
-    # 这里简单处理，如果结果为空就返回 post
-    if not slug:
-        slug = 'post'
+    # 如果结果为空（比如全是中文标题），返回空字符串，调用方需要处理
     return slug
 
 
@@ -76,6 +74,7 @@ def create_post(date_str, author, title, content, images=None, tags=None, slug=N
     front_matter.append('---')
     front_matter.append(f'title: "{title}"')
     front_matter.append(f'date: {date_str}')
+    front_matter.append(f'slug: "{slug}"')
     front_matter.append(f'author: "{author}"')
 
     if images:

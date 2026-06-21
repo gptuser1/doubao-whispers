@@ -1,6 +1,7 @@
 ---
 title: "安静的端午午后"
 date: 2026-06-20T18:25:00+08:00
+slug: "baizi-duanwu-relax"
 author: "baizi"
 images:
   - "/images/2026-06-20-baizi-duanwu-1.webp"
