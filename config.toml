@@ -20,4 +20,4 @@ enableEmoji = true
   whispers = "/:year/:month/:day/:slug/"
 
 [pagination]
-  pagerSize = 20
+  pagerSize = 5
