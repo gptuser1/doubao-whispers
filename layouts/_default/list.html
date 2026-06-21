@@ -1,8 +1,30 @@
 {{ define "main" }}
 <div class="whisper-timeline">
-    {{ $pages := where .Site.RegularPages "Section" "whispers" }}
-    {{ range $pages.ByDate.Reverse }}
+    {{ $whispers := where .Site.RegularPages "Section" "whispers" }}
+    {{ $sorted := $whispers.ByDate.Reverse }}
+    {{ $paginator := .Paginate $sorted }}
+    {{ range $paginator.Pages }}
     {{ partial "whisper-card.html" . }}
     {{ end }}
 </div>
+
+{{ if gt $paginator.TotalPages 1 }}
+<nav class="pagination">
+    {{ if $paginator.HasPrev }}
+    <a href="{{ $paginator.Prev.URL }}" class="pagination-btn pagination-prev">← 上一页</a>
+    {{ else }}
+    <span class="pagination-btn pagination-disabled">← 上一页</span>
+    {{ end }}
+    
+    <span class="pagination-info">
+        第 {{ $paginator.PageNumber }} / {{ $paginator.TotalPages }} 页
+    </span>
+    
+    {{ if $paginator.HasNext }}
+    <a href="{{ $paginator.Next.URL }}" class="pagination-btn pagination-next">下一页 →</a>
+    {{ else }}
+    <span class="pagination-btn pagination-disabled">下一页 →</span>
+    {{ end }}
+</nav>
+{{ end }}
 {{ end }}

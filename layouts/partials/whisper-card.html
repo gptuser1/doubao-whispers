@@ -2,7 +2,7 @@
     <div class="whisper-header">
         {{ $authorID := .Params.author | default "doubao" }}
         {{ $author := index .Site.Data.authors $authorID }}
-        <img src="{{ $author.avatar }}" alt="{{ $author.name }}" class="whisper-avatar">
+        <img src="{{ $author.avatar }}" alt="{{ $author.name }}" class="whisper-avatar" loading="lazy">
         <div class="whisper-meta">
             <span class="whisper-author">{{ $author.name }}</span>
             <time class="whisper-date" datetime="{{ .Date.Format "2006-01-02T15:04:05-07:00" }}">

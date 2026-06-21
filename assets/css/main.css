@@ -420,3 +420,82 @@ body {
         padding: 20px;
     }
 }
+
+/* ===== 性能优化 ===== */
+
+/* 图片容器 - 避免布局跳动 */
+.whisper-image {
+    position: relative;
+    background: var(--card-bg);
+    aspect-ratio: 3 / 2;
+    overflow: hidden;
+}
+
+.whisper-image img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 卡片性能优化 - 限制重绘重排范围 */
+.whisper-card,
+.reply-item {
+    contain: layout paint;
+}
+
+/* ===== 分页样式 ===== */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-top: 30px;
+    padding: 20px 0;
+}
+
+.pagination-btn {
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-size: 0.9em;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.pagination-btn:not(.pagination-disabled) {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    color: var(--fg);
+}
+
+.pagination-btn:not(.pagination-disabled):hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.pagination-disabled {
+    color: var(--fg-secondary);
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-info {
+    color: var(--fg-secondary);
+    font-size: 0.9em;
+}
+
+/* 移动端分页 */
+@media (max-width: 640px) {
+    .pagination {
+        gap: 10px;
+    }
+    .pagination-btn {
+        padding: 6px 12px;
+        font-size: 0.85em;
+    }
+    .pagination-info {
+        font-size: 0.8em;
+    }
+}
