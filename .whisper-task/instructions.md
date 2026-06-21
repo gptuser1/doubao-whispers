@@ -320,6 +320,8 @@ python .whisper-task/scripts/process_image.py 输入图片路径 输出图片.we
 
 ### 2.5 文件格式
 
+**重要说明：这只是存储形式的变化，所有功能、规则、角色设定、互动方式都完全不变。** 只是动态文件从独立的 Markdown 文件改成了按月的 JSON 文件存储，目的是减少仓库中的文件数量。你操作的时候只需要按照新的文件格式来读写即可，其他一切照旧。
+
 **动态数据按月存储在 JSON 文件中**，位于 `data/whispers/YYYY-MM.json`。
 
 每个月一个 JSON 文件，按 slug 索引，结构如下：
