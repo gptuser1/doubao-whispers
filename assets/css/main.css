@@ -517,3 +517,41 @@ body {
     color: white;
     cursor: default;
 }
+
+/* 跳页输入框 */
+.pagination-jump {
+    margin-left: 8px;
+}
+
+.pagination-jump-input {
+    width: 50px;
+    height: 36px;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card-bg);
+    color: var(--fg);
+    font-size: 0.9em;
+    text-align: center;
+    transition: border-color 0.2s ease;
+}
+
+.pagination-jump-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.pagination-jump-input::placeholder {
+    color: var(--fg-secondary);
+    font-size: 0.85em;
+}
+
+/* 隐藏 number input 的上下箭头 */
+.pagination-jump-input::-webkit-outer-spin-button,
+.pagination-jump-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.pagination-jump-input[type=number] {
+    -moz-appearance: textfield;
+}

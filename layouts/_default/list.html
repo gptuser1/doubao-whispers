@@ -26,11 +26,44 @@
         {{ end }}
     </div>
     
+    <div class="pagination-jump">
+        <input type="number" class="pagination-jump-input" min="1" max="{{ $paginator.TotalPages }}" placeholder="跳页" data-total-pages="{{ $paginator.TotalPages }}">
+    </div>
+    
     {{ if $paginator.HasNext }}
     <a href="{{ $paginator.Next.URL }}" class="pagination-btn pagination-next">→</a>
     {{ else }}
     <span class="pagination-btn pagination-disabled">→</span>
     {{ end }}
 </nav>
+
+<script>
+// 页码跳转
+document.addEventListener('DOMContentLoaded', function() {
+    const jumpInput = document.querySelector('.pagination-jump-input');
+    if (!jumpInput) return;
+    
+    const totalPages = parseInt(jumpInput.dataset.totalPages);
+    
+    jumpInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            let page = parseInt(this.value);
+            if (isNaN(page) || page < 1) page = 1;
+            if (page > totalPages) page = totalPages;
+            
+            // 构造分页 URL
+            const currentPath = window.location.pathname;
+            let basePath = currentPath.replace(/\/page\/\d+\/?$/, '');
+            if (!basePath.endsWith('/')) basePath += '/';
+            
+            if (page === 1) {
+                window.location.href = basePath;
+            } else {
+                window.location.href = basePath + 'page/' + page + '/';
+            }
+        }
+    });
+});
+</script>
 {{ end }}
 {{ end }}
