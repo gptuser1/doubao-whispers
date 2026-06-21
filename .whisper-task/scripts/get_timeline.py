@@ -248,7 +248,7 @@ def main():
         replies = get_replies(post['whisper_id'], post['year_month'])
         
         if replies:
-            print(f'💬 回复（{len(replies)}条）：')
+            print(f'回复（{len(replies)}条）：')
             print()
             
             for reply in replies:
@@ -278,22 +278,22 @@ def main():
                 
                 print()
         else:
-            print('💬 暂无回复')
+            print('暂无回复')
             print()
         
         print()
     
     # 7. 输出配图统计
     print('━' * 50)
-    print(f'📊 配图统计（最近 {total} 条）：')
-    print(f'   有配图：{posts_with_images} 条')
-    print(f'   纯文字：{posts_without_images} 条')
-    print(f'   纯文字占比：{text_only_ratio:.1f}%')
+    print(f'配图统计（最近 {total} 条）：')
+    print(f'  有配图：{posts_with_images} 条')
+    print(f'  纯文字：{posts_without_images} 条')
+    print(f'  纯文字占比：{text_only_ratio:.1f}%')
     print()
     if text_only_ratio >= 20:
-        print(f'   ⚠️  纯文字比例已超过 20%，新动态建议配图')
+        print(f'  状态：纯文字比例超过 20%，新动态必须配图')
     else:
-        print(f'   ✅ 纯文字比例在 20% 以内，正常')
+        print(f'  状态：纯文字比例在 20% 以内，正常')
     print()
 
 
