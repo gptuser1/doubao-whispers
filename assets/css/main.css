@@ -451,13 +451,17 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 20px;
+    gap: 12px;
     margin-top: 30px;
     padding: 20px 0;
 }
 
 .pagination-btn {
-    padding: 8px 16px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: var(--radius);
     font-size: 0.9em;
     text-decoration: none;
@@ -477,25 +481,39 @@ body {
 
 .pagination-disabled {
     color: var(--fg-secondary);
-    opacity: 0.5;
+    opacity: 0.3;
     cursor: not-allowed;
 }
 
-.pagination-info {
-    color: var(--fg-secondary);
-    font-size: 0.9em;
+.pagination-pages {
+    display: flex;
+    gap: 8px;
 }
 
-/* 移动端分页 */
-@media (max-width: 640px) {
-    .pagination {
-        gap: 10px;
-    }
-    .pagination-btn {
-        padding: 6px 12px;
-        font-size: 0.85em;
-    }
-    .pagination-info {
-        font-size: 0.8em;
-    }
+.pagination-page {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    font-size: 0.9em;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    color: var(--fg);
+}
+
+.pagination-page:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.pagination-page.pagination-current {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    cursor: default;
 }

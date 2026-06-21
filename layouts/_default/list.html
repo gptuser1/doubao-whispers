@@ -11,19 +11,25 @@
 {{ if gt $paginator.TotalPages 1 }}
 <nav class="pagination">
     {{ if $paginator.HasPrev }}
-    <a href="{{ $paginator.Prev.URL }}" class="pagination-btn pagination-prev">← 上一页</a>
+    <a href="{{ $paginator.Prev.URL }}" class="pagination-btn pagination-prev">←</a>
     {{ else }}
-    <span class="pagination-btn pagination-disabled">← 上一页</span>
+    <span class="pagination-btn pagination-disabled">←</span>
     {{ end }}
     
-    <span class="pagination-info">
-        第 {{ $paginator.PageNumber }} / {{ $paginator.TotalPages }} 页
-    </span>
+    <div class="pagination-pages">
+        {{ range $paginator.Pagers }}
+        {{ if eq . $paginator }}
+        <span class="pagination-page pagination-current">{{ .PageNumber }}</span>
+        {{ else }}
+        <a href="{{ .URL }}" class="pagination-page">{{ .PageNumber }}</a>
+        {{ end }}
+        {{ end }}
+    </div>
     
     {{ if $paginator.HasNext }}
-    <a href="{{ $paginator.Next.URL }}" class="pagination-btn pagination-next">下一页 →</a>
+    <a href="{{ $paginator.Next.URL }}" class="pagination-btn pagination-next">→</a>
     {{ else }}
-    <span class="pagination-btn pagination-disabled">下一页 →</span>
+    <span class="pagination-btn pagination-disabled">→</span>
     {{ end }}
 </nav>
 {{ end }}
