@@ -145,7 +145,7 @@
    - 如果当年的数据不存在，先联网搜索并更新文件
    - **快捷方式**：可以直接用工具脚本快速判断，返回 JSON 格式结果：
      ```bash
-     python .whisper-task/scripts/check_holiday.py 2026-06-20 --holidays-file .whisper-task/holidays.json
+     python .whisper-task/scripts/check_trigger.py holiday 2026-06-20 --holidays-file .whisper-task/holidays.json
      ```
      返回字段：`type`（workday/weekend/holiday）、`holiday_name`（节日名）、`is_workday`（是否工作日）、`weekday`（星期几）
 3. 根据确认结果，判断当天属于哪种场景：
@@ -568,22 +568,38 @@ tags: ["标签1", "标签2"]
 
 所有脚本都在 `.whisper-task/scripts/` 目录下。
 
-### 1. check_trigger.py —— 任务触发判断工具
-**功能**：判断某个任务是否应该触发，支持概率型和间隔型，自动处理节假日、时间段、随机偏移等逻辑
+### 1. check_trigger.py —— 任务触发与节假日判断工具
+**功能**：整合了任务触发判断和节假日判断两种功能，通过子命令切换。
+
+**子命令**：
+- `trigger`（默认）：判断某个任务是否应该触发，支持概率型和间隔型，自动处理节假日、时间段、随机偏移等逻辑
+- `holiday`：只判断节假日，输入日期返回是工作日/周末/节假日，以及节日名称，自动处理调休上班日
 
 **用法**：
 ```bash
+# 判断任务是否触发（默认 trigger 模式，可以省略子命令）
+python .whisper-task/scripts/check_trigger.py trigger --task 任务名 [选项]
 python .whisper-task/scripts/check_trigger.py --task 任务名 [选项]
+
+# 只判断节假日
+python .whisper-task/scripts/check_trigger.py holiday [日期] [选项]
 ```
 
-**常用选项**：
+**trigger 子命令常用选项**：
 - `--config`：配置文件路径，默认 `.whisper-task/config.json`
 - `--last-run`：上次执行时间（ISO 格式）
 - `--now`：当前时间（ISO 格式），默认系统当前时间
 - `--holidays-file`：节假日数据文件路径，默认 `.whisper-task/holidays.json`
 - `--random-seed`：随机种子（用于测试复现）
+- `--random-offset`：随机偏移分钟数（间隔型用，用于测试）
 
-**输出**：JSON 格式，包含 `trigger`（是否触发）、`reason`（原因）、`probability`（概率值）、`actual_probability`（实际概率，含节假日倍率）等字段
+**holiday 子命令参数**：
+- `date`：日期（YYYY-MM-DD），不填则默认今天
+- `--holidays-file`：节假日数据文件路径，默认 `.whisper-task/holidays.json`
+
+**输出**：JSON 格式
+- trigger 模式：包含 `trigger`（是否触发）、`reason`（原因）、`probability`（概率值）、`actual_probability`（实际概率，含节假日倍率）等字段
+- holiday 模式：包含 `type`（workday/weekend/holiday）、`holiday_name`（节日名）、`is_workday`（是否工作日）、`weekday`（星期几）等字段
 
 **示例**：
 ```bash
@@ -592,21 +608,14 @@ python .whisper-task/scripts/check_trigger.py --task publish_whisper --last-run 
 
 # 用固定种子测试（结果可复现）
 python .whisper-task/scripts/check_trigger.py --task publish_whisper --last-run 2026-06-20T21:50:00+08:00 --random-seed 42
+
+# 判断某天是不是节假日
+python .whisper-task/scripts/check_trigger.py holiday 2026-06-20
 ```
 
 **依赖**：仅标准库
 
-### 2. check_holiday.py —— 节假日判断工具
-**功能**：输入日期，返回是工作日/周末/节假日，以及节日名称，自动处理调休上班日
-
-**用法**：
-```bash
-python .whisper-task/scripts/check_holiday.py 2026-06-20 --holidays-file .whisper-task/holidays.json
-```
-
-**依赖**：仅标准库
-
-### 3. process_image.py —— 图片处理工具
+### 2. process_image.py —— 图片处理工具
 **功能**：按最大边等比缩放（默认 1200px）、转 WebP 格式（默认质量 80）、超过 500KB 自动降质量
 
 **用法**：
@@ -616,7 +625,7 @@ python .whisper-task/scripts/process_image.py 输入图片路径 输出图片.we
 
 **依赖**：Pillow（`pip install Pillow`）
 
-### 4. create_post.py —— 动态创建工具
+### 3. create_post.py —— 动态创建工具
 **功能**：自动创建年/月目录、生成 front matter、生成文件名、保存文件
 
 **用法**：
@@ -626,7 +635,7 @@ python .whisper-task/scripts/create_post.py --date 时间 --author 角色 --titl
 
 **依赖**：仅标准库
 
-### 5. reply_utils.py —— 回复文件操作工具
+### 4. reply_utils.py —— 回复文件操作工具
 **功能**：追加回复、自动排序、重算楼层号、查看回复、列出回复数量
 
 **用法**：

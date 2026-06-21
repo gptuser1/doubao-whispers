@@ -1,24 +1,17 @@
 #!/usr/bin/env python3
 """
 任务触发判断工具
-判断某个任务是否应该触发，支持概率型和间隔型。
+整合了节假日判断和任务触发判断两种功能。
 
 用法：
-    python check_trigger.py --task publish_whisper --last-run 2026-06-20T21:50:00+08:00
-
-输出（JSON 格式）：
-    {
-      "task": "publish_whisper",
-      "type": "probabilistic",
-      "trigger": false,
-      "reason": "随机判断未命中",
-      "probability": 0.35,
-      "actual_probability": 0.35,
-      "time_slot": "9-12",
-      "day_type": "restday",
-      "holiday_name": null,
-      "wait_minutes": 0
-    }
+    # 判断任务是否触发（默认功能）
+    python check_trigger.py trigger --task publish_whisper --last-run 2026-06-20T21:50:00+08:00
+    
+    # 只判断节假日
+    python check_trigger.py holiday 2026-06-20
+    
+    # 不传子命令默认是 trigger 模式
+    python check_trigger.py --task publish_whisper --last-run ...
 """
 import argparse
 import json
@@ -27,11 +20,125 @@ import random
 import sys
 from datetime import datetime, timedelta, timezone, date
 
-# 确保同目录下的模块可以被 import
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from check_holiday import load_holidays, check_holiday
+# ==================== 节假日判断 ====================
 
+def load_holidays(holidays_file):
+    """加载节假日数据"""
+    if not os.path.exists(holidays_file):
+        print(f"错误：节假日文件不存在：{holidays_file}", file=sys.stderr)
+        return None
+    with open(holidays_file, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def check_holiday(date_str, holidays_file):
+    """
+    判断某天是什么类型
+
+    Args:
+        date_str: 日期字符串 YYYY-MM-DD
+        holidays_file: 节假日数据文件路径
+
+    Returns:
+        字典，包含 date, type, is_workday, holiday_name, weekday
+    """
+    d = datetime.strptime(date_str, '%Y-%m-%d').date()
+    year = d.year
+
+    # 加载节假日数据
+    holidays_data = load_holidays(holidays_file)
+    if holidays_data is None:
+        # 节假日文件不存在，按星期几判断
+        weekday_cn = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'][d.weekday()]
+        is_workday = d.weekday() < 5
+        return {
+            'date': date_str,
+            'type': 'workday' if is_workday else 'weekend',
+            'is_workday': is_workday,
+            'holiday_name': None,
+            'weekday': weekday_cn,
+            'note': '无节假日数据，按星期几判断'
+        }
+
+    # 找到对应年份的数据
+    year_data = None
+    if str(year) in holidays_data:
+        year_data = holidays_data[str(year)]
+    elif 'holidays' in holidays_data:
+        year_data = holidays_data
+    else:
+        year_data = holidays_data
+
+    # 提取节假日和调休工作日列表
+    holidays_list = []
+    workdays_list = []
+    holiday_names = {}  # date -> name
+
+    if year_data:
+        # 处理 holidays 数组
+        raw_holidays = year_data.get('holidays', [])
+        for h in raw_holidays:
+            if isinstance(h, dict):
+                name = h.get('name', '')
+                dates = h.get('dates', [])
+                for d_str in dates:
+                    holidays_list.append(d_str)
+                    holiday_names[d_str] = name
+            elif isinstance(h, str):
+                holidays_list.append(h)
+
+        # 处理 workdays 数组（调休上班日）
+        raw_workdays = year_data.get('workdays', [])
+        for w in raw_workdays:
+            if isinstance(w, str):
+                workdays_list.append(w)
+
+    # 判断
+    date_str = d.strftime('%Y-%m-%d')
+    weekday_cn = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'][d.weekday()]
+
+    # 优先判断调休工作日
+    if date_str in workdays_list:
+        return {
+            'date': date_str,
+            'type': 'workday',
+            'is_workday': True,
+            'holiday_name': None,
+            'weekday': weekday_cn,
+            'note': '调休上班'
+        }
+
+    # 再判断节假日
+    if date_str in holidays_list:
+        return {
+            'date': date_str,
+            'type': 'holiday',
+            'is_workday': False,
+            'holiday_name': holiday_names.get(date_str, ''),
+            'weekday': weekday_cn
+        }
+
+    # 都不是，按星期几判断
+    if d.weekday() < 5:  # 周一到周五
+        return {
+            'date': date_str,
+            'type': 'workday',
+            'is_workday': True,
+            'holiday_name': None,
+            'weekday': weekday_cn
+        }
+    else:  # 周六周日
+        return {
+            'date': date_str,
+            'type': 'weekend',
+            'is_workday': False,
+            'holiday_name': None,
+            'weekday': weekday_cn
+        }
+
+
+# ==================== 任务触发判断 ====================
 
 def load_config(config_file):
     """加载配置文件"""
@@ -49,8 +156,6 @@ def get_time_slot(hour, schedule_config):
     """
     # 先看用哪套概率表
     if 'workday' in schedule_config and 'restday' in schedule_config:
-        # 概率型任务，workday 和 restday 两套
-        # 调用方需要先判断是工作日还是休息日
         return None, schedule_config
     
     # 直接遍历时间段
@@ -99,7 +204,6 @@ def get_holiday_multiplier(days, multipliers_config):
     if not multipliers_config:
         return 1.0
     
-    # 把 key 转成数字，排序
     days_list = sorted([int(k) for k in multipliers_config.keys()])
     
     result = 1.0
@@ -114,7 +218,6 @@ def get_holiday_multiplier(days, multipliers_config):
 
 def parse_iso_datetime(dt_str):
     """解析 ISO 格式的时间字符串"""
-    # 处理带时区的格式
     dt_str = dt_str.strip()
     if dt_str.endswith('Z'):
         dt_str = dt_str[:-1] + '+00:00'
@@ -122,7 +225,6 @@ def parse_iso_datetime(dt_str):
     try:
         return datetime.fromisoformat(dt_str)
     except ValueError:
-        # 尝试其他格式
         for fmt in ['%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S']:
             try:
                 return datetime.strptime(dt_str, fmt)
@@ -131,10 +233,8 @@ def parse_iso_datetime(dt_str):
         raise
 
 
-def check_probabilistic_trigger(task_name, task_config, last_run_dt, now_dt, holidays_data, day_info_param):
-    """
-    判断概率型任务是否触发
-    """
+def check_probabilistic_trigger(task_name, task_config, last_run_dt, now_dt, holidays_data, day_info):
+    """判断概率型任务是否触发"""
     schedule = task_config.get('schedule', {})
     min_interval_hours = schedule.get('min_interval_hours', 24)
     
@@ -154,9 +254,6 @@ def check_probabilistic_trigger(task_name, task_config, last_run_dt, now_dt, hol
                 'actual_probability': 0,
                 'wait_minutes': wait_minutes
             }
-    
-    # 判断日期类型（在 main 里先算好传进来）
-    day_info = day_info_param
     
     # 确定用哪套概率表
     if day_info['is_workday']:
@@ -214,7 +311,7 @@ def check_probabilistic_trigger(task_name, task_config, last_run_dt, now_dt, hol
     
     reason = "随机判断命中" if trigger else "随机判断未命中"
     
-    result = {
+    return {
         'task': task_name,
         'type': 'probabilistic',
         'trigger': trigger,
@@ -228,17 +325,10 @@ def check_probabilistic_trigger(task_name, task_config, last_run_dt, now_dt, hol
         'is_holiday': is_holiday,
         'wait_minutes': 0
     }
-    
-    # 如果没触发，计算下次检查时间？
-    # 不用，概率型的每次心跳都要判断
-    
-    return result
 
 
 def check_interval_trigger(task_name, task_config, last_run_dt, now_dt, random_offset_minutes=None):
-    """
-    判断间隔型任务是否触发
-    """
+    """判断间隔型任务是否触发"""
     schedule = task_config.get('schedule', {})
     min_interval_hours = schedule.get('min_interval_hours', 1)
     
@@ -260,7 +350,6 @@ def check_interval_trigger(task_name, task_config, last_run_dt, now_dt, random_o
     if last_run_dt:
         # 随机偏移
         if random_offset_minutes is None:
-            # 如果没提供，从配置里取范围生成
             offset_min = schedule.get('random_offset_min_minutes', 0)
             offset_max = schedule.get('random_offset_max_minutes', 0)
             if offset_min < offset_max:
@@ -294,18 +383,17 @@ def check_interval_trigger(task_name, task_config, last_run_dt, now_dt, random_o
     }
 
 
-def main():
-    parser = argparse.ArgumentParser(description='任务触发判断工具')
-    parser.add_argument('--config', default='.whisper-task/config.json', help='配置文件路径')
-    parser.add_argument('--task', required=True, help='任务名（如 publish_whisper）')
-    parser.add_argument('--last-run', default=None, help='上次执行时间（ISO 格式）')
-    parser.add_argument('--now', default=None, help='当前时间（ISO 格式），默认系统时间')
-    parser.add_argument('--holidays-file', default='.whisper-task/holidays.json', help='节假日数据文件路径')
-    parser.add_argument('--random-seed', type=int, default=None, help='随机种子（用于测试）')
-    parser.add_argument('--random-offset', type=int, default=None, help='随机偏移分钟数（间隔型用，用于测试）')
-    
-    args = parser.parse_args()
-    
+# ==================== 主入口 ====================
+
+def cmd_holiday(args):
+    """holiday 子命令：只判断节假日"""
+    result = check_holiday(args.date, args.holidays_file)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_trigger(args):
+    """trigger 子命令：判断任务是否触发"""
     # 设置随机种子
     if args.random_seed is not None:
         random.seed(args.random_seed)
@@ -357,7 +445,7 @@ def main():
     schedule_type = task_config.get('schedule', {}).get('type', 'interval')
     
     if schedule_type == 'probabilistic':
-        # 先判断日期类型（复用 check_holiday 脚本的逻辑）
+        # 先判断日期类型
         date_str = now_dt.strftime('%Y-%m-%d')
         day_info = check_holiday(date_str, args.holidays_file)
         
@@ -378,11 +466,59 @@ def main():
     
     # 输出结果
     print(json.dumps(result, ensure_ascii=False, indent=2))
-    
-    # 触发返回 0，不触发返回 1？
-    # 还是都返回 0，靠 JSON 里的 trigger 字段判断？
-    # 靠 JSON 字段更灵活
     return 0
+
+
+def main():
+    # 处理默认子命令：如果没有指定子命令，默认是 trigger
+    # 遍历参数，找第一个非选项参数（不以 - 开头）
+    subcommands = {'holiday', 'trigger'}
+    has_subcommand = False
+    
+    for arg in sys.argv[1:]:
+        if not arg.startswith('-'):
+            if arg in subcommands:
+                has_subcommand = True
+            break
+    
+    if not has_subcommand:
+        # 没有子命令，默认插入 trigger
+        sys.argv.insert(1, 'trigger')
+    
+    parser = argparse.ArgumentParser(description='任务触发判断工具')
+    subparsers = parser.add_subparsers(dest='command', help='子命令')
+    
+    # holiday 子命令
+    holiday_parser = subparsers.add_parser('holiday', help='判断节假日')
+    holiday_parser.add_argument('date', nargs='?', default=None, help='日期（YYYY-MM-DD），不填则今天')
+    holiday_parser.add_argument('--holidays-file', default='.whisper-task/holidays.json', help='节假日数据文件路径')
+    holiday_parser.set_defaults(func=cmd_holiday)
+    
+    # trigger 子命令
+    trigger_parser = subparsers.add_parser('trigger', help='判断任务是否触发（默认）')
+    trigger_parser.add_argument('--config', default='.whisper-task/config.json', help='配置文件路径')
+    trigger_parser.add_argument('--task', required=True, help='任务名（如 publish_whisper）')
+    trigger_parser.add_argument('--last-run', default=None, help='上次执行时间（ISO 格式）')
+    trigger_parser.add_argument('--now', default=None, help='当前时间（ISO 格式），默认系统时间')
+    trigger_parser.add_argument('--holidays-file', default='.whisper-task/holidays.json', help='节假日数据文件路径')
+    trigger_parser.add_argument('--random-seed', type=int, default=None, help='随机种子（用于测试）')
+    trigger_parser.add_argument('--random-offset', type=int, default=None, help='随机偏移分钟数（间隔型用，用于测试）')
+    trigger_parser.set_defaults(func=cmd_trigger)
+    
+    args = parser.parse_args()
+    
+    # 如果没有指定子命令，默认按 trigger 处理（向后兼容）
+    if args.command is None:
+        # 重新解析，把所有参数都当 trigger 的参数
+        # 简单做法：直接调用 trigger 解析器
+        # 但这样会丢失 --help 等功能
+        # 更好的做法：手动检查
+        # 这里用简单方式：直接用 trigger 解析器重新解析
+        trigger_args = trigger_parser.parse_args(sys.argv[1:])
+        return cmd_trigger(trigger_args)
+    
+    # 执行对应子命令
+    return args.func(args)
 
 
 if __name__ == '__main__':
