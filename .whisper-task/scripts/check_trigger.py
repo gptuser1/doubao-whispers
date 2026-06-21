@@ -27,6 +27,11 @@ import random
 import sys
 from datetime import datetime, timedelta, timezone, date
 
+# 确保同目录下的模块可以被 import
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from check_holiday import load_holidays, check_holiday
+
 
 def load_config(config_file):
     """加载配置文件"""
@@ -35,99 +40,6 @@ def load_config(config_file):
         return None
     with open(config_file, 'r', encoding='utf-8') as f:
         return json.load(f)
-
-
-def load_holidays(holidays_file):
-    """加载节假日数据"""
-    if not os.path.exists(holidays_file):
-        print(f"警告：节假日文件不存在：{holidays_file}，将按普通周末判断", file=sys.stderr)
-        return None
-    with open(holidays_file, 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-
-def check_day_type(d, holidays_data):
-    """
-    判断某天是什么类型（工作日/周末/节假日）
-    复用 check_holiday.py 的逻辑
-    """
-    year = d.year
-    date_str = d.strftime('%Y-%m-%d')
-    
-    if holidays_data is None:
-        # 没有节假日数据，按星期几判断
-        is_workday = d.weekday() < 5
-        return {
-            'type': 'workday' if is_workday else 'weekend',
-            'is_workday': is_workday,
-            'holiday_name': None,
-            'is_holiday': False
-        }
-    
-    # 找到对应年份的数据
-    year_data = None
-    if str(year) in holidays_data:
-        year_data = holidays_data[str(year)]
-    elif 'holidays' in holidays_data:
-        year_data = holidays_data
-    else:
-        year_data = holidays_data
-    
-    # 提取节假日和调休工作日列表
-    holidays_list = []
-    workdays_list = []
-    holiday_names = {}
-    
-    if year_data:
-        raw_holidays = year_data.get('holidays', [])
-        for h in raw_holidays:
-            if isinstance(h, dict):
-                name = h.get('name', '')
-                dates = h.get('dates', [])
-                for d_str in dates:
-                    holidays_list.append(d_str)
-                    holiday_names[d_str] = name
-            elif isinstance(h, str):
-                holidays_list.append(h)
-        
-        raw_workdays = year_data.get('workdays', [])
-        for w in raw_workdays:
-            if isinstance(w, str):
-                workdays_list.append(w)
-    
-    # 优先判断调休工作日
-    if date_str in workdays_list:
-        return {
-            'type': 'workday',
-            'is_workday': True,
-            'holiday_name': None,
-            'is_holiday': False
-        }
-    
-    # 再判断节假日
-    if date_str in holidays_list:
-        return {
-            'type': 'holiday',
-            'is_workday': False,
-            'holiday_name': holiday_names.get(date_str, ''),
-            'is_holiday': True
-        }
-    
-    # 都不是，按星期几判断
-    if d.weekday() < 5:
-        return {
-            'type': 'workday',
-            'is_workday': True,
-            'holiday_name': None,
-            'is_holiday': False
-        }
-    else:
-        return {
-            'type': 'weekend',
-            'is_workday': False,
-            'holiday_name': None,
-            'is_holiday': False
-        }
 
 
 def get_time_slot(hour, schedule_config):
@@ -219,7 +131,7 @@ def parse_iso_datetime(dt_str):
         raise
 
 
-def check_probabilistic_trigger(task_name, task_config, last_run_dt, now_dt, holidays_data):
+def check_probabilistic_trigger(task_name, task_config, last_run_dt, now_dt, holidays_data, day_info_param):
     """
     判断概率型任务是否触发
     """
@@ -243,8 +155,8 @@ def check_probabilistic_trigger(task_name, task_config, last_run_dt, now_dt, hol
                 'wait_minutes': wait_minutes
             }
     
-    # 判断日期类型
-    day_info = check_day_type(now_dt.date(), holidays_data)
+    # 判断日期类型（在 main 里先算好传进来）
+    day_info = day_info_param
     
     # 确定用哪套概率表
     if day_info['is_workday']:
@@ -284,7 +196,8 @@ def check_probabilistic_trigger(task_name, task_config, last_run_dt, now_dt, hol
     actual_probability = probability
     
     # 如果是节假日，应用倍率
-    if day_info['is_holiday']:
+    is_holiday = day_info['type'] == 'holiday'
+    if is_holiday:
         multipliers = schedule.get('holiday_multipliers', {})
         if multipliers:
             holiday_days = calculate_holiday_duration(
@@ -312,7 +225,7 @@ def check_probabilistic_trigger(task_name, task_config, last_run_dt, now_dt, hol
         'time_slot': time_slot,
         'day_type': day_type,
         'holiday_name': day_info.get('holiday_name'),
-        'is_holiday': day_info.get('is_holiday', False),
+        'is_holiday': is_holiday,
         'wait_minutes': 0
     }
     
@@ -444,8 +357,12 @@ def main():
     schedule_type = task_config.get('schedule', {}).get('type', 'interval')
     
     if schedule_type == 'probabilistic':
+        # 先判断日期类型（复用 check_holiday 脚本的逻辑）
+        date_str = now_dt.strftime('%Y-%m-%d')
+        day_info = check_holiday(date_str, args.holidays_file)
+        
         result = check_probabilistic_trigger(
-            args.task, task_config, last_run_dt, now_dt, holidays_data
+            args.task, task_config, last_run_dt, now_dt, holidays_data, day_info
         )
     elif schedule_type == 'interval':
         result = check_interval_trigger(

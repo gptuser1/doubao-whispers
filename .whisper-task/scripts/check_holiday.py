@@ -51,7 +51,17 @@ def check_holiday(date_str, holidays_file):
     # 加载节假日数据
     holidays_data = load_holidays(holidays_file)
     if holidays_data is None:
-        return None
+        # 节假日文件不存在，按星期几判断
+        weekday_cn = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'][d.weekday()]
+        is_workday = d.weekday() < 5
+        return {
+            'date': date_str,
+            'type': 'workday' if is_workday else 'weekend',
+            'is_workday': is_workday,
+            'holiday_name': None,
+            'weekday': weekday_cn,
+            'note': '无节假日数据，按星期几判断'
+        }
 
     # 找到对应年份的数据
     year_data = None
