@@ -290,10 +290,10 @@ def main():
     print(f'  纯文字：{posts_without_images} 条')
     print(f'  纯文字占比：{text_only_ratio:.1f}%')
     print()
-    if text_only_ratio >= 20:
-        print(f'  状态：纯文字比例超过 20%，新动态必须配图')
+    if text_only_ratio >= 30:
+        print(f'  状态：纯文字比例超过 30%，新动态必须配图')
     else:
-        print(f'  状态：纯文字比例在 20% 以内，正常')
+        print(f'  状态：纯文字比例在 30% 以内，正常')
     print()
 
 
