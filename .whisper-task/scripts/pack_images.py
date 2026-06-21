@@ -32,7 +32,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
 
 STATIC_IMAGES_DIR = os.path.join(PROJECT_ROOT, 'static', 'images')
-OUTPUT_DIR = os.path.join(PROJECT_ROOT, 'data', 'images')
+OUTPUT_DIR = os.path.join(PROJECT_ROOT, '.whisper-task', 'images')
 
 # 配图文件名格式：YYYY-MM-DD-xxx.webp
 IMAGE_PATTERN = re.compile(r'^(\d{4}-\d{2})-\d{2}-.+\.webp$')

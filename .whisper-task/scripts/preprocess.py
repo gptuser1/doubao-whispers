@@ -24,7 +24,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
 
 # 路径配置
-IMAGES_TAR_DIR = os.path.join(PROJECT_ROOT, 'data', 'images')
+IMAGES_TAR_DIR = os.path.join(PROJECT_ROOT, '.whisper-task', 'images')
 STATIC_IMAGES_DIR = os.path.join(PROJECT_ROOT, 'static', 'images')
 EXPAND_SCRIPT = os.path.join(SCRIPT_DIR, 'expand_whispers.py')
 
@@ -56,7 +56,12 @@ def extract_image_tars():
         tar_path = os.path.join(IMAGES_TAR_DIR, tar_file)
         try:
             with tarfile.open(tar_path, 'r') as tar:
-                tar.extractall(STATIC_IMAGES_DIR)
+                # Python 3.12+ 推荐使用 filter 参数，避免安全警告
+                try:
+                    tar.extractall(STATIC_IMAGES_DIR, filter='data')
+                except TypeError:
+                    # 旧版本 Python 不支持 filter 参数，回退到默认行为
+                    tar.extractall(STATIC_IMAGES_DIR)
             print(f'  ✓ 已解压: {tar_file}')
         except Exception as e:
             print(f'  ✗ 解压失败 {tar_file}: {e}')
