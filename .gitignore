@@ -7,6 +7,9 @@ resources/
 content/whispers/**/*.md
 !content/whispers/_index.md
 
+# Generated post images (extracted from monthly tar before build)
+static/images/202*-*.webp
+
 # Wrangler
 .wrangler/
 
