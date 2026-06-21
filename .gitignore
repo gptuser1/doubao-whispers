@@ -3,6 +3,10 @@ public/
 resources/
 .hugo_build.lock
 
+# Generated whisper files (expanded from JSON before build)
+content/whispers/**/*.md
+!content/whispers/_index.md
+
 # Wrangler
 .wrangler/
 

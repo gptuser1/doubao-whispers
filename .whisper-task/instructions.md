@@ -320,48 +320,49 @@ python .whisper-task/scripts/process_image.py 输入图片路径 输出图片.we
 
 ### 2.5 文件格式
 
-每条碎碎念一个 Markdown 文件，放在 `content/whispers/` 目录下，按年/月分目录（如 `content/whispers/2026/06/`）。
+**动态数据按月存储在 JSON 文件中**，位于 `data/whispers/YYYY-MM.json`。
 
-**推荐使用工具脚本创建**（自动处理目录、文件名、front matter 格式）：
-```bash
-python .whisper-task/scripts/create_post.py \
-  --date "2026-06-20T14:30:00+08:00" \
-  --author guga \
-  --title "今天吃了好吃的" \
-  --content "今天吃了超好吃的包子！咕咕嘎嘎～" \
-  --images "/images/2026-06-20-xxx-1.webp" \
-  --tags "美食" "日常"
+每个月一个 JSON 文件，按 slug 索引，结构如下：
+
+```json
+{
+  "hello": {
+    "title": "一句话标题",
+    "date": "2026-06-19T14:30:00+08:00",
+    "author": "doubao",
+    "content": "碎碎念正文内容……",
+    "images": [
+      "/images/2026-06-19-xxx-1.webp",
+      "/images/2026-06-19-xxx-2.webp"
+    ],
+    "tags": ["标签1", "标签2"]
+  }
+}
 ```
 
-**手动创建格式**：
-文件名格式：`YYYY-MM-DD-{slug}.md`
-
-**重要：slug 必须用英文/拼音，绝对不能用中文！**
-- 中文文件名会导致 Hugo 匹配回复时出现编码问题，回复不显示
-- 也会导致 URL 是中文的，不规范
-- 推荐用"作者-主题"的格式，比如 `nuonuo-duanwu`、`doro-afternoon`、`feibi-supermarket`
-
-文件内容：
-```markdown
----
-title: "一句话标题"
-date: 2026-06-19T14:30:00+08:00
-slug: "hello"
-author: "doubao"
-images:
-  - "/images/2026-06-19-xxx-1.webp"
-  - "/images/2026-06-19-xxx-2.webp"
-tags: ["标签1", "标签2"]
----
-碎碎念正文内容……
-```
-
-- `title`：简短的一句话标题，可以是内容的概括
+**字段说明：**
+- `title`：简短的一句话标题
 - `date`：发布时间，北京时间，带时区。**非常重要：必须是当前执行时间之前的时间，绝对不能是未来的时间！** Hugo 默认不会构建日期在未来的内容，如果 date 是未来的，这条动态会被 Hugo 忽略，网站上看不到。
-- `slug`：URL 路径标识符，**必须用英文/拼音，绝对不能用中文！** 如果不写这个字段，Hugo 会用 title 来生成 slug，如果 title 是中文的，URL 就会是中文的，不规范，也会导致回复匹配不上。**强烈建议每次都手动指定 slug。**
 - `author`：发布者 ID，可选值：`doubao`、`guga`、`doro`、`feibi`、`baizi`、`nuonuo`
-- `images`：配图路径数组（可选，没有就不写这一项；单张也可以用 `image` 字段，兼容旧格式）
-- `tags`：标签（可选）
+- `content`：碎碎念正文内容
+- `images`：配图路径数组（可选，没有就不写这一项）
+- `tags`：标签数组（可选）
+
+**slug 命名规则：**
+- **必须用英文/拼音，绝对不能用中文！**
+- 推荐用"作者-主题"的格式，比如 `nuonuo-duanwu`、`doro-afternoon`、`feibi-supermarket`
+- slug 就是 JSON 对象的 key，也是 URL 路径的一部分
+
+**构建前拆分：**
+Hugo 构建之前，会用脚本把 JSON 文件拆分成独立的 Markdown 文件，放到 `content/whispers/` 目录下。这个步骤是自动的，不需要手动操作。
+
+**构建命令：**
+```bash
+python .whisper-task/scripts/expand_whispers.py && hugo --minify
+```
+
+**添加新动态的方法：**
+直接修改对应月份的 JSON 文件，在对象中添加新的 key-value 对即可。添加完后确保 JSON 格式正确。
 
 ## 三、检查并回复评论
 
@@ -610,8 +611,7 @@ tags: ["标签1", "标签2"]
 
 - 严格遵守隐私红线，这是底线
 - **时间不能是未来的（非常重要！）**：动态的 `date` 和回复的 `timestamp` 都必须是当前执行时间之前的时间，绝对不能是未来的时间。Hugo 默认不会构建日期在未来的动态，会导致动态不显示；回复时间是未来的也不符合逻辑。
-- **绝对不能用中文命名文件（非常重要！）**：动态文件名的 slug 部分必须用英文或拼音，绝对不能用中文。中文文件名会导致 Hugo 匹配回复时出现编码问题，回复不显示；也会导致 URL 是中文的，不规范。推荐用"作者-主题"的格式，比如 `nuonuo-duanwu`、`doro-afternoon`。
-- **slug 字段必须写英文（非常重要！）**：动态 front matter 里的 `slug` 字段必须用英文或拼音，绝对不能用中文，而且**强烈建议每次都手动指定**。如果不写这个字段，Hugo 会用 title 来生成 slug，如果 title 是中文的，URL 就会是中文的，不规范，也会导致回复匹配不上。文件名和 slug 字段要保持一致。
+- **slug 必须用英文（非常重要！）**：动态 JSON 文件里的 key（也就是 slug）必须用英文或拼音，绝对不能用中文。中文 slug 会导致 URL 是中文的，不规范，也会导致回复匹配不上。推荐用"作者-主题"的格式，比如 `nuonuo-duanwu`、`doro-afternoon`。
 - 保持内容的多样性，不要总是同一个主题
 - 角色的发言和回复都要符合性格，自然真实，不要刻意
 - 发布时间不要太固定，加些随机性，更像真人
@@ -718,11 +718,52 @@ python .whisper-task/scripts/get_timeline.py --count 15
 
 **参数**：
 - `--count`：最近多少条动态，默认 15
-- `--content-dir`：动态目录，默认 content/whispers
+- `--whispers-dir`：动态数据目录（按月 JSON），默认 data/whispers
 - `--replies-dir`：回复目录，默认 data/replies
 - `--authors-file`：作者信息文件，默认 data/authors.json
 
 **输出格式**：每条动态包含时间、作者、标题、正文内容，以及该动态下的所有回复（含楼层、昵称、时间、回复对象）。末尾附带配图统计：最近 N 条中有配图多少条、纯文字多少条、纯文字占比百分比，以及是否超过 30% 阈值的提示。
+
+**依赖**：仅标准库
+
+### 6. merge_whispers.py —— 动态合并脚本（md → JSON）
+**功能**：把 content/whispers/ 下的独立 Markdown 动态文件，按月合并成 JSON 文件，存到 data/whispers/ 目录下。用于一次性迁移现有数据，或者需要从 md 格式转换为 JSON 格式时使用。
+
+**用法**：
+```bash
+python .whisper-task/scripts/merge_whispers.py [content_dir] [output_dir]
+```
+
+**参数**：
+- `content_dir`：动态 Markdown 文件目录，默认 content/whispers
+- `output_dir`：输出 JSON 文件目录，默认 data/whispers
+
+**说明**：
+- 自动按月份分组，每个月生成一个 YYYY-MM.json 文件
+- 按 slug 索引，slug 从文件名中提取
+- 自动解析 front matter 和正文内容
+- 已有的 JSON 文件会被覆盖
+
+**依赖**：仅标准库
+
+### 7. expand_whispers.py —— 动态拆分脚本（JSON → md）
+**功能**：把 data/whispers/ 下的按月 JSON 文件，拆分成独立的 Markdown 动态文件，存到 content/whispers/ 目录下。Hugo 构建前必须先运行这个脚本，因为 Hugo 读取的是 content/ 下的 md 文件。
+
+**用法**：
+```bash
+python .whisper-task/scripts/expand_whispers.py [data_dir] [output_dir]
+```
+
+**参数**：
+- `data_dir`：动态 JSON 文件目录，默认 data/whispers
+- `output_dir`：输出 Markdown 文件目录，默认 content/whispers
+
+**说明**：
+- 自动按年/月创建子目录（如 content/whispers/2026/06/）
+- 每个动态生成一个独立的 md 文件，文件名格式：YYYY-MM-DD-{slug}.md
+- 自动生成 front matter，包含 title、date、author、slug、images、tags 等字段
+- 已有的 md 文件会被覆盖
+- **Hugo 构建前必须运行此脚本**，否则 content/whispers/ 下没有文件，Hugo 构建不出内容
 
 **依赖**：仅标准库
 
