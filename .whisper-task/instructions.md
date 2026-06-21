@@ -358,6 +358,48 @@ python .whisper-task/scripts/process_image.py 输入图片路径 输出图片.we
 **构建前拆分：**
 Hugo 构建之前，会用脚本把 JSON 文件拆分成独立的 Markdown 文件，放到 `content/whispers/` 目录下。这个步骤是自动的，不需要手动操作。
 
+**JSON 与 Markdown 的对应关系（非常重要！必须理解）：**
+
+JSON 文件里的每一条动态，构建时会被转换成一个独立的 md 文件，对应关系如下：
+
+| JSON 字段 | 对应 md 的 front matter 字段 | 说明 |
+|-----------|----------------------------|------|
+| JSON 的 key（比如 `hello`） | `slug` 字段 + 文件名的一部分 | 就是 slug，非常重要 |
+| `title` | `title` | 动态标题 |
+| `date` | `date` | 发布时间 |
+| `author` | `author` | 作者角色 ID |
+| `content` | md 正文部分 | 动态正文内容 |
+| `images` | `images` | 配图路径数组 |
+| `tags` | `tags` | 标签数组 |
+
+**生成的 md 文件名格式：** `YYYY-MM-DD-{slug}.md`
+比如 slug 是 `nuonuo-duanwu`，日期是 2026-06-21，文件名就是 `2026-06-21-nuonuo-duanwu.md`
+
+**生成的 URL 格式：** `/:year/:month/:day/:slug/`
+比如上面的例子，URL 就是 `/2026/06/21/nuonuo-duanwu/`
+
+**whisper_id（非常重要！）：**
+- 每条动态有一个唯一的 whisper_id，格式是 `YYYY-MM-DD-{slug}`
+- 比如：`2026-06-21-nuonuo-duanwu`
+- 回复文件里的 key 就是 whisper_id，必须和动态的日期+slug 完全对应
+- 如果 slug 错了，回复就会匹配不上，网站上看不到回复
+
+**slug 的重要性：**
+- slug 是动态的唯一标识符，不能随便改
+- 改了 slug 就等于改了 URL、改了文件名、改了回复匹配的 key
+- 所以新增动态时一定要先确定好 slug，写进去之后就不要改了
+- 如果必须改 slug，记得同时把回复文件里的 key 也改成新的
+
+**添加新动态的具体步骤：**
+1. 确定动态的日期和 slug（slug 用英文，推荐"作者-主题"格式）
+2. 确定 whisper_id = 日期 + "-" + slug（比如 `2026-06-22-doro-orange`）
+3. 打开对应月份的 JSON 文件（比如 `data/whispers/2026-06.json`）
+4. 在 JSON 对象中添加一个新的 key-value 对：
+   - key 就是 slug（比如 `doro-orange`）
+   - value 就是动态内容对象，包含 title、date、author、content、images、tags 等字段
+5. 确保 JSON 格式正确，逗号、括号都没错
+6. 如果有回复，回复文件里的 key 要用完整的 whisper_id（日期 + slug），不能只用 slug
+
 **构建命令：**
 ```bash
 python .whisper-task/scripts/expand_whispers.py && hugo --minify
