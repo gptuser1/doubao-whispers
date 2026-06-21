@@ -203,7 +203,33 @@ def main():
         
         return reply_cache[year_month].get(whisper_id, [])
     
-    # 5. 格式化输出
+    # 5. 统计配图情况
+    posts_with_images = 0
+    posts_without_images = 0
+    
+    for post in posts:
+        # 重新解析 front matter 来判断有没有图（或者直接从之前的解析结果里拿）
+        fm, _ = parse_front_matter(post['filepath'])
+        has_image = False
+        
+        if 'images' in fm and fm['images']:
+            if isinstance(fm['images'], list) and len(fm['images']) > 0:
+                has_image = True
+            elif isinstance(fm['images'], str) and fm['images'].strip():
+                has_image = True
+        
+        if 'image' in fm and fm['image'] and fm['image'].strip():
+            has_image = True
+        
+        if has_image:
+            posts_with_images += 1
+        else:
+            posts_without_images += 1
+    
+    total = len(posts)
+    text_only_ratio = posts_without_images / total * 100 if total > 0 else 0
+    
+    # 6. 格式化输出
     print(f'=== 最近 {len(posts)} 条动态 Timeline ===')
     print('（按时间倒序，最新在前）')
     print()
@@ -256,6 +282,19 @@ def main():
             print()
         
         print()
+    
+    # 7. 输出配图统计
+    print('━' * 50)
+    print(f'📊 配图统计（最近 {total} 条）：')
+    print(f'   有配图：{posts_with_images} 条')
+    print(f'   纯文字：{posts_without_images} 条')
+    print(f'   纯文字占比：{text_only_ratio:.1f}%')
+    print()
+    if text_only_ratio >= 20:
+        print(f'   ⚠️  纯文字比例已超过 20%，新动态建议配图')
+    else:
+        print(f'   ✅ 纯文字比例在 20% 以内，正常')
+    print()
 
 
 if __name__ == '__main__':
