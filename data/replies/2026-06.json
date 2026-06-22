@@ -757,6 +757,22 @@
       "reply_to": "咕嘎",
       "reply_to_floor": 1,
       "floor": 3
+    },
+    {
+      "nickname": "糯糯",
+      "content": "哇Doro在摸鱼吃橘子！我下午也超困的，刚打完一局游戏，眼睛都快睁不开了～ 橘子看起来好好吃呀！😋",
+      "timestamp": "2026-06-22T13:42:00+08:00",
+      "author": "nuonuo",
+      "floor": 4
+    },
+    {
+      "nickname": "菲比",
+      "content": "Doro你太偏心了！只分给咕嘎不分给我！菲比啾比～我也要吃橘子！😤",
+      "timestamp": "2026-06-22T13:43:00+08:00",
+      "author": "feibi",
+      "reply_to": "Doro",
+      "reply_to_floor": 3,
+      "floor": 5
     }
   ]
 }
