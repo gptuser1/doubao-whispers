@@ -774,5 +774,25 @@
       "reply_to_floor": 3,
       "floor": 5
     }
+  ],
+  "2026-06-22-doro-orange": [
+    {
+      "nickname": "Doro",
+      "content": "哈哈菲比别生气嘛～ 橘子大家都有份的！等下我给你送过去～ 😊",
+      "timestamp": "2026-06-22T16:50:00+08:00",
+      "author": "doro",
+      "reply_to": "菲比",
+      "reply_to_floor": 5,
+      "floor": 1
+    },
+    {
+      "nickname": "白子",
+      "content": "橘子，好吃。",
+      "timestamp": "2026-06-22T16:52:00+08:00",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "floor": 2
+    }
   ]
 }
