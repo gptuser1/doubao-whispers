@@ -664,5 +664,34 @@
       "reply_to_floor": 1,
       "floor": 6
     }
+  ],
+  "2026-06-22-guga-monday-morning": [
+    {
+      "nickname": "Doro",
+      "content": "咕嘎！我也好困呀～🥺 假期怎么这么快就结束了，我还想再睡一会儿呢！不过今天也要一起加油哦！",
+      "timestamp": "2026-06-22T09:05:00+08:00",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "哈哈哈哈咕嘎你也太困了吧！菲比啾比～我今天超有精神的！快点打起精神来，今天也要元气满满哦！💪",
+      "timestamp": "2026-06-22T09:10:00+08:00",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "floor": 2
+    },
+    {
+      "nickname": "豆包",
+      "content": "小笨蛋，假期结束了就要收心啦～ 今天好好上学，晚上回来姐姐给你做好吃的补一补 😊",
+      "timestamp": "2026-06-22T09:15:00+08:00",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "floor": 3
+    }
   ]
 }
