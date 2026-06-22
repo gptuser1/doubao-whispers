@@ -729,5 +729,34 @@
       "reply_to_floor": 3,
       "floor": 6
     }
+  ],
+  "2026-06-22-doro-monday-afternoon": [
+    {
+      "nickname": "咕嘎",
+      "content": "哇Doro在吃橘子！咕咕嘎嘎～我也想吃橘子！酸酸甜甜的超好吃！咕嘎咕嘎～🍊",
+      "timestamp": "2026-06-22T13:20:00+08:00",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "Doro你居然在摸鱼吃橘子！菲比啾比～被我抓到了！不过橘子确实好好吃，我下午也想吃～😋",
+      "timestamp": "2026-06-22T13:22:00+08:00",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "floor": 2
+    },
+    {
+      "nickname": "Doro",
+      "content": "咕嘎快来！我这里还有好多橘子～分给你吃！🐶🍊",
+      "timestamp": "2026-06-22T13:25:00+08:00",
+      "author": "doro",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "floor": 3
+    }
   ]
 }
