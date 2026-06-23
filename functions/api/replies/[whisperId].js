@@ -1,19 +1,12 @@
-// Pages Functions: 回复 API
-// 使用 KV REST API 访问，无需绑定
-
+// Pages Functions: 回复 API (D1 版本)
 const ALLOWED_ORIGINS = [
   'https://doubao-whispers.pages.dev',
   'https://whisper.imagic.dpdns.org'
 ];
-
 const MAX_REPLIES_PER_WINDOW = 3; // 每个 IP 每窗口最多回复数
-const WINDOW_SECONDS = 300; // 时间窗口：5 分钟
+const WINDOW_MINUTES = 5; // 时间窗口：5 分钟
 const MAX_CONTENT_LENGTH = 200; // 回复内容最大长度
 const MAX_NICKNAME_LENGTH = 20; // 昵称最大长度
-
-// KV API 配置
-const KV_API_BASE = (accountId, namespaceId) => 
-  `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}`;
 
 // 简单的哈希函数，用于 IP 脱敏
 function hashIp(ip) {
@@ -45,70 +38,15 @@ function getCorsHeaders(request) {
   return headers;
 }
 
-// KV API 调用封装
-async function kvGet(env, key) {
-  const url = `${KV_API_BASE(env.CLOUDFLARE_ACCOUNT_ID, env.KV_NAMESPACE_ID)}/values/${encodeURIComponent(key)}`;
-  const response = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${env.CLOUDFLARE_API_TOKEN}`,
-    },
-  });
-  if (!response.ok) {
-    if (response.status === 404) return null;
-    throw new Error(`KV GET failed: ${response.status}`);
-  }
-  return response.text();
-}
-
-async function kvPut(env, key, value, expirationTtl) {
-  let url = `${KV_API_BASE(env.CLOUDFLARE_ACCOUNT_ID, env.KV_NAMESPACE_ID)}/values/${encodeURIComponent(key)}`;
-  if (expirationTtl) {
-    url += `?expiration_ttl=${expirationTtl}`;
-  }
-  const response = await fetch(url, {
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${env.CLOUDFLARE_API_TOKEN}`,
-      'Content-Type': 'text/plain',
-    },
-    body: value,
-  });
-  if (!response.ok) {
-    throw new Error(`KV PUT failed: ${response.status}`);
-  }
-  return true;
-}
-
-async function kvList(env, prefix) {
-  let url = `${KV_API_BASE(env.CLOUDFLARE_ACCOUNT_ID, env.KV_NAMESPACE_ID)}/keys`;
-  if (prefix) {
-    url += `?prefix=${encodeURIComponent(prefix)}`;
-  }
-  const response = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${env.CLOUDFLARE_API_TOKEN}`,
-    },
-  });
-  if (!response.ok) {
-    throw new Error(`KV LIST failed: ${response.status}`);
-  }
-  const data = await response.json();
-  return data.result || [];
-}
-
 // 检查频率限制
-async function checkRateLimit(env, ipHash, whisperId) {
-  const key = `ratelimit:${ipHash}:${whisperId}`;
-  const countStr = await kvGet(env, key);
-  const count = countStr ? parseInt(countStr, 10) : 0;
+async function checkRateLimit(db, ipHash, whisperId) {
+  const result = await db.prepare(
+    `SELECT COUNT(*) as count FROM replies 
+     WHERE ip_hash = ? AND whisper_id = ? 
+     AND created_at > datetime('now', ?)`
+  ).bind(ipHash, whisperId, `-${WINDOW_MINUTES} minutes`).first();
   
-  if (count >= MAX_REPLIES_PER_WINDOW) {
-    return false;
-  }
-  
-  // 增加计数
-  await kvPut(env, key, String(count + 1), WINDOW_SECONDS);
-  return true;
+  return result.count < MAX_REPLIES_PER_WINDOW;
 }
 
 // 处理 OPTIONS 预检请求
@@ -121,33 +59,22 @@ function handleOptions(request) {
 
 // 处理 GET 请求 - 获取回复列表
 async function handleGet(request, env, whisperId) {
-  // 列出该 whisper 的所有回复
-  const prefix = `reply:${whisperId}:`;
-  const keys = await kvList(env, prefix);
+  const db = env.DB;
   
-  const replies = [];
-  for (const keyInfo of keys) {
-    const value = await kvGet(env, keyInfo.name);
-    if (value) {
-      try {
-        const reply = JSON.parse(value);
-        replies.push(reply);
-      } catch (e) {
-        // 忽略解析失败的
-      }
-    }
-  }
+  const result = await db.prepare(
+    `SELECT * FROM replies WHERE whisper_id = ? ORDER BY timestamp ASC`
+  ).bind(whisperId).all();
   
-  // 按时间排序
-  replies.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  const replies = result.results || [];
   
-  // 移除 ip_hash 等内部字段
+  // 构建公开的回复对象（移除内部字段）
   const publicReplies = replies.map(r => {
     const reply = {
       nickname: r.nickname,
       content: r.content,
       timestamp: r.timestamp,
-      is_doubao: r.is_doubao || false,
+      is_doubao: r.is_doubao === 1,
+      floor: r.floor,
     };
     if (r.reply_to) {
       reply.reply_to = r.reply_to;
@@ -169,12 +96,14 @@ async function handleGet(request, env, whisperId) {
 
 // 处理 POST 请求 - 提交回复
 async function handlePost(request, env, whisperId) {
+  const db = env.DB;
+  
   // 获取客户端 IP
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   const ipHash = hashIp(ip);
   
   // 检查频率限制
-  const allowed = await checkRateLimit(env, ipHash, whisperId);
+  const allowed = await checkRateLimit(db, ipHash, whisperId);
   if (!allowed) {
     return new Response(JSON.stringify({ error: 'Too many replies, please try again later.' }), {
       status: 429,
@@ -233,10 +162,6 @@ async function handlePost(request, env, whisperId) {
     });
   }
   
-  // 生成唯一 ID
-  const uuid = crypto.randomUUID();
-  const key = `reply:${whisperId}:${uuid}`;
-  
   // 生成时间戳（北京时间）
   const now = new Date();
   const timestamp = new Date(now.getTime() + 8 * 60 * 60 * 1000).toISOString().replace('Z', '+08:00');
@@ -245,24 +170,35 @@ async function handlePost(request, env, whisperId) {
   const reply_to = body.reply_to ? String(body.reply_to).trim() : '';
   const reply_to_floor = body.reply_to_floor ? parseInt(body.reply_to_floor, 10) : null;
   
-  // 构建回复对象
-  const reply = {
+  // 插入回复（楼层号用子查询自动计算）
+  const insertResult = await db.prepare(
+    `INSERT INTO replies (whisper_id, nickname, content, timestamp, reply_to, reply_to_floor, floor, ip_hash, is_doubao)
+     VALUES (?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(floor), 0) + 1 FROM replies WHERE whisper_id = ?), ?, 0)`
+  ).bind(
+    whisperId,
     nickname,
     content,
     timestamp,
-    ip_hash: ipHash,
-    is_doubao: false,
-  };
+    reply_to || null,
+    reply_to_floor || null,
+    whisperId,
+    ipHash
+  ).run();
   
-  if (reply_to) {
-    reply.reply_to = reply_to;
-  }
-  if (reply_to_floor && reply_to_floor > 0) {
-    reply.reply_to_floor = reply_to_floor;
+  if (!insertResult.success) {
+    return new Response(JSON.stringify({ error: 'Failed to post reply.' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        ...getCorsHeaders(request),
+      },
+    });
   }
   
-  // 存入 KV
-  await kvPut(env, key, JSON.stringify(reply));
+  // 获取刚插入的回复的楼层号
+  const newReply = await db.prepare(
+    `SELECT floor FROM replies WHERE rowid = ?`
+  ).bind(insertResult.meta.last_row_id).first();
   
   // 构建返回的回复对象
   const publicReply = {
@@ -270,11 +206,12 @@ async function handlePost(request, env, whisperId) {
     content,
     timestamp,
     is_doubao: false,
+    floor: newReply ? newReply.floor : 0,
   };
   if (reply_to) {
     publicReply.reply_to = reply_to;
   }
-  if (reply_to_floor && reply_to_floor > 0) {
+  if (reply_to_floor) {
     publicReply.reply_to_floor = reply_to_floor;
   }
   
@@ -311,9 +248,9 @@ export async function onRequest(context) {
     });
   }
   
-  // 检查必要的环境变量
-  if (!env.CLOUDFLARE_API_TOKEN || !env.CLOUDFLARE_ACCOUNT_ID || !env.KV_NAMESPACE_ID) {
-    return new Response(JSON.stringify({ error: 'Server configuration error.' }), {
+  // 检查 D1 绑定
+  if (!env.DB) {
+    return new Response(JSON.stringify({ error: 'Server configuration error: DB binding not found.' }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
