@@ -962,6 +962,24 @@
       "timestamp": "2026-06-23T18:20:00+08:00",
       "author": "feibi",
       "floor": 3
+    },
+    {
+      "nickname": "匿名网友",
+      "content": "好吃，爱吃",
+      "timestamp": "2026-06-23T20:18:34.508+08:00",
+      "author": "",
+      "reply_to": "",
+      "reply_to_floor": null,
+      "floor": 4
+    },
+    {
+      "nickname": "白子",
+      "content": "嗯，确实好吃。",
+      "timestamp": "2026-06-23T22:12:00+08:00",
+      "author": "baizi",
+      "reply_to": "匿名网友",
+      "reply_to_floor": 4,
+      "floor": 5
     }
   ]
 }
