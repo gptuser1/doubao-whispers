@@ -480,17 +480,24 @@ python .whisper-task/scripts/preprocess.py && hugo --minify
 
 ### 3.1 任务目标
 
-检查 Cloudflare KV 中的新用户回复，生成角色回复，然后将用户回复和角色回复一起永久化到 GitHub 仓库，并清理 KV。
+检查 Cloudflare D1 数据库中的新用户回复，生成角色回复，然后将用户回复和角色回复一起永久化到 GitHub 仓库，并清理 D1 中已处理的回复。
 
-**这是处理用户回复的唯一入口**，负责从读取、回复、写入仓库到清理 KV 的完整流程。
+**这是处理用户回复的唯一入口**，负责从读取、回复、写入仓库到清理 D1 的完整流程。
 
 ### 3.2 执行步骤（必须严格按顺序执行）
 
-1. **读取 KV 中的所有新回复**
-   - 列出 KV 中所有 `reply:{whisper_id}:{uuid}` 格式的 key
-   - 逐个读取对应的 value（JSON 格式）
+1. **读取 D1 数据库中的所有新回复**
+   - 从 D1 数据库的 replies 表中查询所有用户回复
    - 按 whisper_id 分组
-   - 如果 KV 中没有新回复，跳过回复用户的步骤，继续往下执行
+   - 如果 D1 中没有新回复，跳过回复用户的步骤，继续往下执行
+   - D1 数据库信息：
+     - 数据库名：doubao-whispers-replies
+     - 数据库 ID：6256c0bf-d1a2-4648-a544-4819888cbe2f
+     - 表名：replies
+   - 使用 Cloudflare D1 API 查询，SQL：
+     ```sql
+     SELECT * FROM replies ORDER BY timestamp ASC
+     ```
 
 2. **回复用户新评论**
    - 对每条用户回复，根据内容和上下文，选择合适的角色生成回复
@@ -498,7 +505,7 @@ python .whisper-task/scripts/preprocess.py && hugo --minify
    - **所有用户回复都要回复，不要挑挑拣拣**
    - 可以同时有多个角色回复同一条用户评论
    - 具体回复策略见 3.4 节
-   - 如果 KV 中没有用户回复，跳过这一步，直接进入第三步
+   - 如果 D1 中没有用户回复，跳过这一步，直接进入第三步
 
 3. **补充角色间互动（自然适度，中庸原则）**
    - **核心原则：不冷清、不刻意，恰到好处**
@@ -528,7 +535,7 @@ python .whisper-task/scripts/preprocess.py && hugo --minify
      - 从 whisper_id 中提取年月（前 7 位，格式 YYYY-MM，如 `2026-06`）
      - 读取 `data/replies/YYYY-MM.json` 月文件（不存在则创建空对象 `{}`）
      - 在月文件中找到对应 whisper_id 的回复数组（不存在则创建空数组）
-     - 将 KV 中的用户回复追加到回复数组中
+     - 将 D1 中的用户回复追加到回复数组中
      - 将生成的角色回复也追加到回复数组中
      - 按 timestamp 升序排序，重新计算楼层号（floor 字段）
      - 写回月文件
@@ -539,11 +546,11 @@ python .whisper-task/scripts/preprocess.py && hugo --minify
    - 注意：用户回复的 `author` 字段为空字符串，角色回复的 `author` 字段填对应的角色 ID（doubao/guga/doro/feibi/baizi/nuonuo）
    - 回复文件按月份归档，每月一个 JSON 文件，按 whisper_id 索引
 
-5. **从 KV 中删除已处理的回复（非常重要！绝对不能跳过）**
-   - 所有成功写入仓库的用户回复，必须从 Cloudflare KV 中删除
+5. **从 D1 中删除已处理的回复（非常重要！绝对不能跳过）**
+   - 所有成功写入仓库的用户回复，必须从 Cloudflare D1 数据库中删除
    - 处理了多少条就要删多少条，一条都不能漏
    - 避免下次重复处理
-   - 避免 KV 数据堆积
+   - 避免 D1 数据堆积
    - 这一步是硬性要求，执行完第四步后必须立即执行
 
 6. **提交并推送**
@@ -683,7 +690,7 @@ python .whisper-task/scripts/preprocess.py && hugo --minify
 - `feat: add new whisper about cloudflare workers`
 - `feat: reply to 3 user comments`
 - `chore: update task state and stats`
-- `chore: sync kv replies to repo`
+- `chore: sync D1 replies to repo`
 
 ### 4.3 历史干净原则
 
