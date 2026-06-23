@@ -62,19 +62,43 @@ def get_images_by_month():
 def pack_month(month, files):
     """
     打包指定月份的图片为 tar 文件。
+    打包前会先解压已有的 tar 包，避免旧图片丢失。
     """
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     
     tar_path = os.path.join(OUTPUT_DIR, f'{month}.tar')
     
+    # 如果已有 tar 包，先解压到 static/images/，确保旧图片不丢失
+    if os.path.exists(tar_path):
+        try:
+            with tarfile.open(tar_path, 'r') as tar:
+                # 只解压不存在的文件，避免覆盖新修改的图片
+                for member in tar.getmembers():
+                    dest_path = os.path.join(STATIC_IMAGES_DIR, member.name)
+                    if not os.path.exists(dest_path):
+                        tar.extract(member, STATIC_IMAGES_DIR)
+        except Exception as e:
+            print(f'  ⚠ 解压已有 tar 包失败: {e}')
+    
+    # 重新扫描，确保包含所有图片（旧的 + 新的）
+    all_files = set()
+    for filename in os.listdir(STATIC_IMAGES_DIR):
+        match = IMAGE_PATTERN.match(filename)
+        if match and match.group(1) == month:
+            all_files.add(filename)
+    
+    # 加上传入的 files（防止遗漏）
+    all_files.update(files)
+    
     try:
         with tarfile.open(tar_path, 'w') as tar:
-            for filename in sorted(files):
+            for filename in sorted(all_files):
                 file_path = os.path.join(STATIC_IMAGES_DIR, filename)
-                tar.add(file_path, arcname=filename)
+                if os.path.exists(file_path):
+                    tar.add(file_path, arcname=filename)
         
         size_kb = os.path.getsize(tar_path) / 1024
-        print(f'  ✓ {month}.tar ({len(files)} 张图, {size_kb:.1f} KB)')
+        print(f'  ✓ {month}.tar ({len(all_files)} 张图, {size_kb:.1f} KB)')
         return True
         
     except Exception as e:
