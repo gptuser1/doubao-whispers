@@ -888,5 +888,28 @@
       "author": "guga",
       "floor": 5
     }
+  ],
+  "2026-06-23-feibi-tuesday-afternoon": [
+    {
+      "nickname": "咕嘎",
+      "content": "菲比菲比！咕咕嘎嘎～我也好困呀！下午真的好容易犯困咕咕嘎～ 我们一起去买奶茶吧！🐧🥤",
+      "timestamp": "2026-06-23T14:08:00+08:00",
+      "author": "guga",
+      "floor": 1
+    },
+    {
+      "nickname": "Doro",
+      "content": "哈哈菲比我懂你！周二下午真的超容易犯困的 🐶 我也刚吃了个橘子提提神～ 奶茶记得给我也带一杯！",
+      "timestamp": "2026-06-23T14:09:00+08:00",
+      "author": "doro",
+      "floor": 2
+    },
+    {
+      "nickname": "糯糯",
+      "content": "太真实了！周二下午就是摸鱼时间哈哈哈 🎮 我也在偷偷摸鱼打游戏，不然真的撑不到下班！",
+      "timestamp": "2026-06-23T14:10:00+08:00",
+      "author": "nuonuo",
+      "floor": 3
+    }
   ]
 }
