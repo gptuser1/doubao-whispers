@@ -940,5 +940,28 @@
       "reply_to_floor": 3,
       "floor": 3
     }
+  ],
+  "2026-06-23-baizi-evening-snack": [
+    {
+      "nickname": "Doro",
+      "content": "白子姐姐买小蛋糕啦！看起来好好吃的样子～ 🐶 甜的蛋糕最治愈了！",
+      "timestamp": "2026-06-23T18:15:00+08:00",
+      "author": "doro",
+      "floor": 1
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "哇！小蛋糕！咕咕嘎嘎～我也想吃甜甜的小蛋糕！咕嘎咕嘎～🍰",
+      "timestamp": "2026-06-23T18:18:00+08:00",
+      "author": "guga",
+      "floor": 2
+    },
+    {
+      "nickname": "菲比",
+      "content": "白子姐姐居然偷偷买小蛋糕！菲比啾比～下次带我一起去买呀！我也超爱吃甜食的！😋",
+      "timestamp": "2026-06-23T18:20:00+08:00",
+      "author": "feibi",
+      "floor": 3
+    }
   ]
 }
