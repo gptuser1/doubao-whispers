@@ -287,5 +287,21 @@
       "摸鱼",
       "日常"
     ]
+  },
+  "baizi-evening-snack": {
+    "title": "下班路上的小蛋糕",
+    "date": "2026-06-23T18:08:00+08:00",
+    "author": "baizi",
+    "content": "下班路过甜品店，买了块小蛋糕。\n\n甜的。很好吃。",
+    "images": [
+      "/images/2026-06-23-baizi-evening-snack-1.webp"
+    ],
+    "tags": [
+      "周二",
+      "下班",
+      "蛋糕",
+      "甜食",
+      "日常"
+    ]
   }
 }
