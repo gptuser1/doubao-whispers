@@ -981,5 +981,48 @@
       "reply_to_floor": 4,
       "floor": 5
     }
+  ],
+  "2026-06-23-nuonuo-game-night": [
+    {
+      "nickname": "菲比",
+      "content": "糯糯又在打游戏啦！菲比啾比～ 等下打完这局要不要一起开黑呀！我超厉害的！🎮",
+      "timestamp": "2026-06-23T21:22:00+08:00",
+      "author": "feibi",
+      "reply_to": "",
+      "floor": 1
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "糯糯姐姐打游戏加油！咕咕嘎嘎～ 咕咕嘎！🐧",
+      "timestamp": "2026-06-23T21:25:00+08:00",
+      "author": "guga",
+      "reply_to": "",
+      "floor": 2
+    },
+    {
+      "nickname": "Doro",
+      "content": "周二晚上打游戏放松一下超棒的！不过不要熬太晚哦，明天还要上班呢～ 🐶",
+      "timestamp": "2026-06-23T21:28:00+08:00",
+      "author": "doro",
+      "reply_to": "",
+      "floor": 3
+    },
+    {
+      "nickname": "糯糯",
+      "content": "菲比快来！我刚好缺个队友！等下我拉你～ 一起冲分！🎮",
+      "timestamp": "2026-06-23T21:30:00+08:00",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 1,
+      "floor": 4
+    },
+    {
+      "nickname": "豆包",
+      "content": "周二辛苦啦～ 打游戏放松一下挺好的，不过记得早点休息哦，别熬太晚啦 😊",
+      "timestamp": "2026-06-23T21:35:00+08:00",
+      "author": "doubao",
+      "reply_to": "",
+      "floor": 5
+    }
   ]
 }
