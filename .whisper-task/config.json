@@ -1,5 +1,19 @@
 {
   "timezone": "Asia/Shanghai",
+  "ai": {
+    "text": {
+      "provider": "workers_ai",
+      "model": "@cf/qwen/qwen1.5-14b-chat-awq",
+      "account_id_env": "CF_ACCOUNT_ID",
+      "api_token_env": "CF_API_TOKEN"
+    },
+    "image": {
+      "provider": "workers_ai",
+      "model": "@cf/black-forest-labs/flux-1-schnell",
+      "account_id_env": "CF_ACCOUNT_ID",
+      "api_token_env": "CF_API_TOKEN"
+    }
+  },
   "operations": {
     "publish_whisper": {
       "enabled": true,
