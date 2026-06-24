@@ -2,10 +2,10 @@
   "timezone": "Asia/Shanghai",
   "ai": {
     "text": {
-      "provider": "workers_ai",
-      "model": "@cf/qwen/qwen1.5-14b-chat-awq",
-      "account_id_env": "CF_ACCOUNT_ID",
-      "api_token_env": "CF_API_TOKEN"
+      "provider": "openai",
+      "model": "deepseek-ai/DeepSeek-V4-Flash",
+      "base_url": "https://api.siliconflow.cn/v1",
+      "api_key_env": "OPENAI_API_KEY"
     },
     "image": {
       "provider": "workers_ai",
