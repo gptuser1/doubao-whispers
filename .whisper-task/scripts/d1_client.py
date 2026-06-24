@@ -58,7 +58,7 @@ class D1Client:
         Returns a dict with last_run, next_random_offset, stats.
         Returns empty state if not found.
         """
-        results = self._query("SELECT value FROM state WHERE key = ?;", ["state"])
+        results = self._query("SELECT value FROM state WHERE key = ?;", ["whisper_state"])
 
         if not results:
             return self._default_state()
@@ -83,7 +83,7 @@ class D1Client:
         self._query(
             "INSERT INTO state (key, value, updated_at) VALUES (?, ?, ?) "
             "ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = ?;",
-            ["state", value_str, now_str, value_str, now_str]
+            ["whisper_state", value_str, now_str, value_str, now_str]
         )
 
     def _default_state(self):
