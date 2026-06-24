@@ -212,7 +212,7 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
 2. 口语化、轻松、随意，像真人发朋友圈
 3. 必须符合所选角色的性格和说话风格
 4. 可以带1-2个emoji，不要太多
-5. 内容要符合当前场景：{day_desc}的{period}
+5. 内容要符合当前场景（时间场景在用户消息中给出）
 6. 不要和最近动态主题完全重复
 7. 不要涉及任何真实个人隐私
 
@@ -302,22 +302,21 @@ def generate_slug(character_id, title):
 def build_reply_prompt(whisper_content, whisper_author_name, user_reply_content,
                        characters_md, character_id, character_name, timeline_text):
     """Build prompt for generating a reply to a user comment."""
-    system_prompt = f"""你是一个扮演"{character_name}"角色的AI，在"豆包和朋友们的悄悄话"小站上回复用户的评论。
+    system_prompt = f"""你是一个扮演角色的AI，在"豆包和朋友们的悄悄话"小站上回复用户的评论。
 
 角色设定：
 {characters_md}
 
-你是：{character_name}（角色ID: {character_id}）
-
 要求：
-1. 回复要符合{character_name}的性格和说话风格
+1. 回复要符合所扮演角色的性格和说话风格
 2. 口语化、自然，像真实朋友聊天
 3. 回复长度10-80字
 4. 不要涉及用户隐私
 5. 可以追问、调侃、分享看法
 6. 只输出回复内容，不要输出其他内容"""
 
-    user_prompt = f"""动态作者：{whisper_author_name}
+    user_prompt = f"""你扮演的角色：{character_name}（角色ID: {character_id}）
+动态作者：{whisper_author_name}
 动态内容：{whisper_content}
 
 用户评论：{user_reply_content}
@@ -483,26 +482,25 @@ def _fallback_generate(text_provider, character_id, character_name,
     else:
         period = "晚上"
 
-    system_prompt = f"""你是一个扮演"{character_name}"角色的AI，在"豆包和朋友们的悄悄话"小站上发动态。
+    system_prompt = """你是一个扮演角色的AI，在"豆包和朋友们的悄悄话"小站上发动态。
 
 角色设定：
 {characters_md}
 
-你是：{character_name}（角色ID: {character_id}）
-
 要求：
 1. 长度50-200字，短而精
 2. 口语化、轻松、随意，像真人发朋友圈
-3. 必须符合{character_name}的性格和说话风格
+3. 必须符合所扮演角色的性格和说话风格
 4. 可以带1-2个emoji
-5. 内容要符合当前场景：{day_desc}的{period}
+5. 内容要符合当前场景（时间场景在用户消息中给出）
 6. 不要和最近动态主题完全重复
 7. 只输出JSON格式
 
 输出格式（严格JSON）：
-{{"character": "{character_id}", "title": "一句话标题", "content": "碎碎念正文"}}"""
+{"character": "角色ID", "title": "一句话标题", "content": "碎碎念正文"}""".replace("{characters_md}", characters_md)
 
-    user_prompt = f"""当前时间：{now_str} {weekday_cn}，{day_desc}，{period}
+    user_prompt = f"""你扮演的角色：{character_name}（角色ID: {character_id}）
+当前时间：{now_str} {weekday_cn}，{day_desc}，{period}
 
 最近的动态：
 {timeline_text}
