@@ -99,46 +99,67 @@ class D1Client:
 
     # ==================== Replies Management ====================
 
-    def get_replies(self):
+    def get_pending_replies(self):
         """
-        Query all user replies from the replies table.
+        Query unprocessed user replies (is_doubao = 0) from the replies table.
         Returns list of reply dicts, ordered by timestamp ascending.
         Returns empty list if no replies or table doesn't exist.
         """
         try:
             results = self._query(
-                "SELECT * FROM replies ORDER BY timestamp ASC;",
+                "SELECT * FROM replies WHERE is_doubao = 0 ORDER BY timestamp ASC;",
                 []
             )
             return results if results else []
         except RuntimeError as e:
-            # Table might not exist yet
             print(f"Warning: failed to query replies: {e}", file=sys.stderr)
             return []
 
-    def delete_replies(self, reply_ids):
+    def add_character_reply(self, whisper_id, nickname, content, timestamp, floor, author_id=None):
         """
-        Delete processed replies from D1 by their IDs.
-        Handles both integer IDs and rowid-based deletion.
+        Insert a character (AI) reply into the replies table.
+        is_doubao = 1 marks it as an AI-generated reply.
+        """
+        try:
+            self._query(
+                "INSERT INTO replies (whisper_id, nickname, content, timestamp, floor, is_doubao, created_at) "
+                "VALUES (?, ?, ?, ?, ?, 1, ?);",
+                [whisper_id, nickname, content, timestamp, floor,
+                 datetime.now(TZ_BEIJING).strftime("%Y-%m-%d %H:%M:%S")]
+            )
+        except RuntimeError as e:
+            print(f"Warning: failed to insert character reply: {e}", file=sys.stderr)
 
-        Args:
-            reply_ids: list of reply IDs to delete
+    def mark_replies_processed(self, reply_ids):
+        """
+        Mark user replies as processed by setting is_doubao = 2.
+        We don't delete them — they're still user replies visible on the site,
+        just marked so the runner won't pick them up again.
         """
         if not reply_ids:
             return
 
         for reply_id in reply_ids:
             try:
-                self._query("DELETE FROM replies WHERE id = ?;", [reply_id])
+                self._query(
+                    "UPDATE replies SET is_doubao = 2 WHERE id = ?;",
+                    [reply_id]
+                )
             except RuntimeError as e:
-                print(f"Warning: failed to delete reply {reply_id}: {e}", file=sys.stderr)
+                print(f"Warning: failed to mark reply {reply_id}: {e}", file=sys.stderr)
 
-    def delete_all_replies(self):
-        """Delete all replies from D1 (use after processing all)."""
+    def get_max_floor(self, whisper_id):
+        """Get the current max floor number for a whisper."""
         try:
-            self._query("DELETE FROM replies;", [])
-        except RuntimeError as e:
-            print(f"Warning: failed to clear replies: {e}", file=sys.stderr)
+            results = self._query(
+                "SELECT MAX(floor) as max_floor FROM replies WHERE whisper_id = ?;",
+                [whisper_id]
+            )
+            if results and results[0].get("max_floor") is not None:
+                return results[0]["max_floor"]
+            return 0
+        except RuntimeError:
+            return 0
 
 
 # ==================== CLI for testing ====================
@@ -150,8 +171,8 @@ if __name__ == "__main__":
     state = client.get_state()
     print(json.dumps(state, ensure_ascii=False, indent=2))
 
-    print("\n=== Replies ===")
-    replies = client.get_replies()
-    print(f"Found {len(replies)} replies")
+    print("\n=== Pending Replies ===")
+    replies = client.get_pending_replies()
+    print(f"Found {len(replies)} pending replies")
     for r in replies:
         print(f"  {r}")

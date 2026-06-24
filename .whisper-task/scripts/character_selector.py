@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
-Character selector for whisper publishing.
+Character selector for whisper publishing (fallback only).
+
+Primary character selection is done by AI (see whisper_runner.py).
+This module provides a weighted-random fallback when AI generation fails.
+
 Chooses which character publishes the next whisper, based on:
 - Recent authors (avoid repetition)
 - Character activity weight (lively characters post more)

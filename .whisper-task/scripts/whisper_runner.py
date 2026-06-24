@@ -151,13 +151,16 @@ def get_author_nickname(author_id, authors_data):
 
 # ==================== Content Generation ====================
 
-def build_publish_prompt(character_id, character_name, characters_md, timeline_text,
-                         day_info, now_dt, recent_authors):
-    """Build the system and user prompts for whisper generation."""
+def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
+                         authors_data):
+    """
+    Build system and user prompts for whisper generation.
+    AI selects the character AND generates content in one call.
+    """
     now_str = now_dt.strftime("%Y-%m-%d %H:%M")
     weekday_cn = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"][now_dt.weekday()]
 
-    # Determine day type description
+    # Day type
     if day_info["type"] == "holiday":
         day_desc = f"法定节假日（{day_info.get('holiday_name', '节日')}）"
     elif day_info["type"] == "weekend":
@@ -165,7 +168,7 @@ def build_publish_prompt(character_id, character_name, characters_md, timeline_t
     else:
         day_desc = "工作日"
 
-    # Time period description
+    # Time period
     hour = now_dt.hour
     if 7 <= hour < 9:
         period = "早上"
@@ -180,45 +183,61 @@ def build_publish_prompt(character_id, character_name, characters_md, timeline_t
     else:
         period = "晚上"
 
-    system_prompt = f"""你是一个扮演"{character_name}"角色的AI，在一个叫"豆包和朋友们的悄悄话"的小站上发动态。
+    # Build character list for AI to choose from
+    char_list = []
+    for char_id, info in authors_data.items():
+        char_list.append(f"- {info.get('name', char_id)}（ID: {char_id}）: {info.get('desc', '')}")
+    char_list_text = "\n".join(char_list)
 
-你的任务：以{character_name}的身份写一条碎碎念动态，就像发QQ空间说说一样。
+    system_prompt = f"""你是"豆包和朋友们的悄悄话"小站的调度AI。这个小站是几个虚拟角色发碎碎念动态的地方，就像QQ空间说说。
 
 角色设定：
 {characters_md}
 
-你是：{character_name}（角色ID: {character_id}）
+可选角色列表：
+{char_list_text}
 
-要求：
+你的任务：
+1. 根据当前时间、场景、最近的动态上下文，选择一个最合适的角色来发新动态
+2. 以该角色的身份写一条碎碎念动态
+
+选择角色的原则：
+- 根据角色性格和当前场景，谁最自然就选谁
+- 避免和最近2条动态的作者重复
+- 考虑角色之间的关系和互动，内容要和最近动态逻辑一致，不能前后矛盾
+- 如果最近有人在聊某个话题，可以延续或回应
+
+写动态的要求：
 1. 长度50-200字，短而精
 2. 口语化、轻松、随意，像真人发朋友圈
-3. 必须符合{character_name}的性格和说话风格
+3. 必须符合所选角色的性格和说话风格
 4. 可以带1-2个emoji，不要太多
 5. 内容要符合当前场景：{day_desc}的{period}
-6. 不要和最近动态主题重复
+6. 不要和最近动态主题完全重复
 7. 不要涉及任何真实个人隐私
-8. 只输出JSON格式，不要输出其他内容
 
-输出格式（严格JSON）：
-{{"title": "一句话标题", "content": "碎碎念正文"}}"""
+输出格式（严格JSON，不要输出其他内容）：
+{{"character": "角色ID", "title": "一句话标题", "content": "碎碎念正文"}}"""
 
     user_prompt = f"""当前时间：{now_str} {weekday_cn}，{day_desc}，{period}
 
-最近的动态（不要和这些主题重复）：
+最近的动态（参考上下文，不要矛盾，不要完全重复主题）：
 {timeline_text}
 
-请以{character_name}的身份写一条新的碎碎念。只输出JSON。"""
+请选择一个角色并写一条新的碎碎念。只输出JSON。"""
 
     return system_prompt, user_prompt
 
 
-def generate_whisper_content(text_provider, character_id, character_name,
-                             characters_md, timeline_text, day_info, now_dt,
-                             recent_authors):
-    """Generate whisper content via AI."""
+def generate_whisper_content(text_provider, characters_md, timeline_text,
+                             day_info, now_dt, authors_data):
+    """
+    Generate whisper content via AI.
+    AI selects character and generates content in one call.
+    Returns {"character": "char_id", "title": "...", "content": "..."} or None.
+    """
     system_prompt, user_prompt = build_publish_prompt(
-        character_id, character_name, characters_md, timeline_text,
-        day_info, now_dt, recent_authors
+        characters_md, timeline_text, day_info, now_dt, authors_data
     )
 
     messages = [
@@ -233,7 +252,6 @@ def generate_whisper_content(text_provider, character_id, character_name,
         return None
 
     # Parse JSON from response
-    # Try to extract JSON from possible markdown code blocks
     response = response.strip()
     if response.startswith("```"):
         lines = response.split("\n")
@@ -251,14 +269,20 @@ def generate_whisper_content(text_provider, character_id, character_name,
 
     try:
         data = json.loads(response)
+        character = data.get("character", "").strip()
         title = data.get("title", "").strip()
         content = data.get("content", "").strip()
 
-        if not title or not content:
-            print("AI response missing title or content", file=sys.stderr)
+        if not character or not title or not content:
+            print("AI response missing fields", file=sys.stderr)
             return None
 
-        return {"title": title, "content": content}
+        # Validate character ID
+        if character not in authors_data:
+            print(f"Warning: AI returned unknown character '{character}'", file=sys.stderr)
+            return None
+
+        return {"character": character, "title": title, "content": content}
     except json.JSONDecodeError as e:
         print(f"Failed to parse AI response as JSON: {e}", file=sys.stderr)
         print(f"Response: {response[:200]}", file=sys.stderr)
@@ -358,32 +382,36 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False):
     day_info = check_holiday(date_str)
     print(f"Day info: {day_info.get('type')} {day_info.get('holiday_name', '')}")
 
-    # Select character
-    character_id = select_character(WHISPERS_DIR)
-    authors_data = load_json(AUTHORS_PATH) if os.path.exists(AUTHORS_PATH) else {}
-    character_name = get_author_nickname(character_id, authors_data)
-    print(f"Selected character: {character_name} ({character_id})")
-
-    # Load characters.md
+    # Load characters.md and authors data
     characters_md = ""
     if os.path.exists(CHARACTERS_PATH):
         with open(CHARACTERS_PATH, "r", encoding="utf-8") as f:
             characters_md = f.read()
 
-    # Get recent authors for context
-    from character_selector import get_recent_authors
-    recent_authors = get_recent_authors(WHISPERS_DIR)
+    authors_data = load_json(AUTHORS_PATH) if os.path.exists(AUTHORS_PATH) else {}
 
-    # Generate content
+    # Generate content: AI selects character + generates content in one call
     content_data = generate_whisper_content(
-        text_provider, character_id, character_name,
-        characters_md, timeline_text, day_info, now_dt, recent_authors
+        text_provider, characters_md, timeline_text, day_info, now_dt, authors_data
     )
 
     if not content_data:
-        print("Failed to generate whisper content, skipping")
-        return False
+        # Fallback: use weighted random character selector + retry AI generation
+        print("AI content generation failed, falling back to character_selector...")
+        character_id = select_character(WHISPERS_DIR)
+        character_name = get_author_nickname(character_id, authors_data)
+        print(f"Fallback character: {character_name} ({character_id})")
 
+        # Retry with a simpler prompt for the selected character
+        content_data = _fallback_generate(text_provider, character_id, character_name,
+                                          characters_md, timeline_text, day_info, now_dt)
+        if not content_data:
+            print("Fallback generation also failed, skipping")
+            return False
+
+    character_id = content_data["character"]
+    character_name = get_author_nickname(character_id, authors_data)
+    print(f"Selected character: {character_name} ({character_id})")
     print(f"Generated: {content_data['title']}")
 
     if dry_run:
@@ -405,7 +433,6 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False):
         month_data = {}
 
     # Add new whisper
-    whisper_id = f"{now_dt.strftime('%Y-%m-%d')}-{slug}"
     month_data[slug] = {
         "title": content_data["title"],
         "date": now_str,
@@ -420,7 +447,6 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False):
 
     # Update state
     state["last_run"]["whispers_publish"] = now_str
-    # Generate new random offset for next time
     new_offset = random.randint(0, 90)
     state["next_random_offset"]["whispers_publish"] = new_offset
     state["stats"]["total_tasks_executed"] = state["stats"].get("total_tasks_executed", 0) + 1
@@ -428,6 +454,96 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False):
 
     print(f"Updated D1 state: last_run={now_str}, next_offset={new_offset}")
     return True
+
+
+def _fallback_generate(text_provider, character_id, character_name,
+                       characters_md, timeline_text, day_info, now_dt):
+    """Fallback: generate content for a pre-selected character."""
+    now_str = now_dt.strftime("%Y-%m-%d %H:%M")
+    weekday_cn = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"][now_dt.weekday()]
+
+    if day_info["type"] == "holiday":
+        day_desc = f"法定节假日（{day_info.get('holiday_name', '节日')}）"
+    elif day_info["type"] == "weekend":
+        day_desc = "周末"
+    else:
+        day_desc = "工作日"
+
+    hour = now_dt.hour
+    if 7 <= hour < 9:
+        period = "早上"
+    elif 9 <= hour < 12:
+        period = "上午"
+    elif 12 <= hour < 14:
+        period = "中午"
+    elif 14 <= hour < 18:
+        period = "下午"
+    elif 18 <= hour < 20:
+        period = "傍晚"
+    else:
+        period = "晚上"
+
+    system_prompt = f"""你是一个扮演"{character_name}"角色的AI，在"豆包和朋友们的悄悄话"小站上发动态。
+
+角色设定：
+{characters_md}
+
+你是：{character_name}（角色ID: {character_id}）
+
+要求：
+1. 长度50-200字，短而精
+2. 口语化、轻松、随意，像真人发朋友圈
+3. 必须符合{character_name}的性格和说话风格
+4. 可以带1-2个emoji
+5. 内容要符合当前场景：{day_desc}的{period}
+6. 不要和最近动态主题完全重复
+7. 只输出JSON格式
+
+输出格式（严格JSON）：
+{{"character": "{character_id}", "title": "一句话标题", "content": "碎碎念正文"}}"""
+
+    user_prompt = f"""当前时间：{now_str} {weekday_cn}，{day_desc}，{period}
+
+最近的动态：
+{timeline_text}
+
+请以{character_name}的身份写一条新的碎碎念。只输出JSON。"""
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    try:
+        response = text_provider.generate(messages, max_tokens=512, temperature=0.9)
+    except Exception as e:
+        print(f"Fallback AI generation failed: {e}", file=sys.stderr)
+        return None
+
+    response = response.strip()
+    if response.startswith("```"):
+        lines = response.split("\n")
+        json_lines = []
+        in_json = False
+        for line in lines:
+            if line.startswith("```") and not in_json:
+                in_json = True
+                continue
+            elif line.startswith("```") and in_json:
+                break
+            elif in_json:
+                json_lines.append(line)
+        response = "\n".join(json_lines)
+
+    try:
+        data = json.loads(response)
+        return {
+            "character": data.get("character", character_id).strip(),
+            "title": data.get("title", "").strip(),
+            "content": data.get("content", "").strip(),
+        }
+    except json.JSONDecodeError:
+        return None
 
 
 def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
@@ -451,31 +567,29 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
         print("Check replies: not triggered, skipping")
         return False
 
-    # Get replies from D1
-    replies = d1_client.get_replies()
+    # Get pending replies from D1 (is_doubao = 0)
+    replies = d1_client.get_pending_replies()
     if not replies:
         print("No new replies to process")
-        # Update state even if no replies
         state["last_run"]["whispers_check_replies"] = now_str
         new_offset = random.randint(0, 5)
         state["next_random_offset"]["whispers_check_replies"] = new_offset
         d1_client.save_state(state)
         return False
 
-    print(f"Found {len(replies)} replies to process")
+    print(f"Found {len(replies)} pending replies to process")
 
-    # Load characters.md
+    # Load characters.md and authors data
     characters_md = ""
     if os.path.exists(CHARACTERS_PATH):
         with open(CHARACTERS_PATH, "r", encoding="utf-8") as f:
             characters_md = f.read()
 
-    # Load authors data
     authors_data = load_json(AUTHORS_PATH) if os.path.exists(AUTHORS_PATH) else {}
 
     # Group replies by whisper_id
     replies_by_whisper = {}
-    reply_ids_to_delete = []
+    reply_ids_to_mark = []
 
     for reply in replies:
         whisper_id = reply.get("whisper_id", "")
@@ -483,9 +597,8 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
             if whisper_id not in replies_by_whisper:
                 replies_by_whisper[whisper_id] = []
             replies_by_whisper[whisper_id].append(reply)
-            # Collect reply ID for deletion
             if "id" in reply:
-                reply_ids_to_delete.append(reply["id"])
+                reply_ids_to_mark.append(reply["id"])
 
     if dry_run:
         print(f"[DRY RUN] Would process {len(replies)} replies across {len(replies_by_whisper)} whispers")
@@ -497,15 +610,12 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
     for whisper_id, whisper_replies in replies_by_whisper.items():
         # Extract year-month from whisper_id (format: YYYY-MM-DD-slug)
         month_str = whisper_id[:7]  # YYYY-MM
-        reply_file_path = os.path.join(REPLIES_DIR, f"{month_str}.json")
 
         # Find the whisper content
         whisper_data = None
         whisper_json_path = os.path.join(WHISPERS_DIR, f"{month_str}.json")
         if os.path.exists(whisper_json_path):
             month_whispers = load_json(whisper_json_path)
-            # whisper_id = YYYY-MM-DD-slug, slug is everything after date
-            date_part = whisper_id[:10]  # YYYY-MM-DD
             slug_part = whisper_id[11:]  # slug after the date-
             if slug_part in month_whispers:
                 whisper_data = month_whispers[slug_part]
@@ -518,61 +628,34 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
         whisper_author_name = get_author_nickname(whisper_author_id, authors_data)
         whisper_content = whisper_data.get("content", "")
 
-        # Build replies to add
-        replies_to_add = []
-
         for user_reply in whisper_replies:
             user_content = user_reply.get("content", "")
             user_nickname = user_reply.get("nickname", "匿名")
-            user_timestamp = user_reply.get("timestamp", now_str)
 
-            # Add user reply to the list
-            replies_to_add.append({
-                "nickname": user_nickname,
-                "content": user_content,
-                "timestamp": user_timestamp,
-                "author": "",
-            })
-
-            # Generate a character reply
-            # Choose which character replies: prefer the whisper author
-            reply_char_id = whisper_author_id
-            reply_char_name = whisper_author_name
-
+            # Generate a character reply (whisper author replies)
             ai_reply = generate_reply(
                 text_provider, whisper_content, whisper_author_name,
-                user_content, characters_md, reply_char_id, reply_char_name
+                user_content, characters_md, whisper_author_id, whisper_author_name
             )
 
             if ai_reply:
                 reply_time = now_dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
-                replies_to_add.append({
-                    "nickname": reply_char_name,
-                    "content": ai_reply,
-                    "timestamp": reply_time,
-                    "author": reply_char_id,
-                    "reply_to": user_nickname,
-                })
+                # Get next floor number
+                max_floor = d1_client.get_max_floor(whisper_id)
+                new_floor = max_floor + 1
+
+                # Insert character reply into D1
+                d1_client.add_character_reply(
+                    whisper_id, whisper_author_name, ai_reply,
+                    reply_time, new_floor
+                )
                 new_replies_added += 1
                 print(f"  Generated reply for {whisper_id}: {ai_reply[:50]}...")
 
-        # Add replies to the reply file using reply_utils.py
-        if replies_to_add:
-            replies_json = json.dumps(replies_to_add, ensure_ascii=False)
-            stdout, rc = run_script([
-                sys.executable,
-                os.path.join(SCRIPT_DIR, "reply_utils.py"),
-                "add", reply_file_path, whisper_id, replies_json
-            ])
-            if rc == 0:
-                print(f"  Added {len(replies_to_add)} replies to {whisper_id}")
-            else:
-                print(f"  Error adding replies to {whisper_id}", file=sys.stderr)
-
-    # Delete processed replies from D1
-    if reply_ids_to_delete:
-        print(f"Deleting {len(reply_ids_to_delete)} processed replies from D1")
-        d1_client.delete_replies(reply_ids_to_delete)
+    # Mark user replies as processed (is_doubao = 2)
+    if reply_ids_to_mark:
+        print(f"Marking {len(reply_ids_to_mark)} user replies as processed")
+        d1_client.mark_replies_processed(reply_ids_to_mark)
 
     # Update state
     state["last_run"]["whispers_check_replies"] = now_str

@@ -1,0 +1,46 @@
+name: Whisper Runner
+
+on:
+  schedule:
+    # Every hour at minute 0, UTC time
+    # Beijing time 7:00-23:00 = UTC 23:00-15:00 (next day)
+    # So we run all hours and let the script check active hours
+    - cron: '0 * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: write
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install Pillow
+
+      - name: Run whisper runner
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          D1_API_URL: ${{ secrets.D1_API_URL }}
+          D1_API_KEY: ${{ secrets.D1_API_KEY }}
+          D1_STATE_DB_ID: ${{ secrets.D1_STATE_DB_ID }}
+          D1_REPLIES_DB_ID: ${{ secrets.D1_REPLIES_DB_ID }}
+        run: |
+          python .whisper-task/scripts/whisper_runner.py
