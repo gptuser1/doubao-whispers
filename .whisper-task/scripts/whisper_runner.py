@@ -470,7 +470,7 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
     # Validate and clean up replies
     whisper_author_id = whisper_data.get("author", "")
     valid_replies = []
-    for r in replies:
+    for idx, r in enumerate(replies):
         if not isinstance(r, dict):
             continue
         author_id = r.get("author", "")
@@ -489,11 +489,27 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
         valid_replies.append({
             "nickname": nickname,
             "content": content,
-            "timestamp": now_dt.strftime("%Y-%m-%dT%H:%M:%S+08:00"),
             "author": author_id,
             "reply_to": reply_to if reply_to else "",
             "reply_to_floor": reply_to_floor if reply_to_floor else 0,
         })
+
+    # Stagger timestamps: replies should be spread out over time, like real
+    # friends commenting at different moments. Each reply a few minutes apart,
+    # all in the past relative to now.
+    if valid_replies:
+        # Calculate the earliest timestamp: work backwards from now
+        # Last reply is 2-6 min ago, each earlier reply 3-12 min before that
+        current_dt = now_dt - timedelta(minutes=random.randint(2, 6))
+        for _ in range(len(valid_replies) - 1):
+            current_dt = current_dt - timedelta(minutes=random.randint(3, 12))
+        # Now assign timestamps going forward, each a few minutes apart
+        for reply in valid_replies:
+            reply["timestamp"] = current_dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
+            current_dt = current_dt + timedelta(minutes=random.randint(3, 12))
+            # Ensure not in the future
+            if current_dt > now_dt:
+                current_dt = now_dt - timedelta(minutes=1)
 
     return valid_replies if valid_replies else None
 
