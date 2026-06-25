@@ -109,8 +109,10 @@ class OpenAIText(TextProvider):
             "messages": messages,
             "max_tokens": max_tokens,
             "temperature": temperature,
+            "stream": False,
             # Explicitly disable thinking mode to save tokens
             "thinking": {"type": "disabled"},
+            "enable_thinking": False,
         }
 
         data = json.dumps(payload).encode("utf-8")
@@ -325,7 +327,7 @@ if __name__ == "__main__":
     if args.type == "text":
         provider = create_text_provider(config)
         messages = [{"role": "user", "content": args.prompt}]
-        result = provider.generate(messages)
+        result = provider.generate(messages, temperature=0.85)
         print(result)
     else:
         provider = create_image_provider(config)
