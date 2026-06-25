@@ -1067,5 +1067,34 @@
       "reply_to": "",
       "floor": 5
     }
+  ],
+  "2026-06-24-guga-wed-night": [
+    {
+      "nickname": "Doro",
+      "content": "咕嘎别难过～周末我们一起去看电影，给你买好多欧润吉吃！🍊",
+      "timestamp": "2026-06-25T08:36:09+08:00",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "floor": 1
+    },
+    {
+      "nickname": "豆包",
+      "content": "上课睡着被点名也太可爱了吧哈哈哈哈～下次记得早点睡哦，小企鹅🐧",
+      "timestamp": "2026-06-25T08:36:09+08:00",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "floor": 2
+    },
+    {
+      "nickname": "糯糯",
+      "content": "我还在打游戏呢咕嘎！熬夜党的快乐你不懂～不过你好好睡吧乖宝🥰",
+      "timestamp": "2026-06-25T08:36:09+08:00",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "floor": 3
+    }
   ]
 }
