@@ -176,8 +176,8 @@ class WorkersAIImage(ImageProvider):
 
     def __init__(self, config):
         self.model = config.get("model", "@cf/black-forest-labs/flux-2-klein-4b")
-        self.account_id = os.environ.get(config.get("account_id_env", "CF_ACCOUNT_ID"), "")
-        self.api_token = os.environ.get(config.get("api_key_env", config.get("api_token_env", "CF_API_KEY")), "")
+        self.account_id = os.environ.get(config.get("account_id_env", "CF_IMAGE_ACCOUNT_ID"), "")
+        self.api_token = os.environ.get(config.get("api_key_env", config.get("api_token_env", "CF_IMAGE_API_KEY")), "")
 
         if not self.account_id or not self.api_token:
             raise ValueError("WorkersAI requires CF_ACCOUNT_ID and CF_API_TOKEN environment variables")

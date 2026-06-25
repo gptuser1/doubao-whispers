@@ -18,8 +18,8 @@
     "image": {
       "provider": "workers_ai",
       "model": "@cf/black-forest-labs/flux-2-klein-4b",
-      "account_id_env": "CF_ACCOUNT_ID",
-      "api_key_env": "CF_API_KEY"
+      "account_id_env": "CF_IMAGE_ACCOUNT_ID",
+      "api_key_env": "CF_IMAGE_API_KEY"
     }
   },
   "operations": {
