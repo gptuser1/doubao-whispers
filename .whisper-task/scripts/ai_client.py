@@ -97,6 +97,10 @@ class OpenAIText(TextProvider):
         if not self.api_key:
             raise ValueError("OpenAI provider requires API key environment variable")
 
+        # Token usage tracking: last_usage = most recent call, usage_total = accumulated across all calls
+        self.last_usage = None
+        self.usage_total = {"prompt": 0, "completion": 0, "total": 0, "cache_hit": 0}
+
     def generate(self, messages, max_tokens=1024, temperature=0.8):
         url = f"{self.base_url}/chat/completions"
 
@@ -117,6 +121,27 @@ class OpenAIText(TextProvider):
         try:
             with urllib.request.urlopen(req, timeout=60) as resp:
                 result = json.loads(resp.read().decode("utf-8"))
+
+            # Log token usage from API response (DeepSeek/SiliconFlow return cache stats too)
+            usage = result.get("usage") or {}
+            if usage:
+                prompt = usage.get("prompt_tokens", 0)
+                completion = usage.get("completion_tokens", 0)
+                total = usage.get("total_tokens", 0)
+                cache_hit = usage.get("prompt_cache_hit_tokens", 0)
+                cache_miss = usage.get("prompt_cache_miss_tokens", 0)
+                self.last_usage = {"prompt": prompt, "completion": completion,
+                                   "total": total, "cache_hit": cache_hit}
+                self.usage_total["prompt"] += prompt
+                self.usage_total["completion"] += completion
+                self.usage_total["total"] += total
+                self.usage_total["cache_hit"] += cache_hit
+                cache_note = ""
+                if cache_hit or cache_miss:
+                    cache_note = f" (cache hit={cache_hit}, miss={cache_miss})"
+                print(f"[AI usage] model={self.model} prompt={prompt} "
+                      f"completion={completion} total={total}{cache_note}",
+                      file=sys.stderr)
 
             return result.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
         except urllib.error.URLError as e:
@@ -194,6 +219,55 @@ class WorkersAIImage(ImageProvider):
         except urllib.error.URLError as e:
             print(f"WorkersAI image request failed: {e}", file=sys.stderr)
             return None
+
+
+# ==================== Usage Helpers ====================
+
+def merge_usage_into_state(state, usage_total, now_str, max_recent=20):
+    """
+    Merge accumulated token usage into state['usage'] for D1 persistence.
+
+    Call once at the end of a run, before save_state().
+    Structure stored:
+        state["usage"] = {
+            "total_prompt_tokens": int,
+            "total_completion_tokens": int,
+            "total_tokens": int,
+            "total_cache_hit_tokens": int,
+            "runs": int,
+            "recent": [{"ts", "prompt", "completion", "total", "cache_hit"}, ...]
+        }
+    """
+    if not usage_total or usage_total.get("total", 0) == 0:
+        return  # no AI calls this run
+
+    u = state.get("usage")
+    if u is None:
+        u = {
+            "total_prompt_tokens": 0,
+            "total_completion_tokens": 0,
+            "total_tokens": 0,
+            "total_cache_hit_tokens": 0,
+            "runs": 0,
+            "recent": [],
+        }
+        state["usage"] = u
+
+    u["total_prompt_tokens"] = u.get("total_prompt_tokens", 0) + usage_total["prompt"]
+    u["total_completion_tokens"] = u.get("total_completion_tokens", 0) + usage_total["completion"]
+    u["total_tokens"] = u.get("total_tokens", 0) + usage_total["total"]
+    u["total_cache_hit_tokens"] = u.get("total_cache_hit_tokens", 0) + usage_total["cache_hit"]
+    u["runs"] = u.get("runs", 0) + 1
+    u.setdefault("recent", []).append({
+        "ts": now_str,
+        "prompt": usage_total["prompt"],
+        "completion": usage_total["completion"],
+        "total": usage_total["total"],
+        "cache_hit": usage_total["cache_hit"],
+    })
+    # Keep only the most recent N entries to avoid unbounded growth
+    if len(u["recent"]) > max_recent:
+        u["recent"] = u["recent"][-max_recent:]
 
 
 # ==================== Factory Functions ====================
