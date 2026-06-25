@@ -58,6 +58,21 @@
         ]
       }
     },
+    "character_interactions": {
+      "enabled": true,
+      "name": "角色间互动",
+      "priority": 3,
+      "schedule": {
+        "type": "interval",
+        "min_interval_hours": 4,
+        "random_offset_min_minutes": 0,
+        "random_offset_max_minutes": 30,
+        "only_between_hours": [
+          10,
+          23
+        ]
+      }
+    },
     "sync_kv": {
       "enabled": false,
       "name": "同步KV到仓库",

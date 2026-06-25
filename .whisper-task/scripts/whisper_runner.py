@@ -29,6 +29,7 @@ sys.path.insert(0, SCRIPT_DIR)
 from ai_client import create_text_provider, merge_usage_into_state
 from d1_client import D1Client
 from character_selector import select_character, CHARACTER_WEIGHTS
+from reply_utils import add_replies, load_month_file
 
 # Paths
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
@@ -345,6 +346,285 @@ def generate_reply(text_provider, whisper_content, whisper_author_name,
     except Exception as e:
         print(f"Reply generation failed: {e}", file=sys.stderr)
         return None
+
+
+# ==================== Character Interactions ====================
+
+def build_interaction_prompt(whisper_data, whisper_author_name, existing_replies,
+                             characters_md, authors_data, now_dt):
+    """Build prompt for generating character-to-character interactions."""
+    whisper_author_id = whisper_data.get("author", "")
+
+    # Build existing replies text with floor numbers
+    replies_text = "（暂无回复）"
+    if existing_replies:
+        lines = []
+        for r in existing_replies:
+            floor = r.get("floor", "?")
+            nick = r.get("nickname", "?")
+            content = r.get("content", "")
+            reply_to = r.get("reply_to", "")
+            if reply_to:
+                lines.append(f"#{floor} {nick}（回复@{reply_to}）: {content}")
+            else:
+                lines.append(f"#{floor} {nick}: {content}")
+        replies_text = "\n".join(lines)
+
+    # Build character list (excluding whisper author)
+    char_list = []
+    for char_id, info in authors_data.items():
+        if char_id != whisper_author_id:
+            char_list.append(f"- {info.get('name', char_id)}（ID: {char_id}）")
+    char_list_text = "\n".join(char_list)
+
+    system_prompt = f"""你是"豆包和朋友们的悄悄话"小站的角色互动生成器。朋友们会看彼此的动态，自然地评论互动。
+
+角色设定：
+{characters_md}
+
+互动原则：
+1. 为动态生成1-3条角色间的互动回复，像朋友刷朋友圈看到动态后自然评论
+2. 可以直接回复动态，也可以回复已有评论（形成对话链）
+3. 互动要自然，符合角色性格和说话风格
+4. 不要每个人都只回复动态，看到有意思的评论可以接话
+5. 回复长度10-80字，口语化、轻松
+6. 不要涉及隐私
+7. 动态作者不参与回复（是别人来评论TA的动态）
+
+输出格式（严格JSON数组，不要输出其他内容）：
+[{{"author": "角色ID", "nickname": "角色名", "content": "回复内容", "reply_to": "回复对象昵称或空字符串", "reply_to_floor": 楼层号或0}}]
+
+字段说明：
+- reply_to: 回复某条已有评论时填该评论者的昵称；直接回复动态填空字符串""
+- reply_to_floor: 回复某条已有评论时填该评论的楼层号；直接回复动态填0
+- 只能回复已有评论（不能回复其他新生成的回复）"""
+
+    user_prompt = f"""动态作者：{whisper_author_name}
+动态内容：{whisper_data.get('content', '')}
+
+已有回复：
+{replies_text}
+
+可选角色（不要用动态作者"{whisper_author_name}"）：
+{char_list_text}
+
+当前时间：{now_dt.strftime('%Y-%m-%d %H:%M')}
+
+请生成1-3条角色互动回复。只输出JSON数组。"""
+
+    return system_prompt, user_prompt
+
+
+def generate_character_interactions(text_provider, whisper_data, whisper_author_name,
+                                    existing_replies, characters_md, authors_data, now_dt):
+    """Generate character-to-character replies via AI. Returns list of reply dicts or None."""
+    system_prompt, user_prompt = build_interaction_prompt(
+        whisper_data, whisper_author_name, existing_replies,
+        characters_md, authors_data, now_dt
+    )
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    try:
+        response = text_provider.generate(messages, max_tokens=512, temperature=0.9)
+    except Exception as e:
+        print(f"Character interaction generation failed: {e}", file=sys.stderr)
+        return None
+
+    if not response:
+        return None
+
+    response = response.strip()
+    # Strip markdown code fence
+    if response.startswith("```"):
+        lines = response.split("\n")
+        json_lines = []
+        in_json = False
+        for line in lines:
+            if line.startswith("```") and not in_json:
+                in_json = True
+                continue
+            elif line.startswith("```") and in_json:
+                break
+            elif in_json:
+                json_lines.append(line)
+        response = "\n".join(json_lines)
+
+    try:
+        replies = json.loads(response)
+    except json.JSONDecodeError:
+        # Try stripping control chars
+        repaired = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', response)
+        try:
+            replies = json.loads(repaired)
+        except json.JSONDecodeError:
+            print(f"Failed to parse interaction JSON: {response[:200]}", file=sys.stderr)
+            return None
+
+    if not isinstance(replies, list):
+        return None
+
+    # Validate and clean up replies
+    whisper_author_id = whisper_data.get("author", "")
+    valid_replies = []
+    for r in replies:
+        if not isinstance(r, dict):
+            continue
+        author_id = r.get("author", "")
+        nickname = r.get("nickname", "")
+        content = r.get("content", "").strip()
+        if not author_id or not content:
+            continue
+        # Don't allow whisper author to reply to their own whisper
+        if author_id == whisper_author_id:
+            continue
+        # Ensure nickname matches author_id
+        if author_id in authors_data:
+            nickname = authors_data[author_id].get("name", nickname)
+        reply_to = r.get("reply_to", "")
+        reply_to_floor = r.get("reply_to_floor", 0)
+        valid_replies.append({
+            "nickname": nickname,
+            "content": content,
+            "timestamp": now_dt.strftime("%Y-%m-%dT%H:%M:%S+08:00"),
+            "author": author_id,
+            "reply_to": reply_to if reply_to else "",
+            "reply_to_floor": reply_to_floor if reply_to_floor else 0,
+        })
+
+    return valid_replies if valid_replies else None
+
+
+def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=False):
+    """Generate character-to-character interactions for recent whispers lacking replies."""
+    print("\n--- Character Interactions ---")
+
+    state = d1_client.get_state()
+    last_run = state.get("last_run", {}).get("character_interactions", "")
+    if not last_run:
+        last_run = "2026-06-01T00:00:00+08:00"
+
+    now_str = now_dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
+    random_offset = state.get("next_random_offset", {}).get("character_interactions", 0)
+
+    trigger_result = check_trigger("character_interactions", last_run, now_str, random_offset)
+    print(f"Trigger check: {trigger_result.get('trigger', False)} - {trigger_result.get('reason', '')}")
+
+    if not trigger_result.get("trigger", False):
+        print("Character interactions: not triggered, skipping")
+        return False
+
+    # Load characters.md and authors data
+    characters_md = ""
+    if os.path.exists(CHARACTERS_PATH):
+        with open(CHARACTERS_PATH, "r", encoding="utf-8") as f:
+            characters_md = f.read()
+
+    authors_data = load_json(AUTHORS_PATH) if os.path.exists(AUTHORS_PATH) else {}
+
+    # Find recent whispers (last 48h) that need interactions
+    cutoff = now_dt - timedelta(hours=48)
+    min_age = now_dt - timedelta(hours=1)  # at least 1h old
+
+    candidates = []
+    # Check current and previous month
+    for month_offset in [0, 1]:
+        check_dt = now_dt - timedelta(days=30 * month_offset)
+        month_str = check_dt.strftime("%Y-%m")
+        whisper_json_path = os.path.join(WHISPERS_DIR, f"{month_str}.json")
+        if not os.path.exists(whisper_json_path):
+            continue
+
+        month_whispers = load_json(whisper_json_path)
+        for slug, w in month_whispers.items():
+            date_str = w.get("date", "")
+            if not date_str:
+                continue
+            try:
+                w_dt = datetime.fromisoformat(date_str)
+            except (ValueError, TypeError):
+                continue
+
+            # Must be within 48h, at least 1h old
+            if w_dt < cutoff or w_dt > min_age:
+                continue
+
+            whisper_id = f"{w_dt.strftime('%Y-%m-%d')}-{slug}"
+
+            # Check existing character replies
+            reply_file = os.path.join(REPLIES_DIR, f"{month_str}.json")
+            existing = load_month_file(reply_file)
+            existing_replies = existing.get(whisper_id, [])
+            char_reply_count = sum(1 for r in existing_replies if r.get("author", ""))
+
+            if char_reply_count < 3:
+                candidates.append({
+                    "whisper_id": whisper_id,
+                    "whisper_data": w,
+                    "month_str": month_str,
+                    "existing_replies": existing_replies,
+                    "char_reply_count": char_reply_count,
+                    "date": w_dt,
+                })
+
+    if not candidates:
+        print("No whispers need interactions")
+        state["last_run"]["character_interactions"] = now_str
+        new_offset = random.randint(0, 30)
+        state["next_random_offset"]["character_interactions"] = new_offset
+        d1_client.save_state(state)
+        return False
+
+    # Sort by date descending (newest first), take up to 3
+    candidates.sort(key=lambda x: x["date"], reverse=True)
+    candidates = candidates[:3]
+
+    print(f"Found {len(candidates)} whispers needing interactions")
+
+    if dry_run:
+        for c in candidates:
+            print(f"  [DRY RUN] Would interact: {c['whisper_id']} ({c['char_reply_count']} char replies)")
+        return False
+
+    total_new_replies = 0
+    for c in candidates:
+        whisper_id = c["whisper_id"]
+        w_data = c["whisper_data"]
+        author_id = w_data.get("author", "")
+        author_name = get_author_nickname(author_id, authors_data)
+        existing_replies = c["existing_replies"]
+
+        print(f"  Processing {whisper_id} ({c['char_reply_count']} existing char replies)")
+
+        new_replies = generate_character_interactions(
+            text_provider, w_data, author_name, existing_replies,
+            characters_md, authors_data, now_dt
+        )
+
+        if not new_replies:
+            print(f"    No valid interactions generated")
+            continue
+
+        # Write to data/replies/*.json
+        reply_file = os.path.join(REPLIES_DIR, f"{c['month_str']}.json")
+        add_replies(reply_file, whisper_id, new_replies)
+        total_new_replies += len(new_replies)
+        for r in new_replies:
+            reply_to_info = f" (reply to {r['reply_to']}#{r['reply_to_floor']})" if r.get("reply_to") else ""
+            print(f"    + {r['nickname']}: {r['content'][:40]}...{reply_to_info}")
+
+    # Update state
+    state["last_run"]["character_interactions"] = now_str
+    new_offset = random.randint(0, 30)
+    state["next_random_offset"]["character_interactions"] = new_offset
+    state["stats"]["total_tasks_executed"] = state["stats"].get("total_tasks_executed", 0) + 1
+    d1_client.save_state(state)
+
+    print(f"Character interactions complete: {total_new_replies} replies generated")
+    return total_new_replies > 0
 
 
 # ==================== Main Tasks ====================
@@ -757,6 +1037,11 @@ def main():
     # Task 2: Check replies
     replied = do_check_replies(config, d1_client, text_provider, now, args.dry_run)
     if replied:
+        changes_made = True
+
+    # Task 3: Character interactions (generate character-to-character replies)
+    interacted = do_character_interactions(config, d1_client, text_provider, now, args.dry_run)
+    if interacted:
         changes_made = True
 
     # Record token usage stats into D1 state
