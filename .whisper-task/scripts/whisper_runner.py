@@ -383,13 +383,14 @@ def build_interaction_prompt(whisper_data, whisper_author_name, existing_replies
 {characters_md}
 
 互动原则：
-1. 为动态生成1-3条角色间的互动回复，像朋友刷朋友圈看到动态后自然评论
-2. 可以直接回复动态，也可以回复已有评论（形成对话链）
-3. 互动要自然，符合角色性格和说话风格
-4. 不要每个人都只回复动态，看到有意思的评论可以接话
-5. 回复长度10-80字，口语化、轻松
-6. 不要涉及隐私
-7. 动态作者不参与回复（是别人来评论TA的动态）
+1. 为动态生成2-5条角色间的互动回复，像朋友刷朋友圈看到动态后自然评论
+2. 回复数量看内容：平淡动态可能只有2个朋友评论，有话题性的动态可能有4-5个朋友参与；不要每次都固定数量
+3. 可以直接回复动态，也可以回复已有评论（形成对话链）
+4. 互动要自然，符合角色性格和说话风格
+5. 不要每个人都只回复动态，看到有意思的评论可以接话
+6. 回复长度10-80字，口语化、轻松
+7. 不要涉及隐私
+8. 动态作者不参与回复（是别人来评论TA的动态）
 
 输出格式（严格JSON数组，不要输出其他内容）：
 [{{"author": "角色ID", "nickname": "角色名", "content": "回复内容", "reply_to": "回复对象昵称或空字符串", "reply_to_floor": 楼层号或0}}]
@@ -410,7 +411,7 @@ def build_interaction_prompt(whisper_data, whisper_author_name, existing_replies
 
 当前时间：{now_dt.strftime('%Y-%m-%d %H:%M')}
 
-请生成1-3条角色互动回复。只输出JSON数组。"""
+请生成2-5条角色互动回复，数量自然即可。只输出JSON数组。"""
 
     return system_prompt, user_prompt
 
@@ -576,7 +577,7 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
             existing_replies = existing.get(whisper_id, [])
             char_reply_count = sum(1 for r in existing_replies if r.get("author", ""))
 
-            if char_reply_count < 3:
+            if char_reply_count < 5:
                 candidates.append({
                     "whisper_id": whisper_id,
                     "whisper_data": w,
