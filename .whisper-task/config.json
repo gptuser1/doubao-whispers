@@ -68,7 +68,7 @@
         "random_offset_min_minutes": 0,
         "random_offset_max_minutes": 30,
         "only_between_hours": [
-          10,
+          7,
           23
         ]
       }
