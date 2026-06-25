@@ -36,6 +36,7 @@ jobs:
       - name: Run whisper runner
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           D1_API_URL: ${{ secrets.D1_API_URL }}
