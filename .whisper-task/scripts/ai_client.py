@@ -109,7 +109,6 @@ class OpenAIText(TextProvider):
             "messages": messages,
             "max_tokens": max_tokens,
             "temperature": temperature,
-            "stream": False,
             # Explicitly disable thinking mode to save tokens
             "thinking": {"type": "disabled"},
             "enable_thinking": False,
@@ -176,9 +175,9 @@ class WorkersAIImage(ImageProvider):
     """Cloudflare Workers AI image provider."""
 
     def __init__(self, config):
-        self.model = config.get("model", "@cf/black-forest-labs/flux-1-schnell")
+        self.model = config.get("model", "@cf/black-forest-labs/flux-2-klein-4b")
         self.account_id = os.environ.get(config.get("account_id_env", "CF_ACCOUNT_ID"), "")
-        self.api_token = os.environ.get(config.get("api_token_env", "CF_API_TOKEN"), "")
+        self.api_token = os.environ.get(config.get("api_key_env", config.get("api_token_env", "CF_API_KEY")), "")
 
         if not self.account_id or not self.api_token:
             raise ValueError("WorkersAI requires CF_ACCOUNT_ID and CF_API_TOKEN environment variables")

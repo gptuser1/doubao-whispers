@@ -1021,17 +1021,33 @@ def main():
         print(f"Failed to initialize D1 client: {e}", file=sys.stderr)
         return 1
 
-    ai_config = config.get("ai", {}).get("text", {})
-    if not ai_config:
+    ai_text_config = config.get("ai", {}).get("text", {})
+    if not ai_text_config:
         print("No AI text provider configured", file=sys.stderr)
         return 1
 
-    try:
-        text_provider = create_text_provider(ai_config)
-        print(f"AI text provider: {ai_config.get('provider', 'unknown')}")
-    except Exception as e:
-        print(f"Failed to initialize AI provider: {e}", file=sys.stderr)
+    # Support both named-profile format and legacy flat format
+    if "default" not in ai_text_config and "provider" in ai_text_config:
+        ai_text_config = {"default": ai_text_config}
+
+    # Create one text provider per profile
+    text_providers = {}
+    for name, prof_cfg in ai_text_config.items():
+        try:
+            text_providers[name] = create_text_provider(prof_cfg)
+            print(f"AI text provider [{name}]: {prof_cfg.get('model', 'unknown')}")
+        except Exception as e:
+            print(f"Failed to init provider [{name}]: {e}", file=sys.stderr)
+
+    if not text_providers:
+        print("No text provider could be initialized", file=sys.stderr)
         return 1
+
+    def get_provider(op_name):
+        """Get the text provider for a given operation based on its text_profile."""
+        op_cfg = config.get("operations", {}).get(op_name, {})
+        profile = op_cfg.get("text_profile", "default")
+        return text_providers.get(profile, text_providers.get("default"))
 
     # Update heartbeat count
     state = d1_client.get_state()
@@ -1047,30 +1063,36 @@ def main():
         state["last_run"]["whispers_publish"] = "2026-06-01T00:00:00+08:00"
         d1_client.save_state(state)
 
-    published = do_publish_whisper(config, d1_client, text_provider, now, args.dry_run)
+    published = do_publish_whisper(config, d1_client, get_provider("publish_whisper"), now, args.dry_run)
     if published:
         changes_made = True
 
     # Task 2: Check replies
-    replied = do_check_replies(config, d1_client, text_provider, now, args.dry_run)
+    replied = do_check_replies(config, d1_client, get_provider("check_replies"), now, args.dry_run)
     if replied:
         changes_made = True
 
     # Task 3: Character interactions (generate character-to-character replies)
-    interacted = do_character_interactions(config, d1_client, text_provider, now, args.dry_run)
+    interacted = do_character_interactions(config, d1_client, get_provider("character_interactions"), now, args.dry_run)
     if interacted:
         changes_made = True
 
-    # Record token usage stats into D1 state
-    if text_provider.usage_total["total"] > 0:
+    # Record token usage stats into D1 state (sum across all providers)
+    combined_usage = {"prompt": 0, "completion": 0, "total": 0, "cache_hit": 0}
+    for p in text_providers.values():
+        if hasattr(p, "usage_total"):
+            for k in combined_usage:
+                combined_usage[k] += p.usage_total.get(k, 0)
+
+    if combined_usage["total"] > 0:
         state = d1_client.get_state()
-        merge_usage_into_state(state, text_provider.usage_total,
+        merge_usage_into_state(state, combined_usage,
                                now.strftime("%Y-%m-%dT%H:%M:%S+08:00"))
         d1_client.save_state(state)
-        print(f"Token usage this run: prompt={text_provider.usage_total['prompt']} "
-              f"completion={text_provider.usage_total['completion']} "
-              f"total={text_provider.usage_total['total']} "
-              f"cache_hit={text_provider.usage_total['cache_hit']}")
+        print(f"Token usage this run: prompt={combined_usage['prompt']} "
+              f"completion={combined_usage['completion']} "
+              f"total={combined_usage['total']} "
+              f"cache_hit={combined_usage['cache_hit']}")
 
     # Git commit and push
     git_commit_and_push(changes_made, args.dry_run)

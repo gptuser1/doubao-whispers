@@ -38,7 +38,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
           D1_API_URL: ${{ secrets.D1_API_URL }}
           D1_API_KEY: ${{ secrets.D1_API_KEY }}
           D1_STATE_DB_ID: ${{ secrets.D1_STATE_DB_ID }}
