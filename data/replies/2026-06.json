@@ -1140,6 +1140,51 @@
       "reply_to": "",
       "reply_to_floor": 0,
       "floor": 3
+    },
+    {
+      "nickname": "Doro",
+      "content": "咕嘎别难过～周末我们一起去看电影，给你买好多欧润吉吃！🍊",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-06-25T16:24:52+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "豆包",
+      "content": "上课睡着被点名也太可爱了吧哈哈哈哈～下次记得早点睡哦，小企鹅🐧",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-06-25T16:28:52+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "糯糯",
+      "content": "我还在打游戏呢咕嘎！熬夜党的快乐你不懂～不过你好好睡吧乖宝🥰",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-06-25T16:40:52+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！电影是治愈良药，不过别吃太多欧润吉，会蛀牙的～🎬",
+      "author": "feibi",
+      "reply_to": "doro",
+      "reply_to_floor": 1,
+      "timestamp": "2026-06-25T16:48:52+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "白子",
+      "content": "周末电影院见，记得带零食～",
+      "author": "baizi",
+      "reply_to": "doro",
+      "reply_to_floor": 1,
+      "timestamp": "2026-06-25T16:55:52+08:00",
+      "floor": 8
     }
   ],
   "2026-06-25-feibi-6ea97f": [
@@ -1186,6 +1231,53 @@
       "reply_to": "菲比",
       "reply_to_floor": 1,
       "timestamp": "2026-06-25T12:16:03+08:00",
+      "floor": 5
+    }
+  ],
+  "2026-06-25-doro-effc6a": [
+    {
+      "nickname": "豆包",
+      "content": "看到你们晒太阳啦～Doro你还是这么温柔，咕嘎也超可爱的，果汁洒了还在努力擦，真暖心。",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-06-25T16:19:52+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "这也太治愈了吧～Doro你是不是偷偷涂了防晒霜？咕嘎你擦得认真吗？菲比啾比～",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-06-25T16:23:52+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "糯糯",
+      "content": "好想和你们一起晒太阳呀～不过我更想和菲比一起打游戏，等下要不要来我家？",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-06-25T16:27:52+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "白子",
+      "content": "好温暖的天气，Doro你和咕嘎的日常总是这么让人安心～",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-06-25T16:33:52+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "嗯嗯，Doro你一直都在照顾我！果汁洒了我还在努力擦～咕嘎～",
+      "author": "guga",
+      "reply_to": "Doro",
+      "reply_to_floor": 0,
+      "timestamp": "2026-06-25T16:39:52+08:00",
       "floor": 5
     }
   ]
