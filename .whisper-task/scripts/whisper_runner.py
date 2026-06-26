@@ -59,17 +59,23 @@ MAX_REFERENCE_IMAGES = 4
 # source of truth for how each character looks. We list the body parts to
 # strictly match without describing what they look like (the reference images
 # define that). Only pose/action/expression may differ.
+# Hardcoded appearance constraint - ALWAYS PREPENDED to the AI-generated scene
+# description, placed at the very front of the final prompt (highest priority
+# position). This is a code-fixed hard constraint (not AI-generated) to lock
+# character appearance to the reference avatar images. We explicitly reference
+# the `image[]` multipart field name so the model knows exactly where to find
+# the reference images, and list each body part to strictly match WITHOUT
+# describing what they look like (the reference images define that). Only
+# pose/action/expression may differ.
 IMAGE_APPEARANCE_HARD_CONSTRAINT = (
-    "STRICT CHARACTER APPEARANCE CONSTRAINT (HIGHEST PRIORITY - overrides any "
-    "conflicting text above): Every character in this image MUST strictly match "
-    "their reference avatar image(s). The reference images are the SOLE source "
-    "of truth for character appearance. For each character, strictly control and "
-    "exactly reproduce the following parts as shown in the reference, with no "
-    "deviation: head shape, hairstyle, facial features, eyes, eyebrows, skin "
-    "tone, clothing, accessories, hands, body proportions, color palette, and "
-    "art style. Only the pose, action, gesture, and facial expression may "
-    "differ. Do NOT redesign, reinterpret, simplify, or alter any character's "
-    "appearance in any way."
+    "Strictly follow the reference images (image[] fields) for every character's "
+    "body type, face shape, hairstyle, skin tone, eye color, and clothing details. "
+    "Each character must remain identical in all physical features to their "
+    "corresponding reference image. For each character, exactly reproduce: head "
+    "shape, hairstyle, facial features, eyes, eyebrows, skin tone, clothing, "
+    "accessories, hands, body proportions, color palette, and art style. Only the "
+    "pose, action, gesture, and facial expression may differ. Do NOT redesign, "
+    "reinterpret, simplify, or alter any character's appearance in any way."
 )
 
 # Beijing timezone
@@ -291,14 +297,16 @@ def build_image_prompt(text_provider, content, character_id, mentioned_chars,
     """Build an English image generation prompt via Qwen3-8B.
 
     The prompt is critical for the 4B flux model - it must be concrete, visual,
-    and describe the SCENE and ACTION only.
+    and describe the SCENE and ACTION only, using a labeled multi-line format
+    (Action/Object/Expression/Setting/Time/Weather/Environment/Mood/Style/
+    Palette/Lighting/Quality).
 
     IMPORTANT: Character appearance (hair color, features, clothing, etc.) is
     NEVER described in the prompt. The reference avatar images are the SOLE
     source of character appearance - they are passed to the model separately.
     The prompt only describes what the characters are DOING and the scene
-    around them. Describing appearance in text is dangerous because it can
-    contradict the reference image and cause inconsistency.
+    around them. A code-fixed hard constraint is PREPENDED to this prompt at
+    generation time to lock appearance to the reference images.
 
     Returns a string prompt, or None on failure.
     """
@@ -312,13 +320,25 @@ def build_image_prompt(text_provider, content, character_id, mentioned_chars,
 CRITICAL RULES (the prompt is the single most important factor for output quality):
 1. Output ONLY the English prompt, no explanation, no quotes, no markdown.
 2. Be CONCRETE and VISUAL: use specific nouns (objects, places, body language, facial expressions). Avoid abstract adjectives.
-3. Describe the SCENE and ACTION matching the post content.
-4. NEVER describe character appearance (hair color, eye color, clothing, body type, etc.). Character appearance is provided SEPARATELY via reference avatar images, which are the SOLE source of truth for how each character looks. The prompt must not contradict or try to specify appearance - only describe what they're doing and the scene.
-5. Refer to characters only by their names (e.g. "Doro and Guga eating together"), never by appearance traits.
-6. Specify the art style: "chibi / Q-version anime illustration, warm soft colors, cute, cozy atmosphere, consistent with reference avatar style".
-7. Specify lighting and mood matching the scene (e.g. "warm afternoon sunlight", "cozy indoor lighting", "soft morning light").
-8. If multiple characters are mentioned, describe them interacting naturally in the scene.
-9. Keep it under 80 words. One or two sentences of scene + one sentence of style.
+3. Describe the SCENE and ACTION matching the post content. Never describe character appearance (hair color, eye color, clothing, body type, etc.) - character appearance is locked to reference avatar images passed separately, the prompt only describes what characters are DOING and the scene around them.
+4. Refer to characters only by their names (e.g. "Doro and Guga eating together"), never by appearance traits.
+5. If multiple characters are mentioned, describe them interacting naturally in the scene.
+
+OUTPUT FORMAT - use this labeled multi-line structure (do NOT describe character appearance in any line, only actions/scene/environment):
+Action: <what the character(s) are doing, specific verbs and body language>
+Object: <key objects/props in the scene, specific nouns>
+Expression: <facial expression only, no appearance traits>
+Setting: <location/scene description>
+Time: <time of day>
+Weather: <weather if relevant>
+Environment details: <concrete background elements: furniture, plants, objects, textures>
+Mood: <emotional atmosphere>
+Style: digital illustration, soft painterly textures
+Palette: <2-4 dominant colors matching the scene mood>
+Lighting: <specific light source and how it falls on the scene>
+Quality: detailed rendering, cinematic lighting, shallow depth of field, 8k
+
+Do NOT add any other lines. Do NOT describe hair, face shape, clothing, or body type - those come from reference images.
 
 Characters appearing in this image (refer to them by name only): {char_names_text}
 
@@ -329,14 +349,14 @@ The model output is 1024x768 (landscape). Compose accordingly."""
 
 Time: {now_dt.strftime('%Y-%m-%d %H:%M')} (Beijing time)
 
-Write the image prompt now. Only the prompt, nothing else. Remember: do NOT describe how the characters look - only the scene and actions."""
+Write the image prompt now using the labeled format above. Only the prompt, nothing else."""
 
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt},
     ]
     try:
-        prompt = text_provider.generate(messages, max_tokens=200, temperature=0.7)
+        prompt = text_provider.generate(messages, max_tokens=2048, temperature=0.7)
         prompt = prompt.strip().strip('"').strip("'").strip("`")
         # Strip markdown code fence if present
         if prompt.startswith("```"):
@@ -400,14 +420,16 @@ def generate_whisper_image(image_provider, rephrase_provider, content, character
 
     # Try up to 3 rephrases if flagged by safety filter, then simplify.
     # current_prompt holds the AI-generated SCENE description only; the
-    # hardcoded appearance constraint is appended fresh on every attempt so
-    # it is always present even after rephrasing.
+    # hardcoded appearance constraint is PREPENDED fresh on every attempt so
+    # it is always at the very front (highest priority position) even after
+    # rephrasing.
     current_prompt = prompt
     max_retries = 3
     for attempt in range(max_retries + 1):
-        # Append the code-fixed appearance hard constraint (never let the AI
-        # prompt override character appearance - reference images are sole source)
-        final_prompt = current_prompt + "\n\n" + IMAGE_APPEARANCE_HARD_CONSTRAINT
+        # Prepend the code-fixed appearance hard constraint at the very front
+        # of the final prompt (highest priority position). Reference images
+        # are the sole source of character appearance.
+        final_prompt = IMAGE_APPEARANCE_HARD_CONSTRAINT + "\n\n" + current_prompt
         # Use .png temp path first (CF returns PNG), convert to webp after
         temp_path = final_path + ".tmp.png"
         try:
@@ -466,7 +488,7 @@ Rules:
         {"role": "user", "content": prompt},
     ]
     try:
-        new_prompt = rephrase_provider.generate(messages, max_tokens=200, temperature=0.7)
+        new_prompt = rephrase_provider.generate(messages, max_tokens=2048, temperature=0.7)
         new_prompt = new_prompt.strip().strip('"').strip("'").strip("`").strip()
         if new_prompt.startswith("```"):
             lines = new_prompt.split("\n")
