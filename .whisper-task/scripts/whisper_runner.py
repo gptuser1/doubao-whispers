@@ -782,8 +782,14 @@ def generate_reply(text_provider, whisper_content, whisper_author_name,
 # ==================== Character Interactions ====================
 
 def build_interaction_prompt(whisper_data, whisper_author_name, existing_replies,
-                             characters_md, authors_data, now_dt):
-    """Build prompt for generating character-to-character interactions."""
+                             characters_md, authors_data, now_dt, candidate_chars):
+    """Build prompt for generating character-to-character interactions.
+
+    candidate_chars: list of (char_id, nickname) tuples that are ALLOWED to
+    participate this round (already filtered for variety/cooldown). The
+    whisper author is included in this list if they should reply to their
+    own commenters this round.
+    """
     whisper_author_id = whisper_data.get("author", "")
 
     # Build existing replies text with floor numbers
@@ -801,42 +807,48 @@ def build_interaction_prompt(whisper_data, whisper_author_name, existing_replies
                 lines.append(f"#{floor} {nick}: {content}")
         replies_text = "\n".join(lines)
 
-    # Build character list (excluding whisper author)
+    # Build character list from the PRE-FILTERED candidates (includes author
+    # if they should participate this round). This prevents "全员到齐".
     char_list = []
-    for char_id, info in authors_data.items():
-        if char_id != whisper_author_id:
-            char_list.append(f"- {info.get('name', char_id)}（ID: {char_id}）")
-    char_list_text = "\n".join(char_list)
+    for char_id, nick in candidate_chars:
+        marker = "（动态作者，可下场回复评论者）" if char_id == whisper_author_id else ""
+        char_list.append(f"- {nick}（ID: {char_id}）{marker}")
+    char_list_text = "\n".join(char_list) if char_list else "（无）"
+
+    # Per-character voice constraints (P4) - hard rules to prevent homogenization
+    voice_rules = '''【角色口吻硬约束——必须严格遵守，否则角色声音会串味】
+- 白子：极简冷萌风。每条回复≤12字，多用句号结尾，几乎不用"～"和emoji。例："嗯，不错。" / "下次一起。" / "甜的。"
+- 咕嘎：必带"咕咕嘎"或"咕嘎"口头禅（每条至少1次），语气活泼，可多用emoji。例："咕咕嘎嘎～我也要！"
+- 菲比：必带"菲比啾比"口头禅（每条1次，开头用），感叹号多，元气满满。例："菲比啾比～这个超棒！"
+- 豆包：大姐姐关怀口吻，温和，会用"姐姐"自称，少用"～"。例："姐姐给你留了，快来吃。"
+- Doro：可用🐶emoji，橘子/欧润吉梗可选（不必每条都提），语气软萌。例："好呀好呀🐶等我！"
+- 糯糯：游戏宅口吻，会跑题提到打游戏，语气随意。例："刚打完一局，我也想吃！"'''
 
     system_prompt = f"""你是"豆包和朋友们的悄悄话"小站的角色互动生成器。朋友们会看彼此的动态，自然地评论互动。
 
 角色设定：
 {characters_md}
 
-互动原则：
-1. 为动态生成2-5条角色间的互动回复，像朋友刷朋友圈看到动态后自然评论
-2. 回复数量看内容：平淡动态可能只有2个朋友评论，有话题性的动态可能有4-5个朋友参与；不要每次都固定数量
-3. 可以直接回复动态，也可以回复已有评论（形成对话链）
-4. 互动要自然，符合角色性格和说话风格
-5. 不要每个人都只回复动态，看到有意思的评论可以接话
-6. 回复长度10-80字，口语化、轻松
+{voice_rules}
+
+互动原则（核心——决定真实感）：
+1. 【生成数量】本次只生成1-3条回复。不要追求全员到齐，只从下方"可选角色"里挑人。平淡动态可能只1条，有话题的最多3条。
+2. 【作者下场】动态作者本人也可以参与！如果有人评论了动态、尤其是对作者说了话/调侃/提问，作者应该回复那条评论（带reply_to+floor）。朋友来你朋友圈评论，你总得回一句。
+3. 【接话链——必须】如果已有回复里有人说了有意思的话，优先接话（带reply_to+floor），而不是每条都回复动态本身。一批回复里至少1条要接话，全部回复动态本身=失败。
+4. 【部分参与】不要把可选角色全部用上。从候选里挑1-3个最自然的（根据动态内容、角色关系、谁会感兴趣），其余这次不出现。
+5. 【口吻差异】严格按上方"角色口吻硬约束"写，每个角色声音必须不同。白子不能长篇大论，咕嘎不能不带"咕咕嘎"。
+6. 回复长度10-80字（白子除外，可短至5字），口语化、轻松
 7. 不要涉及隐私
-8. 动态作者不参与回复（是别人来评论TA的动态）
-9. 【语气词使用——非常重要】波浪号"～"是可选的语气词，绝对不要每条回复都用。一批回复里最多1-2条用"～"，其余用句号/感叹号结尾。禁止把"～"当成每条回复的必备符号。同理，"菲比啾比"这类口头禅只有该角色本人回复时才用，其他角色不要模仿。
+8. 【语气词】波浪号"～"是可选语气词，一批回复里最多1-2条用，其余用句号/感叹号。禁止每条都带"～"。口头禅只归角色本人用，其他人不模仿。
 
-【reply_to 字段规则——非常重要，必须严格遵守】
-- 直接回复动态本身（OP）：reply_to 填空字符串""、reply_to_floor 填 0。绝对不要把动态作者的名字填到 reply_to 里！
-- 回复某条具体的已有评论：reply_to 填该评论者的昵称、reply_to_floor 填该评论的楼层号
-- 判断依据：你要回复的内容是对整条动态发的感慨/打招呼/捧场 → 是回复动态；是针对某条评论里某个具体观点接话/调侃/追问 → 是回复评论
-- 即使动态作者也在某楼层发了回复，回复他的那条"回复"才需要填 reply_to+floor，回复他原动态的不填
+【reply_to 字段规则——必须严格遵守】
+- 直接回复动态本身（OP）：reply_to填空字符串""、reply_to_floor填0
+- 回复某条已有评论：reply_to填该评论者昵称、reply_to_floor填楼层号
+- 判断依据：对整条动态发感慨/捧场→回复动态；针对某条评论接话/调侃/追问→回复评论
+- 作者回复评论者时，必须带reply_to+floor指向那条评论
 
-输出格式（严格JSON数组，不要输出其他内容）：
-[{{"author": "角色ID", "nickname": "角色名", "content": "回复内容", "reply_to": "回复对象昵称或空字符串", "reply_to_floor": 楼层号或0}}]
-
-字段说明：
-- reply_to: 回复某条已有评论时填该评论者的昵称；直接回复动态填空字符串""
-- reply_to_floor: 回复某条已有评论时填该评论的楼层号；直接回复动态填0
-- 只能回复已有评论（不能回复其他新生成的回复）"""
+输出格式（严格JSON数组，只输出JSON）：
+[{{"author": "角色ID", "nickname": "角色名", "content": "回复内容", "reply_to": "回复对象昵称或空字符串", "reply_to_floor": 楼层号或0}}]"""
 
     user_prompt = f"""动态作者：{whisper_author_name}
 动态内容：{whisper_data.get('content', '')}
@@ -844,22 +856,30 @@ def build_interaction_prompt(whisper_data, whisper_author_name, existing_replies
 已有回复：
 {replies_text}
 
-可选角色（不要用动态作者"{whisper_author_name}"）：
+本次可选角色（只从中挑1-3个，不要全用；作者可下场回复评论者）：
 {char_list_text}
 
 当前时间：{now_dt.strftime('%Y-%m-%d %H:%M')}
 
-请生成2-5条角色互动回复，数量自然即可。只输出JSON数组。"""
+请生成1-3条角色互动回复。记住：至少1条接话（带reply_to），作者可参与，口吻差异要明显。只输出JSON数组。"""
 
     return system_prompt, user_prompt
 
 
 def generate_character_interactions(text_provider, whisper_data, whisper_author_name,
-                                    existing_replies, characters_md, authors_data, now_dt):
-    """Generate character-to-character replies via AI. Returns list of reply dicts or None."""
+                                    existing_replies, characters_md, authors_data, now_dt,
+                                    candidate_chars):
+    """Generate character-to-character replies via AI.
+
+    candidate_chars: list of (char_id, nickname) tuples allowed this round
+    (pre-filtered for variety/cooldown; includes whisper author if they
+    should reply to commenters this round).
+
+    Returns list of reply dicts or None.
+    """
     system_prompt, user_prompt = build_interaction_prompt(
         whisper_data, whisper_author_name, existing_replies,
-        characters_md, authors_data, now_dt
+        characters_md, authors_data, now_dt, candidate_chars
     )
 
     messages = [
@@ -868,7 +888,7 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
     ]
 
     try:
-        response = text_provider.generate(messages, max_tokens=512, temperature=0.9)
+        response = text_provider.generate(messages, max_tokens=400, temperature=0.9)
     except Exception as e:
         print(f"Character interaction generation failed: {e}", file=sys.stderr)
         return None
@@ -909,9 +929,6 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
     # Validate and clean up replies
     whisper_author_id = whisper_data.get("author", "")
     whisper_author_nick = authors_data.get(whisper_author_id, {}).get("name", whisper_author_id)
-    # Build nickname <-> id maps so we can normalize reply_to (AI sometimes
-    # fills the lowercase author id like "doro" instead of the display
-    # nickname "Doro", which would render as "@doro" on the page).
     nick_to_id = {info.get("name", aid): aid for aid, info in authors_data.items()}
     id_to_nick = {aid: info.get("name", aid) for aid, info in authors_data.items()}
     # Map existing floors to their authors, to validate reply_to references
@@ -926,6 +943,9 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
         c = r.get("content", "").strip().replace(" ", "").replace("\n", "")
         if c:
             existing_contents.add(c)
+
+    # Set of candidate char_ids allowed this round (for filtering AI output)
+    candidate_ids = {cid for cid, _ in candidate_chars}
 
     def _normalize_reply_to(rt):
         """Normalize reply_to to the display nickname. Accepts nickname or id."""
@@ -947,15 +967,16 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
         content = r.get("content", "").strip()
         if not author_id or not content:
             continue
-        # Don't allow whisper author to reply to their own whisper
-        if author_id == whisper_author_id:
+        # P0: author CAN now participate. Only filter out chars NOT in this
+        # round's candidate list (prevents "全员到齐" from AI over-generating).
+        if author_id not in candidate_ids:
+            print(f"[reply-filter] {author_id} not in this round's candidates, skipping",
+                  file=sys.stderr)
             continue
         # Ensure nickname matches author_id
         if author_id in authors_data:
             nickname = authors_data[author_id].get("name", nickname)
-        # Dedup: skip if (near-)identical content already exists for this
-        # whisper (existing replies or earlier in this batch). Fixes the
-        # duplicate-reply bug where re-runs appended the same replies again.
+        # Dedup
         norm_content = content.replace(" ", "").replace("\n", "")
         if norm_content in existing_contents or norm_content in seen_contents:
             print(f"[reply-dedup] Skipping duplicate reply from {nickname}: {content[:30]}...",
@@ -969,8 +990,9 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
         # Normalize reply_to to display nickname
         reply_to = _normalize_reply_to(reply_to)
         # Rule: replying directly to the whisper (OP) must NOT carry reply_to.
-        # If AI filled reply_to with the whisper author's name/id but the
-        # referenced floor isn't actually one of OP's replies, clear it.
+        # Only clear if AI filled reply_to with whisper author's name/id BUT
+        # the referenced floor isn't actually one of OP's replies. Do NOT
+        # block the author from legitimately replying to a commenter.
         if reply_to and (
             reply_to == whisper_author_nick
             or reply_to == whisper_author_id
@@ -992,28 +1014,98 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
             "reply_to_floor": reply_to_floor if reply_to_floor else 0,
         })
 
-    # Stagger timestamps: replies should be spread out over time, like real
-    # friends commenting at different moments. Each reply a few minutes apart,
-    # all in the past relative to now.
+    # P1: timestamps use ACTUAL run time (now_dt), with small backdated jitter
+    # so replies don't all share the exact same minute. This produces real
+    # cross-hour/cross-day distribution across multiple cron runs, instead of
+    # the old "all挤在3-12分钟窗口" fake-spread.
     if valid_replies:
-        # Calculate the earliest timestamp: work backwards from now
-        # Last reply is 2-6 min ago, each earlier reply 3-12 min before that
-        current_dt = now_dt - timedelta(minutes=random.randint(2, 6))
-        for _ in range(len(valid_replies) - 1):
-            current_dt = current_dt - timedelta(minutes=random.randint(3, 12))
-        # Now assign timestamps going forward, each a few minutes apart
-        for reply in valid_replies:
+        # Assign each reply a timestamp = now - (1..10 min per reply, staggered)
+        # so the most recent reply is ~1-3 min ago, earlier ones further back
+        # but all within the last ~30 min (this round's natural window).
+        current_dt = now_dt - timedelta(minutes=random.randint(1, 3))
+        for reply in reversed(valid_replies):
             reply["timestamp"] = current_dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
-            current_dt = current_dt + timedelta(minutes=random.randint(3, 12))
-            # Ensure not in the future
-            if current_dt > now_dt:
-                current_dt = now_dt - timedelta(minutes=1)
+            current_dt = current_dt - timedelta(minutes=random.randint(2, 8))
 
     return valid_replies if valid_replies else None
 
 
+def _select_candidate_chars(whisper_author_id, existing_replies, authors_data, now_dt):
+    """P3: Select 2-4 candidate characters for this interaction round.
+
+    Logic:
+    - Always include 2-3 OTHER characters (not the author), randomly chosen
+      with a cooldown: characters who already replied in existing_replies are
+      less likely to be picked again (but can be, to allow接话).
+    - With ~50% probability, include the whisper author too (so they can
+      reply to their commenters). Skip if there are no existing replies yet
+      (author has no one to reply to).
+    - Returns list of (char_id, nickname) tuples.
+    """
+    all_chars = [(aid, info.get("name", aid)) for aid, info in authors_data.items()]
+    other_chars = [(aid, nick) for aid, nick in all_chars if aid != whisper_author_id]
+    if not other_chars:
+        return []
+
+    # Count how many times each char already replied in existing_replies
+    reply_counts = {}
+    for r in existing_replies or []:
+        aid = r.get("author", "")
+        if aid:
+            reply_counts[aid] = reply_counts.get(aid, 0) + 1
+
+    # Build weighted list: chars who replied less get higher weight
+    weighted = []
+    for aid, nick in other_chars:
+        cnt = reply_counts.get(aid, 0)
+        # Weight: 1.0 for 0 replies, 0.5 for 1, 0.25 for 2, 0.1 for 3+
+        w = 1.0 / (2 ** cnt) if cnt < 3 else 0.1
+        weighted.append((aid, nick, w))
+
+    # Pick 2-3 other chars using weighted random without replacement
+    n_others = random.randint(2, 3)
+    n_others = min(n_others, len(weighted))
+    selected = []
+    pool = list(weighted)
+    for _ in range(n_others):
+        if not pool:
+            break
+        weights = [w for _, _, w in pool]
+        total = sum(weights)
+        if total <= 0:
+            pick = random.choice(pool)
+        else:
+            r = random.random() * total
+            cum = 0
+            pick = pool[-1]
+            for item in pool:
+                cum += item[2]
+                if r <= cum:
+                    pick = item
+                    break
+        selected.append((pick[0], pick[1]))
+        pool.remove(pick)
+
+    # With ~50% prob, add the author IF there are existing replies for them
+    # to respond to (author下场回复评论者)
+    if existing_replies and random.random() < 0.5:
+        author_nick = authors_data.get(whisper_author_id, {}).get("name", whisper_author_id)
+        # Only add author if they haven't already replied too much
+        author_reply_count = reply_counts.get(whisper_author_id, 0)
+        if author_reply_count < 3:
+            selected.append((whisper_author_id, author_nick))
+
+    return selected
+
+
 def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=False):
-    """Generate character-to-character interactions for recent whispers lacking replies."""
+    """Generate character-to-character interactions for recent whispers lacking replies.
+
+    P5: window extended to 72h; candidates selected by age+reply-count weighting
+        (not just newest 3) so older whispers still get interactions.
+    P3: per-whisper candidate chars pre-filtered (2-4, including author ~50%
+        of the time when there are existing replies).
+    """
     print("\n--- Character Interactions ---")
 
     state = d1_client.get_state()
@@ -1039,8 +1131,8 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
 
     authors_data = load_json(AUTHORS_PATH) if os.path.exists(AUTHORS_PATH) else {}
 
-    # Find recent whispers (last 48h) that need interactions
-    cutoff = now_dt - timedelta(hours=48)
+    # P5: window extended to 72h (was 48h) for cross-day accumulation
+    cutoff = now_dt - timedelta(hours=72)
     min_age = now_dt - timedelta(hours=1)  # at least 1h old
 
     candidates = []
@@ -1062,7 +1154,7 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
             except (ValueError, TypeError):
                 continue
 
-            # Must be within 48h, at least 1h old
+            # Must be within 72h, at least 1h old
             if w_dt < cutoff or w_dt > min_age:
                 continue
 
@@ -1074,7 +1166,8 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
             existing_replies = existing.get(whisper_id, [])
             char_reply_count = sum(1 for r in existing_replies if r.get("author", ""))
 
-            if char_reply_count < 5:
+            # P1: raised cap from 5 to 8 so older whispers keep accumulating
+            if char_reply_count < 8:
                 candidates.append({
                     "whisper_id": whisper_id,
                     "whisper_data": w,
@@ -1092,9 +1185,45 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
         d1_client.save_state(state)
         return False
 
-    # Sort by date descending (newest first), take up to 3
+    # P5: weighted selection instead of "newest 3". Weight = newer + fewer replies.
+    # This gives older/under-replied whispers a chance instead of starving them.
+    def _candidate_weight(c):
+        age_hours = (now_dt - c["date"]).total_seconds() / 3600
+        # Newer whispers get higher weight, but decay slowly over 72h
+        age_factor = max(0.1, 1.0 - age_hours / 96)
+        # Whispers with fewer replies get higher weight
+        reply_factor = 1.0 / (1 + c["char_reply_count"])
+        return age_factor * reply_factor
+
     candidates.sort(key=lambda x: x["date"], reverse=True)
-    candidates = candidates[:3]
+    # Take up to 3, but use weighted random among the top ~6 to add variety
+    pool = candidates[:6]
+    if len(pool) > 3:
+        weights = [_candidate_weight(c) for c in pool]
+        total = sum(weights)
+        if total > 0:
+            selected_indices = []
+            for _ in range(3):
+                remaining = [i for i in range(len(pool)) if i not in selected_indices]
+                if not remaining:
+                    break
+                w = [weights[i] for i in remaining]
+                s = sum(w)
+                if s <= 0:
+                    selected_indices.append(random.choice(remaining))
+                else:
+                    r = random.random() * s
+                    cum = 0
+                    for idx in remaining:
+                        cum += weights[idx]
+                        if r <= cum:
+                            selected_indices.append(idx)
+                            break
+            candidates = [pool[i] for i in selected_indices]
+        else:
+            candidates = pool[:3]
+    else:
+        candidates = pool
 
     print(f"Found {len(candidates)} whispers needing interactions")
 
@@ -1113,9 +1242,19 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
 
         print(f"  Processing {whisper_id} ({c['char_reply_count']} existing char replies)")
 
+        # P3: pre-filter candidate chars for this round (2-4, maybe incl. author)
+        candidate_chars = _select_candidate_chars(
+            author_id, existing_replies, authors_data, now_dt
+        )
+        if not candidate_chars:
+            print(f"    No candidate chars available, skipping")
+            continue
+        cand_names = [nick for _, nick in candidate_chars]
+        print(f"    Candidates this round: {cand_names}")
+
         new_replies = generate_character_interactions(
             text_provider, w_data, author_name, existing_replies,
-            characters_md, authors_data, now_dt
+            characters_md, authors_data, now_dt, candidate_chars
         )
 
         if not new_replies:
