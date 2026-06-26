@@ -512,6 +512,12 @@ def build_interaction_prompt(whisper_data, whisper_author_name, existing_replies
 7. 不要涉及隐私
 8. 动态作者不参与回复（是别人来评论TA的动态）
 
+【reply_to 字段规则——非常重要，必须严格遵守】
+- 直接回复动态本身（OP）：reply_to 填空字符串""、reply_to_floor 填 0。绝对不要把动态作者的名字填到 reply_to 里！
+- 回复某条具体的已有评论：reply_to 填该评论者的昵称、reply_to_floor 填该评论的楼层号
+- 判断依据：你要回复的内容是对整条动态发的感慨/打招呼/捧场 → 是回复动态；是针对某条评论里某个具体观点接话/调侃/追问 → 是回复评论
+- 即使动态作者也在某楼层发了回复，回复他的那条"回复"才需要填 reply_to+floor，回复他原动态的不填
+
 输出格式（严格JSON数组，不要输出其他内容）：
 [{{"author": "角色ID", "nickname": "角色名", "content": "回复内容", "reply_to": "回复对象昵称或空字符串", "reply_to_floor": 楼层号或0}}]
 
@@ -590,6 +596,13 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
 
     # Validate and clean up replies
     whisper_author_id = whisper_data.get("author", "")
+    whisper_author_nick = authors_data.get(whisper_author_id, {}).get("name", whisper_author_id)
+    # Map existing floors to their authors, to validate reply_to references
+    floor_author_map = {}
+    for r in existing_replies or []:
+        f = r.get("floor")
+        if f is not None:
+            floor_author_map[f] = r.get("author", "") or r.get("nickname", "")
     valid_replies = []
     for idx, r in enumerate(replies):
         if not isinstance(r, dict):
@@ -607,6 +620,22 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
             nickname = authors_data[author_id].get("name", nickname)
         reply_to = r.get("reply_to", "")
         reply_to_floor = r.get("reply_to_floor", 0)
+        # Rule: replying directly to the whisper (OP) must NOT carry reply_to.
+        # If AI filled reply_to with the whisper author's name/id but the
+        # referenced floor isn't actually one of OP's replies, clear it.
+        if reply_to and (
+            reply_to == whisper_author_nick
+            or reply_to == whisper_author_id
+            or reply_to.lower() == whisper_author_id.lower()
+        ):
+            floor_is_op_reply = (
+                reply_to_floor
+                and floor_author_map.get(reply_to_floor, "") == whisper_author_id
+            )
+            if not floor_is_op_reply:
+                # AI meant to reply to the whisper itself, not an OP reply.
+                reply_to = ""
+                reply_to_floor = 0
         valid_replies.append({
             "nickname": nickname,
             "content": content,
