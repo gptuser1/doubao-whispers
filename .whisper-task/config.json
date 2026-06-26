@@ -4,7 +4,7 @@
     "text": {
       "default": {
         "provider": "openai",
-        "model": "deepseek-ai/DeepSeek-V4-Flash",
+        "model": "Qwen/Qwen3-8B",
         "base_url": "https://api.siliconflow.cn/v1",
         "api_key_env": "OPENAI_API_KEY"
       },

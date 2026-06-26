@@ -52,6 +52,26 @@ RECENT_K_FOR_IMAGE_STATS = 10
 IMAGE_PROBABILITY = 0.70  # when not mandatory and stats allow pure-text
 MAX_REFERENCE_IMAGES = 4
 
+# Hardcoded appearance constraint - ALWAYS appended to the final image prompt
+# sent to CF, regardless of what the AI-generated scene description says. This
+# is a code-fixed hard constraint (not AI-generated) to prevent the model from
+# deviating on character appearance. The reference avatar images are the SOLE
+# source of truth for how each character looks. We list the body parts to
+# strictly match without describing what they look like (the reference images
+# define that). Only pose/action/expression may differ.
+IMAGE_APPEARANCE_HARD_CONSTRAINT = (
+    "STRICT CHARACTER APPEARANCE CONSTRAINT (HIGHEST PRIORITY - overrides any "
+    "conflicting text above): Every character in this image MUST strictly match "
+    "their reference avatar image(s). The reference images are the SOLE source "
+    "of truth for character appearance. For each character, strictly control and "
+    "exactly reproduce the following parts as shown in the reference, with no "
+    "deviation: head shape, hairstyle, facial features, eyes, eyebrows, skin "
+    "tone, clothing, accessories, hands, body proportions, color palette, and "
+    "art style. Only the pose, action, gesture, and facial expression may "
+    "differ. Do NOT redesign, reinterpret, simplify, or alter any character's "
+    "appearance in any way."
+)
+
 # Beijing timezone
 TZ_BEIJING = timezone(timedelta(hours=8))
 
@@ -378,14 +398,20 @@ def generate_whisper_image(image_provider, rephrase_provider, content, character
     # Ensure images dir exists
     os.makedirs(IMAGES_DIR, exist_ok=True)
 
-    # Try up to 3 rephrases if flagged by safety filter, then simplify
+    # Try up to 3 rephrases if flagged by safety filter, then simplify.
+    # current_prompt holds the AI-generated SCENE description only; the
+    # hardcoded appearance constraint is appended fresh on every attempt so
+    # it is always present even after rephrasing.
     current_prompt = prompt
     max_retries = 3
     for attempt in range(max_retries + 1):
+        # Append the code-fixed appearance hard constraint (never let the AI
+        # prompt override character appearance - reference images are sole source)
+        final_prompt = current_prompt + "\n\n" + IMAGE_APPEARANCE_HARD_CONSTRAINT
         # Use .png temp path first (CF returns PNG), convert to webp after
         temp_path = final_path + ".tmp.png"
         try:
-            result_path = image_provider.generate(current_prompt, temp_path,
+            result_path = image_provider.generate(final_prompt, temp_path,
                                                    reference_images=ref_paths)
             if result_path:
                 # Convert to webp via process_image.py (handles resize + webp + compression)
