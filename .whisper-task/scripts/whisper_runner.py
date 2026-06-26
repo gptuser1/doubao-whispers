@@ -174,19 +174,6 @@ AVATAR_FILES = {
     "nuonuo": "avatar-nuonuo.webp",
 }
 
-# Character appearance descriptions extracted from characters.md, used in
-# image prompts so the model knows each character's visual traits even
-# without the reference image (redundant with reference image for safety).
-CHARACTER_VISUAL = {
-    "doubao": "gentle big-sister type, warm and mature look",
-    "guga": "round chubby penguin-like girl, very cute and soft",
-    "doro": "pink-haired puppy-like girl, soft and adorable, pink color theme",
-    "feibi": "blonde energetic girl, often wearing various hats, lively",
-    "nuonuo": "light blue-gray haired girl, purple-blue gradient eyes, soft look",
-    "baizi": "white-haired wolf-ear girl, cool and quiet look",
-}
-
-
 def get_avatar_path(author_id):
     """Return absolute path to an author's avatar file, or None if missing."""
     fname = AVATAR_FILES.get(author_id)
@@ -284,20 +271,21 @@ def build_image_prompt(text_provider, content, character_id, mentioned_chars,
     """Build an English image generation prompt via Qwen3-8B.
 
     The prompt is critical for the 4B flux model - it must be concrete, visual,
-    and explicitly reference the character's appearance + scene + art style.
+    and describe the SCENE and ACTION only.
+
+    IMPORTANT: Character appearance (hair color, features, clothing, etc.) is
+    NEVER described in the prompt. The reference avatar images are the SOLE
+    source of character appearance - they are passed to the model separately.
+    The prompt only describes what the characters are DOING and the scene
+    around them. Describing appearance in text is dangerous because it can
+    contradict the reference image and cause inconsistency.
 
     Returns a string prompt, or None on failure.
     """
     author_nick = get_author_nickname(character_id, authors_data)
-    author_visual = CHARACTER_VISUAL.get(character_id, "cute anime girl")
-
-    # Build character list for the prompt
-    char_descs = [f"{author_nick} ({character_id}): {author_visual}"]
-    for aid in mentioned_chars:
-        nick = get_author_nickname(aid, authors_data)
-        visual = CHARACTER_VISUAL.get(aid, "cute anime girl")
-        char_descs.append(f"{nick} ({aid}): {visual}")
-    char_block = "\n".join(char_descs)
+    # Build character NAME list only (no appearance description)
+    char_names = [author_nick] + [get_author_nickname(a, authors_data) for a in mentioned_chars]
+    char_names_text = ", ".join(char_names)
 
     system_prompt = f"""You write image generation prompts for the flux-2-klein-4b model. These images illustrate short social-media posts ("whispers") from a group of friends.
 
@@ -305,14 +293,14 @@ CRITICAL RULES (the prompt is the single most important factor for output qualit
 1. Output ONLY the English prompt, no explanation, no quotes, no markdown.
 2. Be CONCRETE and VISUAL: use specific nouns (objects, places, body language, facial expressions). Avoid abstract adjectives.
 3. Describe the SCENE and ACTION matching the post content.
-4. Keep character appearance CONSISTENT with the reference images (provided separately to the model). The prompt should describe what they're DOING, not re-describe their appearance in detail - just name the characters and their key visual trait.
-5. Specify the art style: "chibi / Q-version anime illustration, warm soft colors, cute, cozy atmosphere, consistent with reference avatar style".
-6. Specify lighting and mood matching the scene (e.g. "warm afternoon sunlight", "cozy indoor lighting", "soft morning light").
-7. If multiple characters are mentioned, describe them interacting naturally in the scene.
-8. Keep it under 80 words. One or two sentences of scene + one sentence of style.
+4. NEVER describe character appearance (hair color, eye color, clothing, body type, etc.). Character appearance is provided SEPARATELY via reference avatar images, which are the SOLE source of truth for how each character looks. The prompt must not contradict or try to specify appearance - only describe what they're doing and the scene.
+5. Refer to characters only by their names (e.g. "Doro and Guga eating together"), never by appearance traits.
+6. Specify the art style: "chibi / Q-version anime illustration, warm soft colors, cute, cozy atmosphere, consistent with reference avatar style".
+7. Specify lighting and mood matching the scene (e.g. "warm afternoon sunlight", "cozy indoor lighting", "soft morning light").
+8. If multiple characters are mentioned, describe them interacting naturally in the scene.
+9. Keep it under 80 words. One or two sentences of scene + one sentence of style.
 
-Character reference (appearance will also be enforced via reference images):
-{char_block}
+Characters appearing in this image (refer to them by name only): {char_names_text}
 
 The model output is 1024x768 (landscape). Compose accordingly."""
 
@@ -321,7 +309,7 @@ The model output is 1024x768 (landscape). Compose accordingly."""
 
 Time: {now_dt.strftime('%Y-%m-%d %H:%M')} (Beijing time)
 
-Write the image prompt now. Only the prompt, nothing else."""
+Write the image prompt now. Only the prompt, nothing else. Remember: do NOT describe how the characters look - only the scene and actions."""
 
     messages = [
         {"role": "system", "content": system_prompt},
