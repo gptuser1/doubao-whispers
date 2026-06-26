@@ -152,8 +152,87 @@ def get_author_nickname(author_id, authors_data):
 
 # ==================== Content Generation ====================
 
+def load_recent_whispers(count=15):
+    """Load recent whispers directly from data files (more reliable than parsing
+    timeline text). Returns list of dicts sorted by date descending.
+    Each: {"date", "author", "title", "content"}.
+    """
+    posts = []
+    whispers_dir = WHISPERS_DIR
+    if not os.path.exists(whispers_dir):
+        return posts
+    month_files = sorted([f for f in os.listdir(whispers_dir) if f.endswith(".json")],
+                         reverse=True)
+    for mf in month_files:
+        if len(posts) >= count * 2:
+            break
+        with open(os.path.join(whispers_dir, mf), "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for slug, w in data.items():
+            if isinstance(w, dict) and w.get("date"):
+                posts.append({
+                    "date": w["date"],
+                    "author": w.get("author", ""),
+                    "title": w.get("title", ""),
+                    "content": w.get("content", ""),
+                })
+    posts.sort(key=lambda x: x["date"], reverse=True)
+    return posts[:count]
+
+
+def build_recent_topics_summary(recent_whispers, authors_data):
+    """Build a compact summary of recent topics per author, to prevent repetition.
+
+    Format:
+        ## 最近动态主题（避免重复，不要写相似内容）
+        ### doro（Doro）
+        - 2026-06-25 12:16 《今天和咕嘎一起晒太阳》— 和咕嘎阳台晒太阳，果汁洒裙子...
+        - 2026-06-24 13:04 《周三下午的橘子和奶茶》— 下午摸鱼，橘子奶茶提神...
+        ...
+    """
+    if not recent_whispers:
+        return "（暂无历史动态）"
+
+    lines = ["## 各角色最近动态主题（新动态严禁与这些主题雷同/复读，包括场景、事件、用词）"]
+    # Group by author, keep most recent 4 per author
+    by_author = {}
+    for w in recent_whispers:
+        by_author.setdefault(w["author"], []).append(w)
+    for author, items in by_author.items():
+        name = authors_data.get(author, {}).get("name", author)
+        lines.append(f"\n### {author}（{name}）最近{min(len(items), 4)}条：")
+        for w in items[:4]:
+            date_short = w["date"][:16].replace("T", " ")
+            snippet = w["content"].replace("\n", " ")[:40]
+            lines.append(f"- {date_short} 《{w['title']}》— {snippet}...")
+    return "\n".join(lines)
+
+
+def text_similarity(a, b):
+    """Character bigram Jaccard similarity. 0-1, higher = more similar."""
+    if not a or not b:
+        return 0.0
+    def bigrams(s):
+        s = s.replace(" ", "").replace("\n", "")
+        return set(s[i:i+2] for i in range(len(s)-1)) if len(s) > 1 else {s}
+    ba, bb = bigrams(a), bigrams(b)
+    if not ba or not bb:
+        return 0.0
+    return len(ba & bb) / len(ba | bb)
+
+
+def is_too_similar(new_content, new_author, recent_whispers, threshold=0.45):
+    """Check if new content is too similar to that author's recent posts."""
+    same_author = [w["content"] for w in recent_whispers if w["author"] == new_author]
+    for prev in same_author[:5]:  # check against most recent 5
+        sim = text_similarity(new_content, prev)
+        if sim >= threshold:
+            return True, sim
+    return False, 0.0
+
+
 def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
-                         authors_data):
+                         authors_data, recent_topics_summary):
     """
     Build system and user prompts for whisper generation.
     AI selects the character AND generates content in one call.
@@ -206,7 +285,7 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
 - 根据角色性格和当前场景，谁最自然就选谁
 - 避免和最近2条动态的作者重复
 - 考虑角色之间的关系和互动，内容要和最近动态逻辑一致，不能前后矛盾
-- 如果最近有人在聊某个话题，可以延续或回应
+- 如果最近有人在聊某个话题，可以延续或回应，但不要复读
 
 写动态的要求：
 1. 长度50-200字，短而精
@@ -214,18 +293,32 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
 3. 必须符合所选角色的性格和说话风格
 4. 可以带1-2个emoji，不要太多
 5. 内容要符合当前场景（时间场景在用户消息中给出）
-6. 不要和最近动态主题完全重复
-7. 不要涉及任何真实个人隐私
+6. 【重要】不要和最近动态主题重复或雷同——参考下方"各角色最近动态主题"清单，新动态的场景、事件、关键用词必须与之有明显区别。尤其禁止复读同一角色的近期内容（如反复写"橘子+奶茶+晒太阳+摸鱼"）
+7. 角色的标志性爱好（如Doro爱吃橘子）是性格的一部分，但不要每次都出现，更不要每条都围绕它写。一个爱好连续出现2次后，第3次必须换别的内容
+8. 不要涉及任何真实个人隐私
 
-输出格式（严格JSON，不要输出其他内容）：
-{{"character": "角色ID", "title": "一句话标题", "content": "碎碎念正文"}}"""
+格式规范（必须严格遵守）：
+1. content 必须用换行分段：至少有1个空行（\\n\\n）把内容分成2-4段，不能整段不换行
+2. 波浪号"～"每条最多用1次，不要句末都加"～"
+3. title 是一句话标题，不超过15字，不带书名号
+
+输出格式（严格JSON，不要输出任何其他内容、不要markdown代码块）：
+{{
+  "character": "角色ID（如 doro / feibi / guga / baizi / nuonuo / doubao）",
+  "title": "一句话标题，不超过15字",
+  "content": "碎碎念正文，50-200字，必须包含换行分段（\\n\\n）"
+}}"""
 
     user_prompt = f"""当前时间：{now_str} {weekday_cn}，{day_desc}，{period}
 
-最近的动态（参考上下文，不要矛盾，不要完全重复主题）：
+{recent_topics_summary}
+
+最近的动态（参考上下文，不要矛盾，不要复读）：
 {timeline_text}
 
-请选择一个角色并写一条新的碎碎念。只输出JSON。"""
+请选择一个角色并写一条新的碎碎念。注意：新动态的主题、场景、用词必须与上方"各角色最近动态主题"清单有明显区别，不要复读任何角色（尤其是所选角色自己）的近期内容。
+
+只输出JSON。"""
 
     return system_prompt, user_prompt
 
@@ -235,59 +328,86 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
     """
     Generate whisper content via AI.
     AI selects character and generates content in one call.
+    Includes post-generation similarity check; regenerates once if too similar
+    to the chosen character's recent posts.
     Returns {"character": "char_id", "title": "...", "content": "..."} or None.
     """
-    system_prompt, user_prompt = build_publish_prompt(
-        characters_md, timeline_text, day_info, now_dt, authors_data
-    )
+    recent_whispers = load_recent_whispers(count=15)
+    recent_topics_summary = build_recent_topics_summary(recent_whispers, authors_data)
 
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt},
-    ]
-
-    try:
-        response = text_provider.generate(messages, max_tokens=512, temperature=0.9)
-    except Exception as e:
-        print(f"AI generation failed: {e}", file=sys.stderr)
-        return None
-
-    # Parse JSON from response
-    response = response.strip()
-    if response.startswith("```"):
-        lines = response.split("\n")
-        json_lines = []
-        in_json = False
-        for line in lines:
-            if line.startswith("```") and not in_json:
-                in_json = True
-                continue
-            elif line.startswith("```") and in_json:
-                break
-            elif in_json:
-                json_lines.append(line)
-        response = "\n".join(json_lines)
-
-    try:
-        data = json.loads(response)
-        character = data.get("character", "").strip()
-        title = data.get("title", "").strip()
-        content = data.get("content", "").strip()
-
-        if not character or not title or not content:
-            print("AI response missing fields", file=sys.stderr)
+    def _generate_once():
+        """Single generation attempt. Returns parsed dict or None."""
+        system_prompt, user_prompt = build_publish_prompt(
+            characters_md, timeline_text, day_info, now_dt, authors_data,
+            recent_topics_summary
+        )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+        try:
+            response = text_provider.generate(messages, max_tokens=512, temperature=0.9)
+        except Exception as e:
+            print(f"AI generation failed: {e}", file=sys.stderr)
             return None
 
-        # Validate character ID
-        if character not in authors_data:
-            print(f"Warning: AI returned unknown character '{character}'", file=sys.stderr)
+        # Parse JSON from response
+        response = response.strip()
+        if response.startswith("```"):
+            lines = response.split("\n")
+            json_lines = []
+            in_json = False
+            for line in lines:
+                if line.startswith("```") and not in_json:
+                    in_json = True
+                    continue
+                elif line.startswith("```") and in_json:
+                    break
+                elif in_json:
+                    json_lines.append(line)
+            response = "\n".join(json_lines)
+
+        try:
+            data = json.loads(response)
+            character = data.get("character", "").strip()
+            title = data.get("title", "").strip()
+            content = data.get("content", "").strip()
+
+            if not character or not title or not content:
+                print("AI response missing fields", file=sys.stderr)
+                return None
+            if character not in authors_data:
+                print(f"Warning: AI returned unknown character '{character}'", file=sys.stderr)
+                return None
+            return {"character": character, "title": title, "content": content}
+        except json.JSONDecodeError as e:
+            print(f"Failed to parse AI response as JSON: {e}", file=sys.stderr)
+            print(f"Response: {response[:200]}", file=sys.stderr)
             return None
 
-        return {"character": character, "title": title, "content": content}
-    except json.JSONDecodeError as e:
-        print(f"Failed to parse AI response as JSON: {e}", file=sys.stderr)
-        print(f"Response: {response[:200]}", file=sys.stderr)
+    # First attempt
+    result = _generate_once()
+    if not result:
         return None
+
+    # Similarity check against the chosen character's recent posts
+    similar, sim = is_too_similar(result["content"], result["character"], recent_whispers)
+    if similar:
+        print(f"[repeat-check] Content too similar to recent (sim={sim:.2f}), regenerating once...",
+              file=sys.stderr)
+        # Bump temperature for the retry to encourage divergence
+        retry = _generate_once()
+        if retry:
+            similar2, sim2 = is_too_similar(retry["content"], retry["character"], recent_whispers)
+            if not similar2:
+                print(f"[repeat-check] Regeneration OK (sim={sim2:.2f})", file=sys.stderr)
+                return retry
+            print(f"[repeat-check] Still similar after retry (sim={sim2:.2f}), using retry anyway",
+                  file=sys.stderr)
+            return retry
+        # retry failed to parse, fall back to original
+        print("[repeat-check] Retry failed to parse, using original", file=sys.stderr)
+    return result
 
 
 def generate_slug(character_id, title):
