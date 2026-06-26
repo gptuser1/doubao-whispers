@@ -52,30 +52,19 @@ RECENT_K_FOR_IMAGE_STATS = 10
 IMAGE_PROBABILITY = 0.70  # when not mandatory and stats allow pure-text
 MAX_REFERENCE_IMAGES = 4
 
-# Hardcoded appearance constraint - ALWAYS appended to the final image prompt
-# sent to CF, regardless of what the AI-generated scene description says. This
-# is a code-fixed hard constraint (not AI-generated) to prevent the model from
-# deviating on character appearance. The reference avatar images are the SOLE
-# source of truth for how each character looks. We list the body parts to
-# strictly match without describing what they look like (the reference images
-# define that). Only pose/action/expression may differ.
 # Hardcoded appearance constraint - ALWAYS PREPENDED to the AI-generated scene
 # description, placed at the very front of the final prompt (highest priority
-# position). This is a code-fixed hard constraint (not AI-generated) to lock
-# character appearance to the reference avatar images. We explicitly reference
-# the `image[]` multipart field name so the model knows exactly where to find
-# the reference images, and list each body part to strictly match WITHOUT
-# describing what they look like (the reference images define that). Only
-# pose/action/expression may differ.
+# position). Lightweight two-line form (validated to work well with the 4B flux
+# model): explicitly point the model to the `image[]` multipart fields where the
+# reference avatar images live, then list which attributes are FIXED (names
+# only, never described - the reference images define how they look). Kept short
+# on purpose: a long absolute constraint eats the 4B model's limited context
+# without improving fidelity. Code-fixed (not AI-generated) so the AI cannot
+# drift into describing appearance.
 IMAGE_APPEARANCE_HARD_CONSTRAINT = (
-    "Strictly follow the reference images (image[] fields) for every character's "
-    "body type, face shape, hairstyle, skin tone, eye color, and clothing details. "
-    "Each character must remain identical in all physical features to their "
-    "corresponding reference image. For each character, exactly reproduce: head "
-    "shape, hairstyle, facial features, eyes, eyebrows, skin tone, clothing, "
-    "accessories, hands, body proportions, color palette, and art style. Only the "
-    "pose, action, gesture, and facial expression may differ. Do NOT redesign, "
-    "reinterpret, simplify, or alter any character's appearance in any way."
+    "The reference images (image[] fields) show the character(s).\n"
+    "Fixed attributes: face shape, hairstyle, skin tone, eye color, body build, "
+    "clothing style, hand details."
 )
 
 # Beijing timezone
@@ -200,6 +189,20 @@ AVATAR_FILES = {
     "nuonuo": "avatar-nuonuo.webp",
 }
 
+# Romanized names for the image prompt. The flux-2-klein-4b model is
+# English-trained; Chinese characters in the prompt degrade output quality.
+# Reference images are matched by position (image[] order), so the names in the
+# prompt only help the model understand WHO does WHAT - romanized names keep the
+# whole prompt English without losing meaning.
+NAME_ROMANIZATION = {
+    "doubao": "Doubao",
+    "guga": "Guga",
+    "doro": "Doro",
+    "feibi": "Feibi",
+    "baizi": "Baizi",
+    "nuonuo": "Nuonuo",
+}
+
 def get_avatar_path(author_id):
     """Return absolute path to an author's avatar file, or None if missing."""
     fname = AVATAR_FILES.get(author_id)
@@ -310,33 +313,38 @@ def build_image_prompt(text_provider, content, character_id, mentioned_chars,
 
     Returns a string prompt, or None on failure.
     """
-    author_nick = get_author_nickname(character_id, authors_data)
-    # Build character NAME list only (no appearance description)
-    char_names = [author_nick] + [get_author_nickname(a, authors_data) for a in mentioned_chars]
+    # Build character NAME list only (no appearance description).
+    # Use romanized names so the whole prompt stays English (flux is
+    # English-trained; Chinese in the prompt degrades image quality).
+    def _roman(aid):
+        return NAME_ROMANIZATION.get(aid, get_author_nickname(aid, authors_data))
+    char_names = [_roman(character_id)] + [_roman(a) for a in mentioned_chars]
     char_names_text = ", ".join(char_names)
 
     system_prompt = f"""You write image generation prompts for the flux-2-klein-4b model. These images illustrate short social-media posts ("whispers") from a group of friends.
 
 CRITICAL RULES (the prompt is the single most important factor for output quality):
-1. Output ONLY the English prompt, no explanation, no quotes, no markdown.
+1. Output ONLY English. No Chinese characters anywhere - translate the entire scene (objects, places, actions, mood) to English. Use the romanized character names provided below. No explanation, no quotes, no markdown.
 2. Be CONCRETE and VISUAL: use specific nouns (objects, places, body language, facial expressions). Avoid abstract adjectives.
 3. Describe the SCENE and ACTION matching the post content. Never describe character appearance (hair color, eye color, clothing, body type, etc.) - character appearance is locked to reference avatar images passed separately, the prompt only describes what characters are DOING and the scene around them.
-4. Refer to characters only by their names (e.g. "Doro and Guga eating together"), never by appearance traits.
+4. Refer to characters only by their romanized names (e.g. "Doro and Guga eating together"), never by appearance traits.
 5. If multiple characters are mentioned, describe them interacting naturally in the scene.
 
-OUTPUT FORMAT - use this labeled multi-line structure (do NOT describe character appearance in any line, only actions/scene/environment):
+OUTPUT FORMAT - use this labeled multi-line structure with blank-line grouping (do NOT describe character appearance in any line, only actions/scene/environment):
 Action: <what the character(s) are doing, specific verbs and body language>
 Object: <key objects/props in the scene, specific nouns>
 Expression: <facial expression only, no appearance traits>
+
 Setting: <location/scene description>
 Time: <time of day>
 Weather: <weather if relevant>
 Environment details: <concrete background elements: furniture, plants, objects, textures>
+
 Mood: <emotional atmosphere>
 Style: digital illustration, soft painterly textures
 Palette: <2-4 dominant colors matching the scene mood>
 Lighting: <specific light source and how it falls on the scene>
-Quality: detailed rendering, cinematic lighting, shallow depth of field, 8k
+Quality: detailed rendering, shallow depth of field, 8k
 
 Do NOT add any other lines. Do NOT describe hair, face shape, clothing, or body type - those come from reference images.
 
