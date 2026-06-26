@@ -173,7 +173,11 @@ class ImageProvider(ABC):
 
 
 class WorkersAIImage(ImageProvider):
-    """Cloudflare Workers AI image provider."""
+    """Cloudflare Workers AI image provider.
+
+    Uses multipart/form-data (required by flux-2 models) and supports up to
+    4 reference images for character consistency. Output is 1024x768.
+    """
 
     def __init__(self, config):
         self.model = config.get("model", "@cf/black-forest-labs/flux-2-klein-4b")
@@ -184,43 +188,137 @@ class WorkersAIImage(ImageProvider):
             raise ValueError("WorkersAI requires CF_IMAGE_ACCOUNT_ID and CF_IMAGE_API_TOKEN environment variables")
 
     def generate(self, prompt, output_path, reference_images=None, size="landscape_4_3"):
+        """Generate an image.
+
+        Args:
+            prompt: text description of the image
+            output_path: where to save the generated image
+            reference_images: list of paths to reference images (max 4). Each
+                will be sent as a multipart file field. CF flux-2 models use
+                these for character/style consistency. Images should be <=512x512;
+                larger images are downscaled automatically by _prepare_reference.
+            size: ignored for flux-2 (always 1024x768), kept for interface compat
+
+        Returns:
+            str: output_path on success, None on failure.
+            Raises RuntimeError with .flagged=True attribute if blocked by
+            CF safety filter (code 3030), so callers can retry with rephrasing.
+        """
         url = f"https://api.cloudflare.com/client/v4/accounts/{self.account_id}/ai/run/{self.model}"
 
-        payload = {"prompt": prompt}
+        # Build multipart form-data body manually (stdlib only, no requests)
+        boundary = "----WorkersAIBoundary" + os.urandom(8).hex()
+        body_parts = []
 
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(url, data=data, method="POST")
+        def add_field(name, value):
+            body_parts.append(f"--{boundary}\r\n".encode())
+            body_parts.append(f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode())
+            body_parts.append(value.encode("utf-8") if isinstance(value, str) else value)
+            body_parts.append(b"\r\n")
+
+        def add_file_field(name, filename, content_bytes, content_type="image/png"):
+            body_parts.append(f"--{boundary}\r\n".encode())
+            body_parts.append(
+                f'Content-Disposition: form-data; name="{name}"; filename="{filename}"\r\n'.encode()
+            )
+            body_parts.append(f"Content-Type: {content_type}\r\n\r\n".encode())
+            body_parts.append(content_bytes)
+            body_parts.append(b"\r\n")
+
+        # Required fields
+        add_field("prompt", prompt)
+        add_field("width", "1024")
+        add_field("height", "768")
+
+        # Optional reference images (max 4). CF flux-2 accepts up to 4 512x512 tiles.
+        if reference_images:
+            refs = reference_images[:4]
+            for idx, ref_path in enumerate(refs):
+                try:
+                    ref_bytes = _prepare_reference_image(ref_path)
+                    if ref_bytes:
+                        # Field name "image" for single, "image[]" for multiple.
+                        # Using "image[]" for all so CF treats them as an array.
+                        field_name = "image[]" if len(refs) > 1 else "image"
+                        add_file_field(field_name, f"ref_{idx}.png", ref_bytes, "image/png")
+                except Exception as e:
+                    print(f"[image] Skipping reference {ref_path}: {e}", file=sys.stderr)
+
+        body_parts.append(f"--{boundary}--\r\n".encode())
+        body = b"".join(body_parts)
+
+        req = urllib.request.Request(url, data=body, method="POST")
         req.add_header("Authorization", f"Bearer {self.api_token}")
-        req.add_header("Content-Type", "application/json")
+        req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
 
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
-                content_type = resp.headers.get("Content-Type", "")
-
-                if "image" in content_type:
-                    # Direct image response
-                    image_data = resp.read()
-                    with open(output_path, "wb") as f:
-                        f.write(image_data)
-                    return output_path
-                else:
-                    # JSON response with base64 or error
-                    result = json.loads(resp.read().decode("utf-8"))
-                    if result.get("success"):
-                        image_b64 = result.get("result", {}).get("image", "")
-                        if image_b64:
-                            image_data = base64.b64decode(image_b64)
-                            with open(output_path, "wb") as f:
-                                f.write(image_data)
-                            return output_path
-
-                    errors = result.get("errors", [])
-                    err_msg = errors[0].get("message", "unknown error") if errors else "unknown error"
-                    print(f"WorkersAI image error: {err_msg}", file=sys.stderr)
-                    return None
+            with urllib.request.urlopen(req, timeout=180) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            # CF returns 400 with JSON body when output is flagged (code 3030).
+            try:
+                result = json.loads(e.read().decode("utf-8"))
+            except Exception:
+                err = RuntimeError(f"CF image gen HTTP {e.code}: {e.reason}")
+                err.flagged = False
+                raise err
         except urllib.error.URLError as e:
-            print(f"WorkersAI image request failed: {e}", file=sys.stderr)
-            return None
+            err = RuntimeError(f"CF image gen request failed: {e}")
+            err.flagged = False
+            raise err
+
+        # flux-2 output schema: {"image": "<base64>", ...}  (no success/errors wrapper)
+        image_b64 = result.get("image", "")
+        if image_b64:
+            image_data = base64.b64decode(image_b64)
+            with open(output_path, "wb") as f:
+                f.write(image_data)
+            return output_path
+
+        # Fallback: legacy {success, result, errors} schema
+        if result.get("success"):
+            image_b64 = result.get("result", {}).get("image", "")
+            if image_b64:
+                image_data = base64.b64decode(image_b64)
+                with open(output_path, "wb") as f:
+                    f.write(image_data)
+                return output_path
+
+        errors = result.get("errors", [])
+        err_msg = errors[0].get("message", "unknown") if errors else "no image in response"
+        err_code = errors[0].get("code", 0) if errors else 0
+        err = RuntimeError(f"CF image gen failed: {err_msg}")
+        err.flagged = (err_code == 3030 or "flagged" in err_msg.lower())
+        raise err
+
+
+def _prepare_reference_image(path, max_size=512):
+    """Load an image file and return PNG bytes sized to fit within max_size x max_size.
+
+    Used to prepare character avatar reference images for CF flux-2 models,
+    which accept up to 4 512x512 tiles. Images smaller than 512x512 are kept
+    as-is (not upscaled) per project convention.
+
+    Returns PNG bytes, or None if Pillow is unavailable or the image can't be read.
+    """
+    try:
+        from PIL import Image
+        import io
+        img = Image.open(path)
+        # Convert to RGB (drop alpha for PNG compatibility with the model)
+        if img.mode in ("RGBA", "LA", "P"):
+            img = img.convert("RGB")
+        # Downscale only if larger than max_size; never upscale
+        if img.width > max_size or img.height > max_size:
+            ratio = min(max_size / img.width, max_size / img.height)
+            new_size = (int(img.width * ratio), int(img.height * ratio))
+            img = img.resize(new_size, Image.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return buf.getvalue()
+    except Exception as e:
+        print(f"[image] Failed to prepare reference {path}: {e}", file=sys.stderr)
+        return None
 
 
 # ==================== Usage Helpers ====================

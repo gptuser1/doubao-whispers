@@ -26,7 +26,7 @@ from datetime import datetime, timezone, timedelta
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
 
-from ai_client import create_text_provider, merge_usage_into_state
+from ai_client import create_text_provider, create_image_provider, merge_usage_into_state
 from d1_client import D1Client
 from character_selector import select_character, CHARACTER_WEIGHTS
 from reply_utils import add_replies, load_month_file
@@ -39,6 +39,18 @@ HOLIDAYS_PATH = os.path.join(PROJECT_ROOT, ".whisper-task", "holidays.json")
 WHISPERS_DIR = os.path.join(PROJECT_ROOT, "data", "whispers")
 REPLIES_DIR = os.path.join(PROJECT_ROOT, "data", "replies")
 AUTHORS_PATH = os.path.join(PROJECT_ROOT, "data", "authors.json")
+IMAGES_DIR = os.path.join(PROJECT_ROOT, "static", "images")
+PACK_IMAGES_SCRIPT = os.path.join(SCRIPT_DIR, "pack_images.py")
+PROCESS_IMAGE_SCRIPT = os.path.join(SCRIPT_DIR, "process_image.py")
+
+# Image generation config
+# - 70% of recent K whispers should have images (pure-text ratio <= 30%)
+# - Required image when: mentions other characters (group photo), or has
+#   concrete scene/object, or has photo-related words
+PURE_TEXT_RATIO_THRESHOLD = 0.30
+RECENT_K_FOR_IMAGE_STATS = 10
+IMAGE_PROBABILITY = 0.70  # when not mandatory and stats allow pure-text
+MAX_REFERENCE_IMAGES = 4
 
 # Beijing timezone
 TZ_BEIJING = timezone(timedelta(hours=8))
@@ -148,6 +160,317 @@ def get_author_nickname(author_id, authors_data):
     if author_id in authors_data:
         return authors_data[author_id].get("name", author_id)
     return author_id
+
+
+# ==================== Image Generation ====================
+
+# Avatar filename mapping. avatar.webp is doubao (no suffix).
+AVATAR_FILES = {
+    "doubao": "avatar.webp",
+    "guga": "avatar-guga.webp",
+    "doro": "avatar-doro.webp",
+    "feibi": "avatar-feibi.webp",
+    "baizi": "avatar-baizi.webp",
+    "nuonuo": "avatar-nuonuo.webp",
+}
+
+# Character appearance descriptions extracted from characters.md, used in
+# image prompts so the model knows each character's visual traits even
+# without the reference image (redundant with reference image for safety).
+CHARACTER_VISUAL = {
+    "doubao": "gentle big-sister type, warm and mature look",
+    "guga": "round chubby penguin-like girl, very cute and soft",
+    "doro": "pink-haired puppy-like girl, soft and adorable, pink color theme",
+    "feibi": "blonde energetic girl, often wearing various hats, lively",
+    "nuonuo": "light blue-gray haired girl, purple-blue gradient eyes, soft look",
+    "baizi": "white-haired wolf-ear girl, cool and quiet look",
+}
+
+
+def get_avatar_path(author_id):
+    """Return absolute path to an author's avatar file, or None if missing."""
+    fname = AVATAR_FILES.get(author_id)
+    if not fname:
+        return None
+    path = os.path.join(IMAGES_DIR, fname)
+    return path if os.path.exists(path) else None
+
+
+def extract_mentioned_characters(content, authors_data):
+    """Find which characters are mentioned in the whisper content.
+
+    Matches both nicknames (e.g. "菲比") and ids (e.g. "feibi"). Returns a
+    list of author ids found in the content.
+    """
+    mentioned = []
+    content_lower = content.lower()
+    for aid, info in authors_data.items():
+        nick = info.get("name", aid)
+        if nick in content or aid in content_lower:
+            mentioned.append(aid)
+    return mentioned
+
+
+def _has_image_field(whisper_data):
+    """Check if a whisper dict (full data from JSON) has images."""
+    imgs = whisper_data.get("images") if isinstance(whisper_data, dict) else None
+    return bool(imgs and len(imgs) > 0)
+
+
+def load_recent_whispers_with_images(count=10):
+    """Load recent whispers including their images field, for image-ratio stats."""
+    posts = []
+    if not os.path.exists(WHISPERS_DIR):
+        return posts
+    month_files = sorted([f for f in os.listdir(WHISPERS_DIR) if f.endswith(".json")],
+                         reverse=True)
+    for mf in month_files:
+        if len(posts) >= count * 2:
+            break
+        with open(os.path.join(WHISPERS_DIR, mf), "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for slug, w in data.items():
+            if isinstance(w, dict) and w.get("date"):
+                posts.append({
+                    "date": w["date"],
+                    "author": w.get("author", ""),
+                    "title": w.get("title", ""),
+                    "content": w.get("content", ""),
+                    "images": w.get("images", []),
+                })
+    posts.sort(key=lambda x: x["date"], reverse=True)
+    return posts[:count]
+
+
+def should_have_image(content, character_id, authors_data, recent_with_images):
+    """Decide whether a new whisper should have an image.
+
+    Rules (per instructions.md §2.3.0):
+    1. Mentions other characters -> mandatory group photo
+    2. Has concrete scene/object/photo-related words -> mandatory
+    3. Otherwise: if recent pure-text ratio >= 30% -> mandatory
+    4. Otherwise: 70% probability
+
+    Returns (should_have: bool, reason: str, mentioned_chars: list).
+    """
+    # Rule 1: mentions other characters -> mandatory group photo
+    mentioned = [m for m in extract_mentioned_characters(content, authors_data)
+                 if m != character_id]
+    if mentioned:
+        return True, f"mentions other characters: {mentioned}", mentioned
+
+    # Rule 2: concrete scene / object / photo words
+    photo_words = ["拍", "给你看", "偷拍", "晒"]
+    scene_patterns = ["吃了", "去了", "在", "买了", "做了", "收到", "发现", "刚到", "新买的"]
+    if any(w in content for w in photo_words) or any(p in content for p in scene_patterns):
+        return True, "concrete scene/object/photo-related", mentioned
+
+    # Rule 3: recent pure-text ratio >= 30% -> mandatory
+    if recent_with_images:
+        total = len(recent_with_images)
+        with_img = sum(1 for w in recent_with_images if w.get("images"))
+        pure_text_ratio = (total - with_img) / total if total > 0 else 0
+        if pure_text_ratio >= PURE_TEXT_RATIO_THRESHOLD:
+            return True, f"pure-text ratio {pure_text_ratio:.0%} >= {PURE_TEXT_RATIO_THRESHOLD:.0%}", mentioned
+
+    # Rule 4: probabilistic (70%)
+    if random.random() < IMAGE_PROBABILITY:
+        return True, f"probabilistic (p={IMAGE_PROBABILITY})", mentioned
+    return False, "skipped (no mandatory rule, probability missed)", mentioned
+
+
+def build_image_prompt(text_provider, content, character_id, mentioned_chars,
+                       authors_data, now_dt):
+    """Build an English image generation prompt via Qwen3-8B.
+
+    The prompt is critical for the 4B flux model - it must be concrete, visual,
+    and explicitly reference the character's appearance + scene + art style.
+
+    Returns a string prompt, or None on failure.
+    """
+    author_nick = get_author_nickname(character_id, authors_data)
+    author_visual = CHARACTER_VISUAL.get(character_id, "cute anime girl")
+
+    # Build character list for the prompt
+    char_descs = [f"{author_nick} ({character_id}): {author_visual}"]
+    for aid in mentioned_chars:
+        nick = get_author_nickname(aid, authors_data)
+        visual = CHARACTER_VISUAL.get(aid, "cute anime girl")
+        char_descs.append(f"{nick} ({aid}): {visual}")
+    char_block = "\n".join(char_descs)
+
+    system_prompt = f"""You write image generation prompts for the flux-2-klein-4b model. These images illustrate short social-media posts ("whispers") from a group of friends.
+
+CRITICAL RULES (the prompt is the single most important factor for output quality):
+1. Output ONLY the English prompt, no explanation, no quotes, no markdown.
+2. Be CONCRETE and VISUAL: use specific nouns (objects, places, body language, facial expressions). Avoid abstract adjectives.
+3. Describe the SCENE and ACTION matching the post content.
+4. Keep character appearance CONSISTENT with the reference images (provided separately to the model). The prompt should describe what they're DOING, not re-describe their appearance in detail - just name the characters and their key visual trait.
+5. Specify the art style: "chibi / Q-version anime illustration, warm soft colors, cute, cozy atmosphere, consistent with reference avatar style".
+6. Specify lighting and mood matching the scene (e.g. "warm afternoon sunlight", "cozy indoor lighting", "soft morning light").
+7. If multiple characters are mentioned, describe them interacting naturally in the scene.
+8. Keep it under 80 words. One or two sentences of scene + one sentence of style.
+
+Character reference (appearance will also be enforced via reference images):
+{char_block}
+
+The model output is 1024x768 (landscape). Compose accordingly."""
+
+    user_prompt = f"""Whisper content (Chinese, translate the scene to English in the prompt):
+\"\"\"{content}\"\"\"
+
+Time: {now_dt.strftime('%Y-%m-%d %H:%M')} (Beijing time)
+
+Write the image prompt now. Only the prompt, nothing else."""
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+    try:
+        prompt = text_provider.generate(messages, max_tokens=200, temperature=0.7)
+        prompt = prompt.strip().strip('"').strip("'").strip("`")
+        # Strip markdown code fence if present
+        if prompt.startswith("```"):
+            lines = prompt.split("\n")
+            prompt = "\n".join(l for l in lines if not l.startswith("```")).strip()
+        return prompt if prompt else None
+    except Exception as e:
+        print(f"[image] Prompt generation failed: {e}", file=sys.stderr)
+        return None
+
+
+def generate_whisper_image(image_provider, rephrase_provider, content, character_id,
+                           mentioned_chars, authors_data, now_dt, slug, date_str):
+    """Generate one image for a whisper.
+
+    Args:
+        image_provider: WorkersAIImage instance
+        rephrase_provider: text provider for prompt building/rephrasing (Qwen3-8B)
+        content: whisper content text
+        character_id: author id
+        mentioned_chars: list of other character ids mentioned
+        authors_data: authors dict
+        now_dt: datetime
+        slug: whisper slug
+        date_str: YYYY-MM-DD string
+
+    Returns:
+        (image_filename: str or None, image_path: str or None)
+        image_filename is the webp filename (e.g. "2026-06-26-foo-1.webp")
+        image_path is absolute path to the saved file.
+    """
+    # Build prompt
+    prompt = build_image_prompt(rephrase_provider, content, character_id,
+                                mentioned_chars, authors_data, now_dt)
+    if not prompt:
+        print("[image] Failed to build prompt, skipping image", file=sys.stderr)
+        return None, None
+    print(f"[image] Prompt: {prompt[:120]}...")
+
+    # Collect reference images: author avatar + mentioned chars' avatars (max 4)
+    ref_chars = [character_id] + mentioned_chars
+    ref_paths = []
+    for aid in ref_chars:
+        p = get_avatar_path(aid)
+        if p:
+            ref_paths.append(p)
+        else:
+            print(f"[image] No avatar found for {aid}", file=sys.stderr)
+    ref_paths = ref_paths[:MAX_REFERENCE_IMAGES]
+    if not ref_paths:
+        print("[image] No reference avatars available, skipping image", file=sys.stderr)
+        return None, None
+    print(f"[image] Reference avatars: {[os.path.basename(p) for p in ref_paths]}")
+
+    # Output path: static/images/YYYY-MM-DD-{slug}-1.webp
+    # CF returns PNG (base64); we save as .png then convert to .webp
+    image_filename = f"{date_str}-{slug}-1.webp"
+    final_path = os.path.join(IMAGES_DIR, image_filename)
+    # Ensure images dir exists
+    os.makedirs(IMAGES_DIR, exist_ok=True)
+
+    # Try up to 3 rephrases if flagged by safety filter, then simplify
+    current_prompt = prompt
+    max_retries = 3
+    for attempt in range(max_retries + 1):
+        # Use .png temp path first (CF returns PNG), convert to webp after
+        temp_path = final_path + ".tmp.png"
+        try:
+            result_path = image_provider.generate(current_prompt, temp_path,
+                                                   reference_images=ref_paths)
+            if result_path:
+                # Convert to webp via process_image.py (handles resize + webp + compression)
+                stdout, rc = run_script([
+                    sys.executable, PROCESS_IMAGE_SCRIPT, temp_path, final_path
+                ])
+                if rc != 0 or not os.path.exists(final_path):
+                    # Fallback: if process_image.py fails, just rename png to webp
+                    # (Hugo can serve it, browser will handle)
+                    print(f"[image] process_image.py failed, using raw PNG", file=sys.stderr)
+                    import shutil
+                    shutil.move(temp_path, final_path)
+                else:
+                    # Clean up temp
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
+                print(f"[image] Generated: {final_path}")
+                return image_filename, final_path
+        except RuntimeError as e:
+            flagged = getattr(e, "flagged", False)
+            if flagged and attempt < max_retries:
+                print(f"[image] Flagged by safety filter (attempt {attempt+1}), rephrasing...", file=sys.stderr)
+                new_prompt = _rephrase_image_prompt(rephrase_provider, current_prompt)
+                if new_prompt:
+                    current_prompt = new_prompt
+                    continue
+            print(f"[image] Generation failed: {e}", file=sys.stderr)
+            break
+        except Exception as e:
+            print(f"[image] Generation error: {e}", file=sys.stderr)
+            break
+
+    # Cleanup temp file if exists
+    temp_path = final_path + ".tmp.png"
+    if os.path.exists(temp_path):
+        os.remove(temp_path)
+    return None, None
+
+
+def _rephrase_image_prompt(rephrase_provider, prompt):
+    """Rephrase an image prompt to bypass CF safety filter (same scene, different wording)."""
+    system_prompt = """You rephrase image generation prompts for the flux-2-klein-4b model.
+Rules:
+1. Keep the SAME scene/subject/objects
+2. Change wording, sentence structure, and ordering substantially
+3. Keep it concrete and visual (nouns > adjectives)
+4. Keep the art style / lighting description
+5. Output ONLY the rephrased prompt, no explanation, no quotes
+6. If the original mentions a brand/person name that may trigger filters, replace with a generic but accurate description"""
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": prompt},
+    ]
+    try:
+        new_prompt = rephrase_provider.generate(messages, max_tokens=200, temperature=0.7)
+        new_prompt = new_prompt.strip().strip('"').strip("'").strip("`").strip()
+        if new_prompt.startswith("```"):
+            lines = new_prompt.split("\n")
+            new_prompt = "\n".join(l for l in lines if not l.startswith("```")).strip()
+        return new_prompt if new_prompt else None
+    except Exception as e:
+        print(f"[image] Rephrase failed: {e}", file=sys.stderr)
+        return None
+
+
+def repack_month_images(month_str):
+    """Re-run pack_images.py for the given month after adding new images."""
+    stdout, rc = run_script([sys.executable, PACK_IMAGES_SCRIPT, month_str])
+    if rc == 0:
+        print(f"[image] Repacked {month_str}.tar")
+    else:
+        print(f"[image] WARNING: pack_images.py failed for {month_str}", file=sys.stderr)
+    return rc == 0
 
 
 # ==================== Content Generation ====================
@@ -832,7 +1155,8 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
 
 # ==================== Main Tasks ====================
 
-def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False):
+def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
+                       image_provider=None, prompt_provider=None):
     """Execute the publish whisper task."""
     print("\n--- Publish Whisper ---")
 
@@ -922,6 +1246,37 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False):
         "content": content_data["content"],
         "tags": [],
     }
+
+    # ---- Image generation ----
+    # Decide whether this whisper should have an image, then generate one
+    # using CF Workers AI (flux-2-klein-4b) with character avatars as
+    # reference images. See instructions.md §2.3 for rules.
+    image_generated = False
+    if image_provider and prompt_provider and not dry_run:
+        recent_with_images = load_recent_whispers_with_images(RECENT_K_FOR_IMAGE_STATS)
+        should_img, reason, mentioned = should_have_image(
+            content_data["content"], character_id, authors_data, recent_with_images
+        )
+        print(f"[image] Decision: {should_img} ({reason})")
+        if should_img:
+            date_str = now_dt.strftime("%Y-%m-%d")
+            img_filename, img_path = generate_whisper_image(
+                image_provider, prompt_provider,
+                content_data["content"], character_id, mentioned,
+                authors_data, now_dt, slug, date_str
+            )
+            if img_filename and img_path and os.path.exists(img_path):
+                month_data[slug]["images"] = [f"/images/{img_filename}"]
+                # Re-save whisper JSON with images field
+                save_json(month_json_path, month_data)
+                # Repack the month's tar so the image ships to the repo
+                repack_month_images(month_str)
+                image_generated = True
+                print(f"[image] Attached image: /images/{img_filename}")
+            else:
+                print(f"[image] Generation failed, whisper will be text-only")
+    elif not image_provider:
+        print("[image] No image provider configured, skipping image generation")
 
     # Save
     save_json(month_json_path, month_data)
@@ -1235,6 +1590,21 @@ def main():
         profile = op_cfg.get("text_profile", "default")
         return text_providers.get(profile, text_providers.get("default"))
 
+    # Initialize image provider (CF Workers AI flux-2-klein-4b) for whisper images.
+    # Optional: if not configured or init fails, whispers will be text-only.
+    image_provider = None
+    ai_image_config = config.get("ai", {}).get("image", {})
+    if ai_image_config:
+        try:
+            image_provider = create_image_provider(ai_image_config)
+            print(f"AI image provider: {ai_image_config.get('model', 'unknown')}")
+        except Exception as e:
+            print(f"Failed to init image provider (whispers will be text-only): {e}", file=sys.stderr)
+
+    # Prompt provider for image prompt building/rephrasing: use the "free"
+    # text profile (Qwen3-8B) if available, else fall back to default.
+    prompt_provider = text_providers.get("free") or text_providers.get("default")
+
     # Update heartbeat count
     state = d1_client.get_state()
     state["stats"]["total_heartbeats"] = state["stats"].get("total_heartbeats", 0) + 1
@@ -1249,7 +1619,10 @@ def main():
         state["last_run"]["whispers_publish"] = "2026-06-01T00:00:00+08:00"
         d1_client.save_state(state)
 
-    published = do_publish_whisper(config, d1_client, get_provider("publish_whisper"), now, args.dry_run)
+    published = do_publish_whisper(
+        config, d1_client, get_provider("publish_whisper"), now, args.dry_run,
+        image_provider=image_provider, prompt_provider=prompt_provider
+    )
     if published:
         changes_made = True
 
