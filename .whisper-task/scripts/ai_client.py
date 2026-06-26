@@ -52,11 +52,11 @@ class WorkersAIText(TextProvider):
 
     def __init__(self, config):
         self.model = config.get("model", "@cf/qwen/qwen1.5-14b-chat-awq")
-        self.account_id = os.environ.get(config.get("account_id_env", "CF_ACCOUNT_ID"), "")
-        self.api_token = os.environ.get(config.get("api_token_env", "CF_API_TOKEN"), "")
+        self.account_id = os.environ.get(config.get("account_id_env", "CF_DEFAULT_ACCOUNT_ID"), "")
+        self.api_token = os.environ.get(config.get("api_token_env", "CF_DEFAULT_API_TOKEN"), "")
 
         if not self.account_id or not self.api_token:
-            raise ValueError("WorkersAI requires CF_ACCOUNT_ID and CF_API_TOKEN environment variables")
+            raise ValueError("WorkersAI requires CF_DEFAULT_ACCOUNT_ID and CF_DEFAULT_API_TOKEN environment variables")
 
     def generate(self, messages, max_tokens=1024, temperature=0.8):
         url = f"https://api.cloudflare.com/client/v4/accounts/{self.account_id}/ai/run/{self.model}"
