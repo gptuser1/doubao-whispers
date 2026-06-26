@@ -299,7 +299,7 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
 
 格式规范（必须严格遵守）：
 1. content 必须用换行分段：至少有1个空行（\\n\\n）把内容分成2-4段，不能整段不换行
-2. 波浪号"～"每条最多用1次，不要句末都加"～"
+2. 波浪号"～"是可选语气词，不要每条都用，更不要每句句末都加"～"。一条动态里最多用1次"～"
 3. title 是一句话标题，不超过15字，不带书名号
 
 输出格式（严格JSON，不要输出任何其他内容、不要markdown代码块）：
@@ -511,6 +511,7 @@ def build_interaction_prompt(whisper_data, whisper_author_name, existing_replies
 6. 回复长度10-80字，口语化、轻松
 7. 不要涉及隐私
 8. 动态作者不参与回复（是别人来评论TA的动态）
+9. 【语气词使用——非常重要】波浪号"～"是可选的语气词，绝对不要每条回复都用。一批回复里最多1-2条用"～"，其余用句号/感叹号结尾。禁止把"～"当成每条回复的必备符号。同理，"菲比啾比"这类口头禅只有该角色本人回复时才用，其他角色不要模仿。
 
 【reply_to 字段规则——非常重要，必须严格遵守】
 - 直接回复动态本身（OP）：reply_to 填空字符串""、reply_to_floor 填 0。绝对不要把动态作者的名字填到 reply_to 里！
@@ -597,13 +598,36 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
     # Validate and clean up replies
     whisper_author_id = whisper_data.get("author", "")
     whisper_author_nick = authors_data.get(whisper_author_id, {}).get("name", whisper_author_id)
+    # Build nickname <-> id maps so we can normalize reply_to (AI sometimes
+    # fills the lowercase author id like "doro" instead of the display
+    # nickname "Doro", which would render as "@doro" on the page).
+    nick_to_id = {info.get("name", aid): aid for aid, info in authors_data.items()}
+    id_to_nick = {aid: info.get("name", aid) for aid, info in authors_data.items()}
     # Map existing floors to their authors, to validate reply_to references
     floor_author_map = {}
     for r in existing_replies or []:
         f = r.get("floor")
         if f is not None:
             floor_author_map[f] = r.get("author", "") or r.get("nickname", "")
+    # Existing reply contents (normalized) for dedup
+    existing_contents = set()
+    for r in existing_replies or []:
+        c = r.get("content", "").strip().replace(" ", "").replace("\n", "")
+        if c:
+            existing_contents.add(c)
+
+    def _normalize_reply_to(rt):
+        """Normalize reply_to to the display nickname. Accepts nickname or id."""
+        if not rt:
+            return ""
+        if rt in id_to_nick:        # e.g. "doro" -> "Doro"
+            return id_to_nick[rt]
+        if rt in nick_to_id:        # already a nickname
+            return rt
+        return rt                   # unknown (e.g. anonymous user), keep as-is
+
     valid_replies = []
+    seen_contents = set()           # dedup within this batch too
     for idx, r in enumerate(replies):
         if not isinstance(r, dict):
             continue
@@ -618,8 +642,21 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
         # Ensure nickname matches author_id
         if author_id in authors_data:
             nickname = authors_data[author_id].get("name", nickname)
+        # Dedup: skip if (near-)identical content already exists for this
+        # whisper (existing replies or earlier in this batch). Fixes the
+        # duplicate-reply bug where re-runs appended the same replies again.
+        norm_content = content.replace(" ", "").replace("\n", "")
+        if norm_content in existing_contents or norm_content in seen_contents:
+            print(f"[reply-dedup] Skipping duplicate reply from {nickname}: {content[:30]}...",
+                  file=sys.stderr)
+            continue
+        seen_contents.add(norm_content)
+        existing_contents.add(norm_content)
+
         reply_to = r.get("reply_to", "")
         reply_to_floor = r.get("reply_to_floor", 0)
+        # Normalize reply_to to display nickname
+        reply_to = _normalize_reply_to(reply_to)
         # Rule: replying directly to the whisper (OP) must NOT carry reply_to.
         # If AI filled reply_to with the whisper author's name/id but the
         # referenced floor isn't actually one of OP's replies, clear it.
