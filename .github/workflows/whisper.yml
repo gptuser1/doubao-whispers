@@ -2,10 +2,10 @@ name: Whisper Runner
 
 on:
   schedule:
-    # Every hour at minute 0, UTC time
-    # Beijing time 7:00-23:00 = UTC 23:00-15:00 (next day)
-    # So we run all hours and let the script check active hours
-    - cron: '0 * * * *'
+    # Every hour at minute 19, UTC time. Offset :19 avoids the top-of-hour
+    # GitHub Actions load spike that was delaying runs scheduled at :00.
+    # The script itself enforces Beijing-time active hours (7:00-23:00).
+    - cron: '19 * * * *'
   workflow_dispatch: # Allow manual trigger
 
 permissions:
@@ -19,13 +19,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           token: ${{ secrets.GH_TOKEN }}
           fetch-depth: 1
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
