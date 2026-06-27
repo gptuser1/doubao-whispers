@@ -20,6 +20,7 @@ import os
 import subprocess
 import sys
 import random
+import re
 from datetime import datetime, timezone, timedelta
 
 # Add scripts directory to path
