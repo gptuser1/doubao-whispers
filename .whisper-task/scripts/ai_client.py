@@ -51,7 +51,7 @@ class WorkersAIText(TextProvider):
     """Cloudflare Workers AI text provider."""
 
     def __init__(self, config):
-        self.model = config.get("model", "@cf/qwen/qwen1.5-14b-chat-awq")
+        self.model = config.get("model", "@cf/zai-org/glm-4.7-flash")
         self.account_id = os.environ.get(config.get("account_id_env", "CF_DEFAULT_ACCOUNT_ID"), "")
         self.api_token = os.environ.get(config.get("api_token_env", "CF_DEFAULT_API_TOKEN"), "")
 
@@ -65,6 +65,7 @@ class WorkersAIText(TextProvider):
             "messages": messages,
             "max_tokens": max_tokens,
             "temperature": temperature,
+            "chat_template_kwargs:": { "enable_thinking": True }
         }
 
         data = json.dumps(payload).encode("utf-8")
@@ -73,7 +74,7 @@ class WorkersAIText(TextProvider):
         req.add_header("Content-Type", "application/json")
 
         try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
+            with urllib.request.urlopen(req, timeout=120) as resp:
                 result = json.loads(resp.read().decode("utf-8"))
 
             if result.get("success"):
@@ -111,8 +112,8 @@ class OpenAIText(TextProvider):
             "temperature": temperature,
             "stream": False,
             # Explicitly disable thinking mode to save tokens
-            "thinking": {"type": "disabled"},
-            "enable_thinking": False,
+            "thinking": {"type": "enabled"},
+            "enable_thinking": True,
         }
 
         data = json.dumps(payload).encode("utf-8")
@@ -121,7 +122,7 @@ class OpenAIText(TextProvider):
         req.add_header("Content-Type", "application/json")
 
         try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
+            with urllib.request.urlopen(req, timeout=120) as resp:
                 result = json.loads(resp.read().decode("utf-8"))
 
             # Log token usage from API response (DeepSeek/SiliconFlow return cache stats too)

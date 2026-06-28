@@ -10,9 +10,15 @@
       },
       "free": {
         "provider": "openai",
-        "model": "Qwen/Qwen3-8B",
-        "base_url": "https://api.siliconflow.cn/v1",
-        "api_key_env": "OPENAI_API_KEY"
+        "model": "glm-4.7-flash",
+        "base_url": "https://open.bigmodel.cn/api/paas/v4",
+        "api_key_env": "OPENAI_ZAI_API_KEY"
+      },
+      "cf": {
+        "provider": "workers_ai",
+        "model": "@cf/zai-org/glm-4.7-flash",
+        "account_id_env": "CF_DEFAULT_ACCOUNT_ID",
+        "api_token_env": "CF_DEFAULT_API_TOKEN"
       }
     },
     "image": {
@@ -27,7 +33,7 @@
       "enabled": true,
       "name": "发布碎碎念",
       "priority": 1,
-      "text_profile": "default",
+      "text_profile": "cf",
       "schedule": {
         "type": "probabilistic",
         "min_interval_hours": 1.5,

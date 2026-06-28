@@ -63,9 +63,7 @@ MAX_REFERENCE_IMAGES = 4
 # without improving fidelity. Code-fixed (not AI-generated) so the AI cannot
 # drift into describing appearance.
 IMAGE_APPEARANCE_HARD_CONSTRAINT = (
-    "The reference images (image[] fields) show the character(s).\n"
-    "Fixed attributes: face shape, hairstyle, skin tone, eye color, body build, "
-    "clothing style, hand details."
+    "Reference image(s) show the character(s).\nFor single reference image: apply all fixed attributes to the sole character.\nFor multiple reference images (input_image_0, input_image_1, ...): each image represents a distinct character. All characters must appear together in the rendered scene. Apply fixed attributes to their respective referenced character.\nKeep the reference image's clothing style. No exposed skin.\nStyle anchor: kawaii chibi anime illustration, thick clean black outlines, soft cel shading, pastel warm colors, rounded cute proportions, big glossy eyes, gentle warm ambient lighting, cozy daily scene, soft blush, clean flat coloring.\nFixed attributes: face shape, hairstyle, skin tone, eye color, body build, clothing style, hand details."
 )
 
 # Beijing timezone
@@ -322,38 +320,90 @@ def build_image_prompt(text_provider, content, character_id, mentioned_chars,
     char_names = [_roman(character_id)] + [_roman(a) for a in mentioned_chars]
     char_names_text = ", ".join(char_names)
 
-    system_prompt = f"""You write image generation prompts for the flux-2-klein-4b model. These images illustrate short social-media posts ("whispers") from a group of friends.
+    #system_prompt = f"""You write image generation prompts for the flux-2-klein-4b model. These images illustrate short social-media posts ("whispers") from a group of friends.
+#
+#CRITICAL RULES (the prompt is the single most important factor for output quality):
+#1. Output ONLY English. No Chinese characters anywhere - translate the entire scene (objects, places, actions, mood) to English. Use the romanized character names provided below. No explanation, no quotes, no markdown.
+#2. Be CONCRETE and VISUAL: use specific nouns (objects, places, body language, facial expressions). Avoid abstract adjectives.
+#3. Describe the SCENE and ACTION matching the post content. Never describe character appearance (hair color, eye color, clothing, body type, etc.) - character appearance is locked to reference avatar images passed separately, the prompt only describes what characters are DOING and the scene around them.
+#4. Refer to characters only by their romanized names (e.g. "Doro and Guga eating together"), never by appearance traits.
+#5. If multiple characters are mentioned, describe them interacting naturally in the scene.
+#
+#OUTPUT FORMAT - use this labeled multi-line structure with blank-line grouping (do NOT describe character appearance in any line, only actions/scene/environment):
+#Action: <what the character(s) are doing, specific verbs and body language>
+#Object: <key objects/props in the scene, specific nouns>
+#Expression: <facial expression only, no appearance traits>
+#
+#Setting: <location/scene description>
+#Time: <time of day>
+#Weather: <weather if relevant>
+#Environment details: <concrete background elements: furniture, plants, objects, textures>
+#
+#Mood: <emotional atmosphere>
+#Style: digital illustration, soft painterly textures
+#Palette: <2-4 dominant colors matching the scene mood>
+#Lighting: <specific light source and how it falls on the scene>
+#Quality: detailed rendering, shallow depth of field, 8k
+#
+#Do NOT add any other lines. Do NOT describe hair, face shape, clothing, or body type - those come from reference images.
+#
+#Characters appearing in this image (refer to them by name only): {char_names_text}
+#
+#The model output is 1024x768 (landscape). Compose accordingly."""
 
-CRITICAL RULES (the prompt is the single most important factor for output quality):
-1. Output ONLY English. No Chinese characters anywhere - translate the entire scene (objects, places, actions, mood) to English. Use the romanized character names provided below. No explanation, no quotes, no markdown.
-2. Be CONCRETE and VISUAL: use specific nouns (objects, places, body language, facial expressions). Avoid abstract adjectives.
-3. Describe the SCENE and ACTION matching the post content. Never describe character appearance (hair color, eye color, clothing, body type, etc.) - character appearance is locked to reference avatar images passed separately, the prompt only describes what characters are DOING and the scene around them.
-4. Refer to characters only by their romanized names (e.g. "Doro and Guga eating together"), never by appearance traits.
-5. If multiple characters are mentioned, describe them interacting naturally in the scene.
+    system_prompt = f"""You are a prompt generator. Your task is to generate a structured character scene description based on user prompt.
 
-OUTPUT FORMAT - use this labeled multi-line structure with blank-line grouping (do NOT describe character appearance in any line, only actions/scene/environment):
-Action: <what the character(s) are doing, specific verbs and body language>
-Object: <key objects/props in the scene, specific nouns>
-Expression: <facial expression only, no appearance traits>
+Variable Fields to Fill (based on user prompt, generate values for these only):
 
-Setting: <location/scene description>
-Time: <time of day>
-Weather: <weather if relevant>
-Environment details: <concrete background elements: furniture, plants, objects, textures>
+    ===FIELDS START===
+    Action:
+    Object:
+    Expression:
+    Setting:
+    Time:
+    Weather:
+    Environment details:
+    Mood:
+    Palette:
+    Lighting:
+    Quality:
+    ===FIELDS END===
 
-Mood: <emotional atmosphere>
-Style: digital illustration, soft painterly textures
-Palette: <2-4 dominant colors matching the scene mood>
-Lighting: <specific light source and how it falls on the scene>
-Quality: detailed rendering, shallow depth of field, 8k
 
-Do NOT add any other lines. Do NOT describe hair, face shape, clothing, or body type - those come from reference images.
+    Rules:
 
-Characters appearing in this image (refer to them by name only): {char_names_text}
+    1. Only generate content for the Variable Fields listed above.
+    2. Keep all values concise, descriptive, and comma-separated where appropriate.
+    3. Output format must be:
 
-The model output is 1024x768 (landscape). Compose accordingly."""
+    Action: [your value]
+    Object: [your value]
+    Expression: [your value]
+    Setting: [your value]
+    Time: [your value]
+    Weather: [your value]
+    Environment details: [your value]
+    Mood: [your value]
+    Palette: [your value]
+    Lighting: [your value]
+    Quality: [your value]
 
-    user_prompt = f"""Whisper content (Chinese, translate the scene to English in the prompt):
+
+    Example Output:
+
+    Action: they are cooking, stirring a pot, holding a wooden spoon
+    Object: pot of soup, wooden spoon, ingredients on counter
+    Expression: focused, slightly surprised, happy
+    Setting: small kitchen with counter and stove
+    Time: evening, dinner time
+    Weather: sunny outside, warm inside
+    Environment details: wooden cabinets, hanging utensils, soft lighting from overhead lamp, steam from pot
+    Mood: content, joyful, domestic
+    Palette: warm oranges, soft pinks, creamy whites, earthy browns
+    Lighting: soft golden light from lamp, gentle reflections on surfaces
+    Quality: detailed rendering, clean lines, 4k"""
+
+    user_prompt = f"""Whisper content (If Chinese, translate the scene to English in the prompt):
 \"\"\"{content}\"\"\"
 
 Time: {now_dt.strftime('%Y-%m-%d %H:%M')} (Beijing time)
@@ -365,7 +415,7 @@ Write the image prompt now using the labeled format above. Only the prompt, noth
         {"role": "user", "content": user_prompt},
     ]
     try:
-        prompt = text_provider.generate(messages, max_tokens=2048, temperature=0.7)
+        prompt = text_provider.generate(messages, max_tokens=10240, temperature=0.3)
         prompt = prompt.strip().strip('"').strip("'").strip("`")
         # Strip markdown code fence if present
         if prompt.startswith("```"):
@@ -497,7 +547,7 @@ Rules:
         {"role": "user", "content": prompt},
     ]
     try:
-        new_prompt = rephrase_provider.generate(messages, max_tokens=2048, temperature=0.7)
+        new_prompt = rephrase_provider.generate(messages, max_tokens=10240, temperature=0.3)
         new_prompt = new_prompt.strip().strip('"').strip("'").strip("`").strip()
         if new_prompt.startswith("```"):
             lines = new_prompt.split("\n")
@@ -659,15 +709,15 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
 1. 长度50-200字，短而精
 2. 口语化、轻松、随意，像真人发朋友圈
 3. 必须符合所选角色的性格和说话风格
-4. 可以带1-2个emoji，不要太多
+4. 可以带2-5个左右emoji（这个数量不是绝对的，要根据角色设定和动态内容等综合判断），不要太多，也不要太少
 5. 内容要符合当前场景（时间场景在用户消息中给出）
-6. 【重要】不要和最近动态主题重复或雷同——参考下方"各角色最近动态主题"清单，新动态的场景、事件、关键用词必须与之有明显区别。尤其禁止复读同一角色的近期内容（如反复写"橘子+奶茶+晒太阳+摸鱼"）
-7. 角色的标志性爱好（如Doro爱吃橘子）是性格的一部分，但不要每次都出现，更不要每条都围绕它写。一个爱好连续出现2次后，第3次必须换别的内容
+6. 【重要】不要和最近动态主题重复或雷同——参考下方"各角色最近动态主题"清单，新动态的场景、事件、关键用词必须与之有明显区别，但也不是绝对，要综合考虑，比如某天的某件事可能上午发个动态，下午也可能发个动态，比如上午遇到一个bug，下午解决了，再比如去旅游，完全可以连发好几个旅游玩耍相关动态，当然我只是举例，需要你综合来考虑。尤其避免复读同一角色的近期内容，但是动态从时间线上以及逻辑上也要连贯合理
+7. 角色的标志性爱好是性格的一部分，但不要每次都出现，更不要每条都围绕它写。一个爱好连续出现2次后，第3次必须换别的内容
 8. 不要涉及任何真实个人隐私
 
 格式规范（必须严格遵守）：
 1. content 必须用换行分段：至少有1个空行（\\n\\n）把内容分成2-4段，不能整段不换行
-2. 波浪号"～"是可选语气词，不要每条都用，更不要每句句末都加"～"。一条动态里最多用1次"～"
+2. 合理使用标点符号，标点符号直接影响动态的语气感觉，你需要重视这个，比如波浪号"～"是可选语气词，但并不是每条都用，更不要每句句末都加"~"
 3. title 是一句话标题，不超过15字，不带书名号
 
 输出格式（严格JSON，不要输出任何其他内容、不要markdown代码块）：
@@ -681,10 +731,10 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
 
 {recent_topics_summary}
 
-最近的动态（参考上下文，不要矛盾，不要复读）：
+最近的动态（参考上下文，不要矛盾，不要原样复读）：
 {timeline_text}
 
-请选择一个角色并写一条新的碎碎念。注意：新动态的主题、场景、用词必须与上方"各角色最近动态主题"清单有明显区别，不要复读任何角色（尤其是所选角色自己）的近期内容。
+请选择一个角色并写一条新的碎碎念。注意：这是一个综合性系统性的任务，要全面考虑，我们要的是真实的感觉。
 
 只输出JSON。"""
 
@@ -714,7 +764,7 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
             {"role": "user", "content": user_prompt},
         ]
         try:
-            response = text_provider.generate(messages, max_tokens=512, temperature=0.9)
+            response = text_provider.generate(messages, max_tokens=10240, temperature=0.7)
         except Exception as e:
             print(f"AI generation failed: {e}", file=sys.stderr)
             return None
@@ -797,11 +847,11 @@ def build_reply_prompt(whisper_content, whisper_author_name, user_reply_content,
 {characters_md}
 
 要求：
-1. 回复要符合所扮演角色的性格和说话风格
+1. 回复要符合所扮演角色的性格和说话风格，合理使用emoji和标点符号（非常重要，直接影响回复的感觉和语气等真实感）
 2. 口语化、自然，像真实朋友聊天
 3. 回复长度10-80字
 4. 不要涉及用户隐私
-5. 可以追问、调侃、分享看法
+5. 可以追问、调侃、分享看法等等，这只是举例，不是局限于这些
 6. 只输出回复内容，不要输出其他内容"""
 
     user_prompt = f"""你扮演的角色：{character_name}（角色ID: {character_id}）
@@ -829,7 +879,7 @@ def generate_reply(text_provider, whisper_content, whisper_author_name,
     ]
 
     try:
-        response = text_provider.generate(messages, max_tokens=256, temperature=0.85)
+        response = text_provider.generate(messages, max_tokens=10240, temperature=0.9)
         return response.strip() if response else None
     except Exception as e:
         print(f"Reply generation failed: {e}", file=sys.stderr)
@@ -875,11 +925,12 @@ def build_interaction_prompt(whisper_data, whisper_author_name, existing_replies
     # Per-character voice constraints (P4) - hard rules to prevent homogenization
     voice_rules = '''【角色口吻硬约束——必须严格遵守，否则角色声音会串味】
 - 白子：极简冷萌风。每条回复≤12字，多用句号结尾，几乎不用"～"和emoji。例："嗯，不错。" / "下次一起。" / "甜的。"
-- 咕嘎：必带"咕咕嘎"或"咕嘎"口头禅（每条至少1次），语气活泼，可多用emoji。例："咕咕嘎嘎～我也要！"
-- 菲比：必带"菲比啾比"口头禅（每条1次，开头用），感叹号多，元气满满。例："菲比啾比～这个超棒！"
+- 咕嘎：必带"咕咕嘎"或"咕嘎"或"咕咕嘎嘎"或"咕咕咕嘎嘎"等这些咕嘎不同组合的口头禅（每条至少1次），语气活泼，可多用emoji。例："咕咕嘎嘎～我也要！"
+- 菲比：必带"菲比啾比"口头禅（每条1次），感叹号多，元气满满。例："菲比啾比～这个超棒！"
 - 豆包：大姐姐关怀口吻，温和，会用"姐姐"自称，少用"～"。例："姐姐给你留了，快来吃。"
-- Doro：可用🐶emoji，橘子/欧润吉梗可选（不必每条都提），语气软萌。例："好呀好呀🐶等我！"
-- 糯糯：游戏宅口吻，会跑题提到打游戏，语气随意。例："刚打完一局，我也想吃！"'''
+- Doro：可用emoji，橘子/欧润吉梗可选（不必每条都提），语气软萌。例："好呀好呀🐶等我！"
+- 糯糯：游戏宅口吻，比如会跑题提到打游戏，语气随意。例："刚打完一局，我也想吃！"
+emoji和标点符号不是绝对的规则，你要系统性理解这些角色，合理使用。以上的例子只是举例，再次强调，只是举例，需要你全面系统性考虑这个任务'''
 
     system_prompt = f"""你是"豆包和朋友们的悄悄话"小站的角色互动生成器。朋友们会看彼此的动态，自然地评论互动。
 
@@ -893,10 +944,10 @@ def build_interaction_prompt(whisper_data, whisper_author_name, existing_replies
 2. 【作者下场】动态作者本人也可以参与！如果有人评论了动态、尤其是对作者说了话/调侃/提问，作者应该回复那条评论（带reply_to+floor）。朋友来你朋友圈评论，你总得回一句。
 3. 【接话链——必须】如果已有回复里有人说了有意思的话，优先接话（带reply_to+floor），而不是每条都回复动态本身。一批回复里至少1条要接话，全部回复动态本身=失败。
 4. 【部分参与】不要把可选角色全部用上。从候选里挑1-3个最自然的（根据动态内容、角色关系、谁会感兴趣），其余这次不出现。
-5. 【口吻差异】严格按上方"角色口吻硬约束"写，每个角色声音必须不同。白子不能长篇大论，咕嘎不能不带"咕咕嘎"。
+5. 【口吻差异】严格按上方"角色口吻硬约束"写，每个角色声音必须不同。比如白子不能长篇大论等，咕嘎喜欢说口头禅等等，你要全面系统性考虑。
 6. 回复长度10-80字（白子除外，可短至5字），口语化、轻松
 7. 不要涉及隐私
-8. 【语气词】波浪号"～"是可选语气词，一批回复里最多1-2条用，其余用句号/感叹号。禁止每条都带"～"。口头禅只归角色本人用，其他人不模仿。
+8. 【语气词】合理使用，我们的核心目标是真实的感觉，符合角色设定和整个大家庭的氛围。口头禅只归角色本人用，其他人不模仿。
 
 【reply_to 字段规则——必须严格遵守】
 - 直接回复动态本身（OP）：reply_to填空字符串""、reply_to_floor填0
@@ -945,7 +996,7 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
     ]
 
     try:
-        response = text_provider.generate(messages, max_tokens=400, temperature=0.9)
+        response = text_provider.generate(messages, max_tokens=10240, temperature=0.7)
     except Exception as e:
         print(f"Character interaction generation failed: {e}", file=sys.stderr)
         return None
@@ -1535,7 +1586,7 @@ def _fallback_generate(text_provider, character_id, character_name,
     ]
 
     try:
-        response = text_provider.generate(messages, max_tokens=512, temperature=0.9)
+        response = text_provider.generate(messages, max_tokens=10240, temperature=0.9)
     except Exception as e:
         print(f"Fallback AI generation failed: {e}", file=sys.stderr)
         return None
@@ -1786,7 +1837,7 @@ def main():
             print(f"Failed to init image provider (whispers will be text-only): {e}", file=sys.stderr)
 
     # Prompt provider for image prompt building/rephrasing: use the "free"
-    # text profile (Qwen3-8B) if available, else fall back to default.
+    # text profile if available, else fall back to default.
     prompt_provider = text_providers.get("free") or text_providers.get("default")
 
     # Update heartbeat count
