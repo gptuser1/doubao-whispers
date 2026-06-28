@@ -857,6 +857,7 @@ def build_reply_prompt(whisper_content, whisper_author_name, user_reply_content,
     user_prompt = f"""你扮演的角色：{character_name}（角色ID: {character_id}）
 动态作者：{whisper_author_name}
 动态内容：{whisper_content}
+动态时间线：{timeline_text}
 
 用户评论：{user_reply_content}
 
@@ -870,7 +871,7 @@ def generate_reply(text_provider, whisper_content, whisper_author_name,
     """Generate a reply to a user comment."""
     system_prompt, user_prompt = build_reply_prompt(
         whisper_content, whisper_author_name, user_reply_content,
-        characters_md, character_id, character_name
+        characters_md, character_id, character_name, get_timeline_text(15)
     )
 
     messages = [
