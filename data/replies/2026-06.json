@@ -1851,6 +1851,15 @@
       "reply_to_floor": 0,
       "timestamp": "2026-06-28T16:28:54+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎～蓝花楹好美！菲比啾比～",
+      "author": "guga",
+      "reply_to": "菲比",
+      "reply_to_floor": 3,
+      "timestamp": "2026-06-28T19:15:18+08:00",
+      "floor": 7
     }
   ]
 }
