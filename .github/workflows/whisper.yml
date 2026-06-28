@@ -37,6 +37,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_ZAI_API_KEY: ${{ secrets.OPENAI_ZAI_API_KEY }}
+          CF_DEFAULT_ACCOUNT_ID: ${{ secrets.CF_DEFAULT_ACCOUNT_ID }}
+          CF_DEFAULT_API_TOKEN: ${{ secrets.CF_DEFAULT_API_TOKEN }}
           CF_IMAGE_ACCOUNT_ID: ${{ secrets.CF_IMAGE_ACCOUNT_ID }}
           CF_IMAGE_API_TOKEN: ${{ secrets.CF_IMAGE_API_TOKEN }}
           D1_API_URL: ${{ secrets.D1_API_URL }}
