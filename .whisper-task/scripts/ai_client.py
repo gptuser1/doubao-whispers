@@ -74,7 +74,7 @@ class WorkersAIText(TextProvider):
         req.add_header("Content-Type", "application/json")
 
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with urllib.request.urlopen(req, timeout=600) as resp:
                 result = json.loads(resp.read().decode("utf-8"))
 
             if result.get("success"):
@@ -122,7 +122,7 @@ class OpenAIText(TextProvider):
         req.add_header("Content-Type", "application/json")
 
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with urllib.request.urlopen(req, timeout=600) as resp:
                 result = json.loads(resp.read().decode("utf-8"))
 
             # Log token usage from API response (DeepSeek/SiliconFlow return cache stats too)
@@ -253,7 +253,7 @@ class WorkersAIImage(ImageProvider):
         req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
 
         try:
-            with urllib.request.urlopen(req, timeout=180) as resp:
+            with urllib.request.urlopen(req, timeout=600) as resp:
                 result = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             # CF returns 400 with JSON body when output is flagged (code 3030).

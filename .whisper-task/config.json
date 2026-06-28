@@ -33,7 +33,7 @@
       "enabled": true,
       "name": "发布碎碎念",
       "priority": 1,
-      "text_profile": "cf",
+      "text_profile": "free",
       "schedule": {
         "type": "probabilistic",
         "min_interval_hours": 1.5,
@@ -62,7 +62,7 @@
       "enabled": true,
       "name": "检查并回复评论",
       "priority": 2,
-      "text_profile": "cf",
+      "text_profile": "free",
       "schedule": {
         "type": "interval",
         "min_interval_hours": 1,
@@ -78,7 +78,7 @@
       "enabled": true,
       "name": "角色间互动",
       "priority": 3,
-      "text_profile": "cf",
+      "text_profile": "free",
       "schedule": {
         "type": "interval",
         "min_interval_hours": 2,
