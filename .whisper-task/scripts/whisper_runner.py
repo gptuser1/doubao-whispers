@@ -2537,7 +2537,7 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
 
     # Group replies by whisper_id
     replies_by_whisper = {}
-    reply_ids_to_mark = []
+    reply_ids_to_delete = []
 
     for reply in replies:
         whisper_id = reply.get("whisper_id", "")
@@ -2546,7 +2546,7 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
                 replies_by_whisper[whisper_id] = []
             replies_by_whisper[whisper_id].append(reply)
             if "id" in reply:
-                reply_ids_to_mark.append(reply["id"])
+                reply_ids_to_delete.append(reply["id"])
 
     if dry_run:
         print(f"[DRY RUN] Would process {len(replies)} replies across {len(replies_by_whisper)} whispers")
@@ -2664,10 +2664,11 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
             if month_str in existing_replies_cache:
                 existing_replies_cache[month_str] = load_month_file(reply_file)
 
-    # Mark user replies as processed (is_doubao = 2)
-    if reply_ids_to_mark:
-        print(f"Marking {len(reply_ids_to_mark)} user replies as processed")
-        d1_client.mark_replies_processed(reply_ids_to_mark)
+    # Delete user replies from D1 — they've been synced to repo json, so the
+    # D1 cache rows are no longer needed. Keeps D1 from growing unbounded.
+    if reply_ids_to_delete:
+        print(f"Deleting {len(reply_ids_to_delete)} synced user replies from D1")
+        d1_client.delete_replies(reply_ids_to_delete)
 
     # Update state
     state["last_run"]["whispers_check_replies"] = now_str

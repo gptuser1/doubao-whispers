@@ -117,11 +117,14 @@ class D1Client:
             print(f"Warning: failed to query replies: {e}", file=sys.stderr)
             return []
 
-    def mark_replies_processed(self, reply_ids):
+    def delete_replies(self, reply_ids):
         """
-        Mark user replies as processed by setting is_doubao = 2.
-        We don't delete them — they're still user replies visible on the site,
-        just marked so the runner won't pick them up again.
+        Delete user replies from D1 after they've been synced to the repo json.
+
+        D1 is only a transient cache for pending user replies — the canonical
+        store is data/replies/*.json in the repo. Once the runner has written
+        them to the repo, the D1 rows are dead data and should be removed so
+        the cache doesn't grow unbounded.
         """
         if not reply_ids:
             return
@@ -129,11 +132,11 @@ class D1Client:
         for reply_id in reply_ids:
             try:
                 self._query(
-                    "UPDATE replies SET is_doubao = 2 WHERE id = ?;",
+                    "DELETE FROM replies WHERE id = ?;",
                     [reply_id]
                 )
             except RuntimeError as e:
-                print(f"Warning: failed to mark reply {reply_id}: {e}", file=sys.stderr)
+                print(f"Warning: failed to delete reply {reply_id}: {e}", file=sys.stderr)
 
     def get_max_floor(self, whisper_id):
         """Get the current max floor number for a whisper."""
