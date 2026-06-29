@@ -115,16 +115,17 @@ class D1Client:
             print(f"Warning: failed to query replies: {e}", file=sys.stderr)
             return []
 
-    def add_character_reply(self, whisper_id, nickname, content, timestamp, floor, author_id=None):
-        """
-        Insert a character (AI) reply into the replies table.
+    def add_character_reply(self, whisper_id, nickname, content, timestamp, floor,
+                            author_id=None, reply_to="", reply_to_floor=None):
+        """Insert a character (AI) reply into the replies table.
         is_doubao = 1 marks it as an AI-generated reply.
         """
         try:
             self._query(
-                "INSERT INTO replies (whisper_id, nickname, content, timestamp, floor, is_doubao, created_at) "
-                "VALUES (?, ?, ?, ?, ?, 1, ?);",
+                "INSERT INTO replies (whisper_id, nickname, content, timestamp, floor, is_doubao, reply_to, reply_to_floor, created_at) "
+                "VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?);",
                 [whisper_id, nickname, content, timestamp, floor,
+                 reply_to or None, reply_to_floor or None,
                  datetime.now(TZ_BEIJING).strftime("%Y-%m-%d %H:%M:%S")]
             )
         except RuntimeError as e:

@@ -871,22 +871,99 @@ def generate_slug(character_id, title):
     return f"{character_id}-{hash_str}"
 
 
+# ==================== Multi-character reply selection ====================
+
+BEST_FRIENDS = {
+    "guga": "doro", "doro": "guga",
+    "feibi": "nuonuo", "nuonuo": "feibi",
+}
+
+
+def _is_interesting_topic(content):
+    """Check if a user comment is interesting enough for multiple characters to reply."""
+    keywords = ["?", "？", "大家", "你们", "有没有", "好不好", "怎么样"]
+    return any(k in content for k in keywords)
+
+
+def _get_friendship_weight(aid_a, aid_b, character_states):
+    """Get how likely aid_a would interact with aid_b's content."""
+    # Best friends get highest weight
+    if BEST_FRIENDS.get(aid_a) == aid_b or BEST_FRIENDS.get(aid_b) == aid_a:
+        return 1.5
+    # Base weight
+    return 1.0
+
+
+def _pick_friend(whisper_author_id, existing_replies, authors_data, character_states):
+    """Pick a friend to reply to a user comment on the author's whisper."""
+    # Best friend 60%优先
+    best_friend_id = BEST_FRIENDS.get(whisper_author_id)
+    if best_friend_id and best_friend_id in authors_data and random.random() < 0.6:
+        reply_count = sum(1 for r in existing_replies or [] if r.get("author") == best_friend_id)
+        if reply_count < 3:
+            return best_friend_id
+
+    others = [aid for aid in authors_data if aid != whisper_author_id]
+    weights = []
+    for aid in others:
+        w = _get_friendship_weight(whisper_author_id, aid, character_states)
+        reply_count = sum(1 for r in existing_replies or [] if r.get("author") == aid)
+        w *= (0.5 ** reply_count)
+        weights.append(max(w, 0.1))
+
+    return random.choices(others, weights=weights, k=1)[0]
+
+
+def _select_reply_character(whisper_author_id, user_content, whisper_content,
+                            existing_replies, authors_data, character_states):
+    """Select which character(s) should reply to a user comment.
+    Returns list of (char_id, char_name, role_type) tuples.
+    """
+    author_name = authors_data.get(whisper_author_id, {}).get("name", whisper_author_id)
+
+    # 10%: multiple characters (author + friend) if topic is interesting
+    if random.random() < 0.1 and _is_interesting_topic(user_content):
+        friend_id = _pick_friend(whisper_author_id, existing_replies, authors_data, character_states)
+        if friend_id:
+            friend_name = authors_data.get(friend_id, {}).get("name", friend_id)
+            return [(whisper_author_id, author_name, "author"),
+                    (friend_id, friend_name, "friend")]
+
+    # 50%: a friend replies instead of the author
+    if random.random() < 0.5:
+        friend_id = _pick_friend(whisper_author_id, existing_replies, authors_data, character_states)
+        if friend_id:
+            friend_name = authors_data.get(friend_id, {}).get("name", friend_id)
+            return [(friend_id, friend_name, "friend")]
+
+    # Default: author replies
+    return [(whisper_author_id, author_name, "author")]
+
+
 # ==================== Reply Generation ====================
 
 def build_reply_prompt(whisper_content, whisper_author_name, user_reply_content,
-                       characters_md, character_id, character_name, timeline_text):
+                       characters_md, character_id, character_name, timeline_text,
+                       role_type="author", reply_to_user=""):
     """Build prompt for generating a reply to a user comment."""
-    system_prompt = f"""你是一个扮演角色的AI，在"豆包和朋友们的悄悄话"小站上回复用户的评论。
+    if role_type == "friend":
+        opening = f"你看到好朋友{whisper_author_name}的动态下有用户评论，作为{character_name}，你去帮忙回复一下。"
+    else:
+        opening = f"你在自己的动态下回复用户评论。"
+
+    system_prompt = f"""你是一个扮演角色的AI，在"豆包和朋友们的悄悄话"小站上回复评论。
 
 角色设定：
 {characters_md}
 
+情境：{opening}
+
 要求：
-1. 回复要符合所扮演角色的性格和说话风格，合理使用emoji和标点符号（非常重要，直接影响回复的感觉和语气等真实感）
+1. 回复要符合{character_name}的性格和说话风格
 2. 口语化、自然，像真实朋友聊天
-3. 回复长度10-80字
-4. 不要涉及用户隐私
-5. 可以追问、调侃、分享看法等等，这只是举例，不是局限于这些
+3. 如果是帮朋友回复，可以调侃朋友或和用户互动
+4. 回复长度10-80字
+5. 不要涉及用户隐私
 6. 只输出回复内容，不要输出其他内容"""
 
     user_prompt = f"""你扮演的角色：{character_name}（角色ID: {character_id}）
@@ -902,11 +979,13 @@ def build_reply_prompt(whisper_content, whisper_author_name, user_reply_content,
 
 
 def generate_reply(text_provider, whisper_content, whisper_author_name,
-                   user_reply_content, characters_md, character_id, character_name):
+                   user_reply_content, characters_md, character_id, character_name,
+                   role_type="author", reply_to_user=""):
     """Generate a reply to a user comment."""
     system_prompt, user_prompt = build_reply_prompt(
         whisper_content, whisper_author_name, user_reply_content,
-        characters_md, character_id, character_name, get_timeline_text(15)
+        characters_md, character_id, character_name, get_timeline_text(15),
+        role_type, reply_to_user
     )
 
     messages = [
@@ -1714,6 +1793,10 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
     # Process each whisper's replies
     new_replies_added = 0
 
+    # Load existing replies from repo files for context
+    existing_replies_cache = {}
+    character_states = state.get("character_states", {})
+
     for whisper_id, whisper_replies in replies_by_whisper.items():
         # Extract year-month from whisper_id (format: YYYY-MM-DD-slug)
         month_str = whisper_id[:7]  # YYYY-MM
@@ -1735,29 +1818,46 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
         whisper_author_name = get_author_nickname(whisper_author_id, authors_data)
         whisper_content = whisper_data.get("content", "")
 
+        # Load existing replies from repo for context (for friend selection)
+        if month_str not in existing_replies_cache:
+            reply_file_path = os.path.join(REPLIES_DIR, f"{month_str}.json")
+            existing_replies_cache[month_str] = load_month_file(reply_file_path) if os.path.exists(reply_file_path) else {}
+        existing_replies = existing_replies_cache[month_str].get(whisper_id, [])
+
         for user_reply in whisper_replies:
             user_content = user_reply.get("content", "")
             user_nickname = user_reply.get("nickname", "匿名")
 
-            # Generate a character reply (whisper author replies)
-            ai_reply = generate_reply(
-                text_provider, whisper_content, whisper_author_name,
-                user_content, characters_md, whisper_author_id, whisper_author_name
+            # Select which character(s) should reply
+            repliers = _select_reply_character(
+                whisper_author_id, user_content, whisper_content,
+                existing_replies, authors_data, character_states
             )
 
-            if ai_reply:
-                reply_time = now_dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
-                # Get next floor number
-                max_floor = d1_client.get_max_floor(whisper_id)
-                new_floor = max_floor + 1
-
-                # Insert character reply into D1
-                d1_client.add_character_reply(
-                    whisper_id, whisper_author_name, ai_reply,
-                    reply_time, new_floor
+            for char_id, char_name, role_type in repliers:
+                ai_reply = generate_reply(
+                    text_provider, whisper_content, whisper_author_name,
+                    user_content, characters_md, char_id, char_name,
+                    role_type=role_type, reply_to_user=user_nickname
                 )
-                new_replies_added += 1
-                print(f"  Generated reply for {whisper_id}: {ai_reply[:50]}...")
+
+                if ai_reply:
+                    reply_time = now_dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
+                    # Get next floor number
+                    max_floor = d1_client.get_max_floor(whisper_id)
+                    new_floor = max_floor + 1
+
+                    # Insert character reply into D1
+                    d1_client.add_character_reply(
+                        whisper_id, char_name, ai_reply,
+                        reply_time, new_floor,
+                        author_id=char_id,
+                        reply_to=user_nickname if role_type == "friend" else "",
+                        reply_to_floor=user_reply.get("floor") if role_type == "friend" else None
+                    )
+                    new_replies_added += 1
+                    role_tag = f"[{role_type}]"
+                    print(f"  {role_tag} {char_name} replied to {whisper_id}: {ai_reply[:50]}...")
 
     # Mark user replies as processed (is_doubao = 2)
     if reply_ids_to_mark:
