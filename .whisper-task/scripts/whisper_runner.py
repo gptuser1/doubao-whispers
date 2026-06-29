@@ -1848,10 +1848,23 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
     id_to_nick = {aid: info.get("name", aid) for aid, info in authors_data.items()}
     # Map existing floors to their authors, to validate reply_to references
     floor_author_map = {}
+    # Map nickname/id -> latest floor, for inferring reply_to when the AI
+    # leaves it blank but the content clearly addresses an existing replier
+    # by name. The AI is unreliable at filling reply_to, so we backfill it
+    # deterministically: if a reply's content mentions a prior replier's
+    # nickname (and that replier isn't the author themselves), treat it as a
+    # reply to that person's most recent floor.
+    nick_to_floor = {}
     for r in existing_replies or []:
         f = r.get("floor")
         if f is not None:
             floor_author_map[f] = r.get("author", "") or r.get("nickname", "")
+            nick = r.get("nickname", "")
+            if nick:
+                nick_to_floor[nick] = f
+            aid = r.get("author", "")
+            if aid:
+                nick_to_floor[aid] = f
     # Existing reply contents (normalized) for dedup
     existing_contents = set()
     for r in existing_replies or []:
@@ -1921,6 +1934,21 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
                 # AI meant to reply to the whisper itself, not an OP reply.
                 reply_to = ""
                 reply_to_floor = 0
+        # Deterministic backfill: if the AI left reply_to blank (or it was
+        # cleared above as an OP-reply), scan the content for mentions of a
+        # prior replier's nickname. If exactly one prior replier is mentioned
+        # and it isn't the author themselves, treat this as a reply to that
+        # person's latest floor. This catches the common failure mode where
+        # the model writes "糯糯，..." but forgets to fill reply_to.
+        if not reply_to:
+            mentioned = []
+            for nick, floor in nick_to_floor.items():
+                if nick == nickname:
+                    continue  # don't reply to self
+                if nick and nick in content:
+                    mentioned.append((nick, floor))
+            if len(mentioned) == 1:
+                reply_to, reply_to_floor = mentioned[0]
         valid_replies.append({
             "nickname": nickname,
             "content": content,
@@ -2651,8 +2679,14 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
                         "content": ai_reply,
                         "timestamp": reply_time,
                         "author": char_id,
-                        "reply_to": user_nickname if role_type == "friend" else "",
-                        "reply_to_floor": user_reply.get("floor") if role_type == "friend" else 0,
+                        # Both author and friend are replying to the user's
+                        # comment, so both must carry reply_to pointing at it.
+                        # The old code cleared reply_to for role_type=="author",
+                        # which dropped the @ on the author's own replies — a
+                        # basic interaction rule violation. Deterministic rule,
+                        # not AI-dependent.
+                        "reply_to": user_nickname,
+                        "reply_to_floor": user_reply.get("floor") or 0,
                     })
                     new_replies_added += 1
                     role_tag = f"[{role_type}]"
