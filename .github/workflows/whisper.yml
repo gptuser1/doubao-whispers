@@ -8,6 +8,17 @@ on:
     - cron: '19 * * * *'
   workflow_dispatch: # Allow manual trigger
 
+# Serialize runs: only one runner at a time. Without this, a cron run and a
+# manual trigger (or two overlapping crons) can both checkout the same base,
+# modify the same JSON files, and then fight on push — the loser hits a
+# non-fast-forward rejection and, with JSON files, a real rebase conflict it
+# can't auto-resolve. Queuing (cancel-in-progress: false) lets the in-flight
+# run finish cleanly so the next run checks out a base that already includes
+# its changes.
+concurrency:
+  group: whisper-runner
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
