@@ -792,15 +792,95 @@ def is_too_similar(new_content, new_author, recent_whispers, threshold=0.45):
     return False, 0.0
 
 
+# ==================== Time Context ====================
+
+def _time_period(hour):
+    """Map hour to Chinese time period label."""
+    if 0 <= hour < 7:
+        return "深夜"
+    elif 7 <= hour < 9:
+        return "早上"
+    elif 9 <= hour < 12:
+        return "上午"
+    elif 12 <= hour < 14:
+        return "中午"
+    elif 14 <= hour < 18:
+        return "下午"
+    elif 18 <= hour < 20:
+        return "傍晚"
+    elif 20 <= hour < 23:
+        return "晚上"
+    else:
+        return "深夜"
+
+
+_WEEKDAY_CN = ["一", "二", "三", "四", "五", "六", "日"]
+
+
+def _build_time_context(now_dt, whisper_data=None):
+    """构建时间上下文，供所有 prompt 统一使用。
+
+    返回 (now_block, whisper_time_block)：
+      - now_block: 当前时间描述（日期+星期+时段），始终返回
+      - whisper_time_block: 动态发布时间+距今间隔+时态规则；若 whisper_data
+        为空或解析失败则返回空字符串。
+
+    这是时态一致性的核心：模型必须知道"现在是什么时间"和"动态是何时发的"，
+    否则会沿用动态内容里的时间表述（如动态说"明天周一"，几天后回复还照抄
+    "明天周一"），造成时态错乱。
+    """
+    weekday = _WEEKDAY_CN[now_dt.weekday()]
+    period = _time_period(now_dt.hour)
+    now_block = f"当前时间：{now_dt.strftime('%Y-%m-%d %H:%M')} 周{weekday}，{period}"
+
+    if not whisper_data:
+        return now_block, ""
+
+    whisper_date_str = whisper_data.get("date", "")
+    if not whisper_date_str:
+        return now_block, ""
+
+    try:
+        whisper_dt = datetime.fromisoformat(whisper_date_str)
+        if whisper_dt.tzinfo is None:
+            whisper_dt = whisper_dt.replace(tzinfo=TZ_BEIJING)
+    except Exception:
+        return now_block, ""
+
+    delta = now_dt - whisper_dt
+    total_seconds = delta.total_seconds()
+    if total_seconds < 0:
+        return now_block, ""
+
+    if total_seconds < 3600:
+        elapsed = f"{max(1, int(total_seconds / 60))}分钟前"
+    elif total_seconds < 86400:
+        elapsed = f"{int(total_seconds / 3600)}小时前"
+    else:
+        days = int(total_seconds / 86400)
+        elapsed = f"{days}天前"
+
+    w_weekday = _WEEKDAY_CN[whisper_dt.weekday()]
+    w_period = _time_period(whisper_dt.hour)
+
+    whisper_time_block = (
+        f"动态发布时间：{whisper_dt.strftime('%Y-%m-%d %H:%M')} 周{w_weekday}，{w_period}\n"
+        f"距今：{elapsed}\n"
+        "【时态规则——必须严格遵守】回复内容必须基于【当前时间】的时态，"
+        "不要照搬动态内容里的时间表述。例如：动态写'明天周一'但当前已是周一，"
+        "回复不能再说'明天周一'（应说'今天周一'或'昨晚'等）；动态写'今晚'但"
+        "当前已是第二天，回复要根据当前时间调整为'昨晚'/'今早'等。动态里提到"
+        "的时间只反映作者发动态那一刻的心境，回复者站在【当前时间】看这条动态。"
+    )
+    return now_block, whisper_time_block
+
+
 def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
                          authors_data, recent_topics_summary):
     """
     Build system and user prompts for whisper generation.
     AI selects the character AND generates content in one call.
     """
-    now_str = now_dt.strftime("%Y-%m-%d %H:%M")
-    weekday_cn = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"][now_dt.weekday()]
-
     # Day type
     if day_info["type"] == "holiday":
         day_desc = f"法定节假日（{day_info.get('holiday_name', '节日')}）"
@@ -809,20 +889,10 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
     else:
         day_desc = "工作日"
 
-    # Time period
-    hour = now_dt.hour
-    if 7 <= hour < 9:
-        period = "早上"
-    elif 9 <= hour < 12:
-        period = "上午"
-    elif 12 <= hour < 14:
-        period = "中午"
-    elif 14 <= hour < 18:
-        period = "下午"
-    elif 18 <= hour < 20:
-        period = "傍晚"
-    else:
-        period = "晚上"
+    # Unified time context (no whisper_data for new posts)
+    now_block, _ = _build_time_context(now_dt)
+    # Append day type (workday/weekend/holiday) which _build_time_context doesn't cover
+    now_block_with_day = f"{now_block}，{day_desc}"
 
     # Build character list for AI to choose from
     char_list = []
@@ -884,7 +954,7 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
   "storyline_trigger": null
 }}"""
 
-    user_prompt = f"""当前时间：{now_str} {weekday_cn}，{day_desc}，{period}
+    user_prompt = f"""{now_block_with_day}
 
 {recent_topics_summary}
 
@@ -1067,7 +1137,7 @@ def _pick_friend(whisper_author_id, existing_replies, authors_data, character_st
 def generate_smart_reply(text_provider, whisper_content, whisper_author_id,
                          whisper_author_name, user_reply_content, user_nickname,
                          characters_md, authors_data, character_states,
-                         existing_replies, timeline_text):
+                         existing_replies, timeline_text, now_dt, whisper_data=None):
     """Consolidated reply generation: one model call decides who replies + generates content.
 
     Replaces _select_reply_character (keyword-based) + generate_reply (per-character calls).
@@ -1081,6 +1151,8 @@ def generate_smart_reply(text_provider, whisper_content, whisper_author_id,
     friend_hint = ""
     if friend_id:
         friend_hint = _get_character_state_hint(friend_id, friend_name, character_states)
+
+    now_block, whisper_time_block = _build_time_context(now_dt, whisper_data)
 
     system_prompt = f"""你是一个扮演角色的AI，在"豆包和朋友们的悄悄话"小站上回复评论。
 
@@ -1105,11 +1177,15 @@ def generate_smart_reply(text_provider, whisper_content, whisper_author_id,
 3. 如果是朋友回复，可以调侃作者或和用户互动
 4. 回复长度10-80字
 5. 不要涉及用户隐私
+6. 【时态】回复站在【当前时间】的视角，不要照搬动态内容里的时间词。
 
 输出格式（严格JSON，不要markdown代码块）：
 {{"replies": [{{"character": "角色ID", "role": "author或friend", "content": "回复内容"}}]}}"""
 
-    user_prompt = f"""动态作者：{whisper_author_name}（ID: {whisper_author_id}）
+    user_prompt = f"""{now_block}
+{whisper_time_block}
+
+动态作者：{whisper_author_name}（ID: {whisper_author_id}）
 动态内容：{whisper_content}
 动态时间线：{timeline_text}
 
@@ -1446,7 +1522,12 @@ emoji和标点符号不是绝对的规则，你要系统性理解这些角色，
 输出格式（严格JSON数组，只输出JSON）：
 [{{"author": "角色ID", "nickname": "角色名", "content": "回复内容", "reply_to": "回复对象昵称或空字符串", "reply_to_floor": 楼层号或0}}]"""
 
-    user_prompt = f"""动态作者：{whisper_author_name}
+    now_block, whisper_time_block = _build_time_context(now_dt, whisper_data)
+
+    user_prompt = f"""{now_block}
+{whisper_time_block}
+
+动态作者：{whisper_author_name}
 动态内容：{whisper_data.get('content', '')}
 
 已有回复：
@@ -1456,9 +1537,7 @@ emoji和标点符号不是绝对的规则，你要系统性理解这些角色，
 本次可选角色（只从中挑1-3个，不要全用；作者可下场回复评论者）：
 {char_list_text}
 
-当前时间：{now_dt.strftime('%Y-%m-%d %H:%M')}
-
-请生成1-3条角色互动回复。记住：至少1条接话（带reply_to），作者可参与，口吻差异要明显。只输出JSON数组。"""
+请生成1-3条角色互动回复。记住：至少1条接话（带reply_to），作者可参与，口吻差异要明显，时态基于【当前时间】。只输出JSON数组。"""
 
     return system_prompt, user_prompt
 
@@ -1612,18 +1691,41 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
             "reply_to_floor": reply_to_floor if reply_to_floor else 0,
         })
 
-    # P1: timestamps use ACTUAL run time (now_dt), with small backdated jitter
-    # so replies don't all share the exact same minute. This produces real
-    # cross-hour/cross-day distribution across multiple cron runs, instead of
-    # the old "all挤在3-12分钟窗口" fake-spread.
+    # P1: timestamps use ACTUAL run time (now_dt). Each new reply must be:
+    #   - later than the latest existing reply (preserves chronological order)
+    #   - no later than now (no future timestamps)
+    #   - naturally staggered (not all the same minute)
+    # Older backdating logic (now - 1..3 min, then - 2..8 min per reply) could
+    # push a new reply earlier than an existing reply it responds to, breaking
+    # the floor/timestamp ordering. Forward-staggering from the last existing
+    # reply avoids that.
     if valid_replies:
-        # Assign each reply a timestamp = now - (1..10 min per reply, staggered)
-        # so the most recent reply is ~1-3 min ago, earlier ones further back
-        # but all within the last ~30 min (this round's natural window).
-        current_dt = now_dt - timedelta(minutes=random.randint(1, 3))
-        for reply in reversed(valid_replies):
-            reply["timestamp"] = current_dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
-            current_dt = current_dt - timedelta(minutes=random.randint(2, 8))
+        # Base = latest existing reply timestamp (or whisper publish time if none)
+        latest_existing_ts = whisper_data.get("date", "")
+        for r in existing_replies or []:
+            ts = r.get("timestamp", "")
+            if ts and ts > latest_existing_ts:
+                latest_existing_ts = ts
+        try:
+            base_dt = datetime.fromisoformat(latest_existing_ts)
+            if base_dt.tzinfo is None:
+                base_dt = base_dt.replace(tzinfo=TZ_BEIJING)
+        except Exception:
+            base_dt = now_dt
+
+        # Start each new reply 20-90s after the previous one, clamped to now.
+        # If there's no room before now (all would be future), fall back to now
+        # with small backward jitter so timestamps stay valid.
+        current_dt = base_dt + timedelta(seconds=random.randint(20, 60))
+        if current_dt > now_dt:
+            # No room to go forward from base; use now with small jitter
+            current_dt = now_dt - timedelta(seconds=random.randint(0, 30))
+        for reply in valid_replies:
+            ts = current_dt
+            if ts > now_dt:
+                ts = now_dt
+            reply["timestamp"] = ts.strftime("%Y-%m-%dT%H:%M:%S+08:00")
+            current_dt = ts + timedelta(seconds=random.randint(20, 60))
 
     return valid_replies if valid_replies else None
 
@@ -2260,7 +2362,7 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
                 text_provider, whisper_content, whisper_author_id,
                 whisper_author_name, user_content, user_nickname,
                 characters_md, authors_data, character_states,
-                existing_replies, timeline_text
+                existing_replies, timeline_text, now_dt, whisper_data
             )
 
             # Compute a safe base timestamp for character replies:
