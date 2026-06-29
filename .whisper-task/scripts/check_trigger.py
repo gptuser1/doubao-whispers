@@ -331,6 +331,10 @@ def check_interval_trigger(task_name, task_config, last_run_dt, now_dt, random_o
     """判断间隔型任务是否触发"""
     schedule = task_config.get('schedule', {})
     min_interval_hours = schedule.get('min_interval_hours', 1)
+    # Optional sub-hour precision: min_interval_minutes overrides
+    # min_interval_hours when present. Useful for tasks that need to run
+    # more often than once an hour (e.g. every 15 or 20 minutes).
+    min_interval_minutes_cfg = schedule.get('min_interval_minutes')
     
     # 时间段限制
     only_between = schedule.get('only_between_hours', [])
@@ -357,7 +361,10 @@ def check_interval_trigger(task_name, task_config, last_run_dt, now_dt, random_o
             else:
                 random_offset_minutes = 0
         
-        total_interval_minutes = min_interval_hours * 60 + random_offset_minutes
+        if min_interval_minutes_cfg is not None:
+            total_interval_minutes = min_interval_minutes_cfg + random_offset_minutes
+        else:
+            total_interval_minutes = min_interval_hours * 60 + random_offset_minutes
         
         elapsed = now_dt - last_run_dt
         elapsed_minutes = elapsed.total_seconds() / 60

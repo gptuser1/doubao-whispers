@@ -71,7 +71,7 @@
       "text_profile": "oc",
       "schedule": {
         "type": "interval",
-        "min_interval_hours": 1,
+        "min_interval_minutes": 15,
         "random_offset_min_minutes": 0,
         "random_offset_max_minutes": 5,
         "only_between_hours": [
@@ -87,24 +87,13 @@
       "text_profile": "oc",
       "schedule": {
         "type": "interval",
-        "min_interval_hours": 2,
+        "min_interval_minutes": 20,
         "random_offset_min_minutes": 0,
-        "random_offset_max_minutes": 30,
+        "random_offset_max_minutes": 10,
         "only_between_hours": [
           7,
           23
         ]
-      }
-    },
-    "sync_kv": {
-      "enabled": false,
-      "name": "同步KV到仓库",
-      "priority": 3,
-      "schedule": {
-        "type": "interval",
-        "min_interval_hours": 2,
-        "random_offset_min_minutes": 0,
-        "random_offset_max_minutes": 15
       }
     }
   }

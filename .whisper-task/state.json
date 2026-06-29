@@ -2,8 +2,7 @@
   "timezone": "Asia/Shanghai",
   "last_run": {
     "publish_whisper": "2026-06-01T00:00:00+08:00",
-    "check_replies": "2026-06-01T00:00:00+08:00",
-    "sync_kv_to_repo": "2026-06-01T00:00:00+08:00"
+    "check_replies": "2026-06-01T00:00:00+08:00"
   },
   "stats": {
     "total_whispers": 0,

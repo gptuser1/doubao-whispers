@@ -2,10 +2,11 @@ name: Whisper Runner
 
 on:
   schedule:
-    # Every hour at minute 19, UTC time. Offset :19 avoids the top-of-hour
-    # GitHub Actions load spike that was delaying runs scheduled at :00.
-    # The script itself enforces Beijing-time active hours (7:00-23:00).
-    - cron: '19 * * * *'
+    # Every 25 minutes. The script enforces Beijing-time active hours
+    # (7:00-23:00) and per-task min_interval_minutes gates, so a denser cron
+    # just lets those gates fire closer to on-time instead of being rounded
+    # up to the next hour.
+    - cron: '*/25 * * * *'
   workflow_dispatch: # Allow manual trigger
 
 # Serialize runs: only one runner at a time. Without this, a cron run and a
