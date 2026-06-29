@@ -106,6 +106,7 @@ class WorkersAIText(TextProvider):
             req = urllib.request.Request(url, data=data, method="POST")
             req.add_header("Authorization", f"Bearer {self.api_token}")
             req.add_header("Content-Type", "application/json")
+            req.add_header("User-Agent", "doubao-whispers/1.0")
 
             try:
                 with urllib.request.urlopen(req, timeout=600) as resp:
@@ -162,9 +163,10 @@ class OpenAIText(TextProvider):
             "max_tokens": max_tokens,
             "temperature": temperature,
             "stream": False,
-            # Explicitly enable thinking mode
-            "thinking": {"type": "enabled"},
-            "enable_thinking": True,
+            # Disable thinking mode (DeepSeek V4 defaults to thinking,
+            # which consumes tokens on reasoning_content instead of content)
+            "thinking": {"type": "disabled"},
+            "enable_thinking": False,
         }
 
         data = json.dumps(payload).encode("utf-8")
@@ -174,6 +176,8 @@ class OpenAIText(TextProvider):
             req = urllib.request.Request(url, data=data, method="POST")
             req.add_header("Authorization", f"Bearer {self.api_key}")
             req.add_header("Content-Type", "application/json")
+            # Custom User-Agent to avoid Cloudflare bot detection (1010)
+            req.add_header("User-Agent", "doubao-whispers/1.0")
 
             try:
                 with urllib.request.urlopen(req, timeout=600) as resp:
