@@ -11,5 +11,5 @@ database_id = "1def5ff8-4c2e-4c21-9d99-40ca845c693a"
 # replacement requests here; the cron runner reads & deletes them.
 # Fill in the real namespace id after `wrangler kv namespace create`.
 [[kv_namespaces]]
-binding = "IMAGE_REPLACE_KV"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+binding = "DIAG_KV"
+id = "2b5fc928dc844a1a84ab32c5dd2f5988"
