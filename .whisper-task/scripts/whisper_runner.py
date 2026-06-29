@@ -1109,6 +1109,38 @@ def generate_reply(text_provider, whisper_content, whisper_author_name,
 
 # ==================== Character Interactions ====================
 
+def _get_cross_reference_context(whisper_data, whisper_author_id, authors_data,
+                                 now_dt, existing_replies):
+    """Build cross-reference context showing author's recent posts and reply activity.
+    Returns a string to inject into prompts, or empty string if nothing relevant.
+    """
+    author_nick = authors_data.get(whisper_author_id, {}).get("name", whisper_author_id)
+
+    # Collect author's recent whispers (before this one)
+    author_posts = []
+    whisper_date = whisper_data.get("date", "")
+    for mf in sorted(os.listdir(WHISPERS_DIR), reverse=True):
+        if not mf.endswith(".json"):
+            continue
+        with open(os.path.join(WHISPERS_DIR, mf), "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for slug, w in data.items():
+            if w.get("author") == whisper_author_id and w.get("date", "") < whisper_date:
+                author_posts.append((slug, w, mf.replace(".json", "")))
+    author_posts = author_posts[:3]
+
+    if not author_posts:
+        return ""
+
+    lines = [f"{author_nick}的其他动态（可自然提及）："]
+    for slug, w, ym in author_posts:
+        wid = f"{w['date'][:10]}-{slug}"
+        snippet = w.get("content", "").replace("\n", " ")[:25]
+        lines.append(f"- 《{w.get('title', '')}》{snippet}...")
+    lines.append("（如果自然，可以在回复中提及以上动态，但不强制）\n")
+    return "\n".join(lines)
+
+
 def build_interaction_prompt(whisper_data, whisper_author_name, existing_replies,
                              characters_md, authors_data, now_dt, candidate_chars,
                              character_states=None):
@@ -1161,6 +1193,11 @@ def build_interaction_prompt(whisper_data, whisper_author_name, existing_replies
 - 糯糯：游戏宅口吻，比如会跑题提到打游戏，语气随意。例："刚打完一局，我也想吃！"
 emoji和标点符号不是绝对的规则，你要系统性理解这些角色，合理使用。以上的例子只是举例，再次强调，只是举例，需要你全面系统性考虑这个任务'''
 
+    # Cross-reference context: author's recent posts with reply counts
+    cross_ref_lines = _get_cross_reference_context(
+        whisper_data, whisper_author_id, authors_data, now_dt, existing_replies
+    )
+
     state_hints_block = ""
     if state_hints_lines:
         state_hints_block = "各角色当前状态：\n" + "\n".join(state_hints_lines) + "\n\n"
@@ -1197,6 +1234,7 @@ emoji和标点符号不是绝对的规则，你要系统性理解这些角色，
 已有回复：
 {replies_text}
 
+{cross_ref_lines}
 本次可选角色（只从中挑1-3个，不要全用；作者可下场回复评论者）：
 {char_list_text}
 
