@@ -21,6 +21,7 @@ import subprocess
 import sys
 import random
 import re
+import time
 from datetime import datetime, timezone, timedelta
 
 # Add scripts directory to path
@@ -63,7 +64,7 @@ MAX_REFERENCE_IMAGES = 4
 # without improving fidelity. Code-fixed (not AI-generated) so the AI cannot
 # drift into describing appearance.
 IMAGE_APPEARANCE_HARD_CONSTRAINT = (
-    "Reference image(s) show the character(s).\nFor single reference image: apply all fixed attributes to the sole character.\nFor multiple reference images (input_image_0, input_image_1, ...): each image represents a distinct character. All characters must appear together in the rendered scene. Apply fixed attributes to their respective referenced character.\nKeep the reference image's clothing style. No exposed skin.\nStyle anchor: kawaii chibi anime illustration, thick clean black outlines, soft cel shading, pastel warm colors, rounded cute proportions, big glossy eyes, gentle warm ambient lighting, cozy daily scene, soft blush, clean flat coloring.\nFixed attributes: face shape, hairstyle, skin tone, eye color, body build, clothing style, hand details."
+    "Reference image(s) show the character(s).\nFor single reference image: apply all fixed attributes to the sole character.\nFor multiple reference images (reference image 1, reference image 2, ...): each image represents a distinct character. All characters must appear together in the rendered scene. Apply fixed attributes to their respective referenced character.\nKeep the reference image's clothing style. No exposed skin.\nStyle anchor: kawaii chibi anime illustration, thick clean black outlines, soft cel shading, pastel warm colors, rounded cute proportions, big glossy eyes, gentle warm ambient lighting, cozy daily scene, soft blush, clean flat coloring.\nFixed attributes: face shape, hairstyle, skin tone, eye color, body build, clothing style, hand details."
 )
 
 # Beijing timezone
@@ -211,6 +212,34 @@ def get_avatar_path(author_id):
     return path if os.path.exists(path) else None
 
 
+# Cache for pre-processed avatar PNG bytes, keyed by character id.
+# Populated once at startup by preload_avatars() so image generation can
+# reuse the cached bytes without re-reading and re-processing files.
+_AVATAR_CACHE = {}
+
+
+def preload_avatars():
+    """Load and pre-process all character avatars into _AVATAR_CACHE.
+
+    Converts each avatar to <=512x512 PNG bytes (the format CF flux-2 expects),
+    so image generation can pass cached bytes directly instead of re-reading
+    files on every call.
+    """
+    from ai_client import _prepare_reference_image
+    for aid in AVATAR_FILES:
+        path = get_avatar_path(aid)
+        if path:
+            png_bytes = _prepare_reference_image(path)
+            if png_bytes:
+                _AVATAR_CACHE[aid] = png_bytes
+                print(f"[avatar] Cached {aid}: {len(png_bytes)} bytes",
+                      file=sys.stderr)
+            else:
+                print(f"[avatar] Failed to cache {aid}", file=sys.stderr)
+        else:
+            print(f"[avatar] No avatar file for {aid}", file=sys.stderr)
+
+
 def extract_mentioned_characters(content, authors_data):
     """Find which characters are mentioned in the whisper content.
 
@@ -312,15 +341,21 @@ def build_image_prompt(text_provider, content, character_id, mentioned_chars,
 
     Returns a string prompt, or None on failure.
     """
-    # Build character NAME list only (no appearance description).
-    # Use romanized names so the whole prompt stays English (flux is
-    # English-trained; Chinese in the prompt degrades image quality).
+    # Build character-reference mapping. Reference images are sent in the
+    # same order as this list, so the AI can refer to characters by their
+    # reference image number instead of by name (the image model doesn't
+    # know character names — only the reference image positions matter).
     def _roman(aid):
         return NAME_ROMANIZATION.get(aid, get_author_nickname(aid, authors_data))
     char_names = [_roman(character_id)] + [_roman(a) for a in mentioned_chars]
-    char_names_text = ", ".join(char_names)
+    ref_mapping = ", ".join(
+        f"reference image {i+1} = {name}" for i, name in enumerate(char_names)
+    )
 
     system_prompt = f"""You are a prompt generator. Your task is to generate a structured character scene description based on user prompt.
+
+Characters correspond to reference images in order: {ref_mapping}
+Refer to characters as "the character in reference image 1", "the character in reference image 2", etc. Do NOT use character names in the output — the image model only knows characters by their reference image position.
 
 Variable Fields to Fill (based on user prompt, generate values for these only):
 
@@ -343,7 +378,8 @@ Variable Fields to Fill (based on user prompt, generate values for these only):
 
     1. Only generate content for the Variable Fields listed above.
     2. Keep all values concise, descriptive, and comma-separated where appropriate.
-    3. Output format must be:
+    3. Refer to characters by reference image number, never by name.
+    4. Output format must be:
 
     Action: [your value]
     Object: [your value]
@@ -360,7 +396,7 @@ Variable Fields to Fill (based on user prompt, generate values for these only):
 
     Example Output:
 
-    Action: they are cooking, stirring a pot, holding a wooden spoon
+    Action: the character in reference image 1 is cooking, stirring a pot, holding a wooden spoon
     Object: pot of soup, wooden spoon, ingredients on counter
     Expression: focused, slightly surprised, happy
     Setting: small kitchen with counter and stove
@@ -425,19 +461,25 @@ def generate_whisper_image(image_provider, rephrase_provider, content, character
     print(f"[image] Prompt: {prompt[:120]}...")
 
     # Collect reference images: author avatar + mentioned chars' avatars (max 4)
+    # Use pre-cached PNG bytes if available, fall back to file paths.
     ref_chars = [character_id] + mentioned_chars
-    ref_paths = []
+    ref_data = []
     for aid in ref_chars:
-        p = get_avatar_path(aid)
-        if p:
-            ref_paths.append(p)
+        cached = _AVATAR_CACHE.get(aid)
+        if cached:
+            ref_data.append((aid, cached))
         else:
-            print(f"[image] No avatar found for {aid}", file=sys.stderr)
-    ref_paths = ref_paths[:MAX_REFERENCE_IMAGES]
-    if not ref_paths:
+            p = get_avatar_path(aid)
+            if p:
+                ref_data.append(p)
+            else:
+                print(f"[image] No avatar found for {aid}", file=sys.stderr)
+    ref_data = ref_data[:MAX_REFERENCE_IMAGES]
+    if not ref_data:
         print("[image] No reference avatars available, skipping image", file=sys.stderr)
         return None, None
-    print(f"[image] Reference avatars: {[os.path.basename(p) for p in ref_paths]}")
+    ref_labels = [r[0] if isinstance(r, tuple) else os.path.basename(r) for r in ref_data]
+    print(f"[image] Reference avatars: {ref_labels}")
 
     # Output path: static/images/YYYY-MM-DD-{slug}-1.webp
     # CF returns PNG (base64); we save as .png then convert to .webp
@@ -462,7 +504,7 @@ def generate_whisper_image(image_provider, rephrase_provider, content, character
         temp_path = final_path + ".tmp.png"
         try:
             result_path = image_provider.generate(final_prompt, temp_path,
-                                                   reference_images=ref_paths)
+                                                   reference_images=ref_data)
             if result_path:
                 # Convert to webp via process_image.py (handles resize + webp + compression)
                 stdout, rc = run_script([
@@ -483,11 +525,19 @@ def generate_whisper_image(image_provider, rephrase_provider, content, character
         except RuntimeError as e:
             flagged = getattr(e, "flagged", False)
             if flagged and attempt < max_retries:
-                print(f"[image] Flagged by safety filter (attempt {attempt+1}), rephrasing...", file=sys.stderr)
-                new_prompt = _rephrase_image_prompt(rephrase_provider, current_prompt)
-                if new_prompt:
-                    current_prompt = new_prompt
-                    continue
+                wait = 5 * (attempt + 1)
+                print(f"[image] Flagged by safety filter (attempt {attempt+1}/{max_retries}), "
+                      f"rephrasing after {wait}s...", file=sys.stderr)
+                time.sleep(wait)
+                if attempt == max_retries - 1:
+                    # Last retry: use a simplified minimal prompt to minimize
+                    # the chance of triggering the safety filter again.
+                    current_prompt = _simplify_image_prompt(current_prompt)
+                else:
+                    new_prompt = _rephrase_image_prompt(rephrase_provider, current_prompt)
+                    if new_prompt:
+                        current_prompt = new_prompt
+                continue
             print(f"[image] Generation failed: {e}", file=sys.stderr)
             break
         except Exception as e:
@@ -525,6 +575,22 @@ Rules:
     except Exception as e:
         print(f"[image] Rephrase failed: {e}", file=sys.stderr)
         return None
+
+
+def _simplify_image_prompt(prompt):
+    """Strip a prompt down to minimal safe content for the final 3030 retry.
+
+    Keeps only the core scene/action lines, drops fields that are more likely
+    to trigger CF's safety filter (e.g. detailed body descriptions). If the
+    labeled-format parse fails, falls back to a generic safe scene.
+    """
+    keep_fields = ("Action:", "Object:", "Setting:", "Mood:")
+    lines = prompt.strip().split("\n")
+    kept = [l for l in lines if l.strip().startswith(keep_fields)]
+    if kept:
+        return "\n".join(kept)
+    # Fallback: ultra-minimal generic prompt
+    return "Action: characters spending time together indoors\nSetting: cozy room\nMood: calm, warm"
 
 
 def repack_month_images(month_str):
@@ -1805,6 +1871,11 @@ def main():
             print(f"AI image provider: {ai_image_config.get('model', 'unknown')}")
         except Exception as e:
             print(f"Failed to init image provider (whispers will be text-only): {e}", file=sys.stderr)
+
+    # Pre-load and cache avatar PNG bytes so image generation doesn't
+    # re-read files on every call.
+    if image_provider:
+        preload_avatars()
 
     # Prompt provider for image prompt building/rephrasing: use the "free"
     # text profile if available, else fall back to default.
