@@ -70,6 +70,110 @@ IMAGE_APPEARANCE_HARD_CONSTRAINT = (
 # Beijing timezone
 TZ_BEIJING = timezone(timedelta(hours=8))
 
+# Default character moods
+DEFAULT_MOODS = {
+    "guga": "happy", "doro": "happy", "feibi": "excited",
+    "nuonuo": "content", "doubao": "content", "baizi": "calm",
+}
+
+# Topic keywords for content extraction
+TOPIC_KEYWORDS = [
+    "端午", "粽子", "游戏", "番剧", "奶茶", "咖啡", "橘子", "蛋糕",
+    "零食", "炸鸡", "电影", "健身", "跑步", "逛街", "超市", "假期",
+    "周末", "上班", "上学", "摸鱼", "睡觉", "散步", "龙舟", "加班",
+    "下雨", "晴天", "云", "花", "猫", "狗", "茶", "书", "音乐",
+]
+
+
+def _extract_topics(content):
+    """Extract 1-2 topic keywords from content."""
+    found = []
+    for t in TOPIC_KEYWORDS:
+        if t in content:
+            found.append(t)
+    return found[:2]
+
+
+def _infer_mood(content, character_id):
+    """Infer character mood from content text."""
+    happy_words = ["开心", "好吃", "好玩", "快乐", "好棒", "开心", "幸福", "喜欢", "好看"]
+    sad_words = ["困", "累", "好烦", "不开心", "难过", "委屈", "好惨", "讨厌", "无聊"]
+    for w in happy_words:
+        if w in content:
+            return "happy"
+    for w in sad_words:
+        if w in content:
+            return "tired"
+    return DEFAULT_MOODS.get(character_id, "content")
+
+
+MOOD_CN = {
+    "happy": "开心", "sad": "低落", "tired": "有点累", "excited": "兴奋",
+    "calm": "平静", "grumpy": "烦躁", "content": "满足",
+}
+
+
+def _get_character_state_hint(character_id, character_name, character_states):
+    """Build a state hint string for prompts. Returns empty string if no state."""
+    cs = character_states.get(character_id) if character_states else None
+    if not cs:
+        return ""
+
+    mood = MOOD_CN.get(cs.get("mood", ""), "平静")
+    energy = cs.get("energy", 50)
+    energy_desc = "很充沛" if energy > 70 else "一般" if energy > 40 else "有点累"
+    topics = "、".join(cs.get("recent_topics", [])[:2])
+
+    parts = [f"【{character_name}的当前状态】心情：{mood}，精力：{energy_desc}"]
+    if topics:
+        parts.append(f"最近聊过：{topics}")
+    return "\n".join(parts) + "\n"
+
+
+def _evolve_character_states(states, now_dt):
+    """Evolve character states based on time."""
+    hour = now_dt.hour
+    changed = False
+
+    # Initialize default states for characters without one
+    all_char_ids = ["guga", "doro", "feibi", "nuonuo", "doubao", "baizi"]
+    for cid in all_char_ids:
+        if cid not in states:
+            states[cid] = {
+                "mood": DEFAULT_MOODS.get(cid, "content"),
+                "energy": 60,
+                "recent_topics": [],
+                "last_active": "",
+            }
+            changed = True
+
+    for char_id, cs in states.items():
+        old_energy = cs.get("energy", 50)
+
+        # Energy changes by time of day
+        if 6 <= hour < 9:
+            cs["energy"] = min(100, cs.get("energy", 50) + 20)
+        elif 13 <= hour < 15:
+            cs["energy"] = max(30, cs.get("energy", 50) - 10)
+        elif 22 <= hour or hour < 6:
+            cs["energy"] = max(15, cs.get("energy", 50) - 20)
+
+        # Gradual mood drift toward default (30% chance)
+        if random.random() < 0.3:
+            default = DEFAULT_MOODS.get(char_id, "content")
+            # Only drift if not already at default
+            if cs.get("mood") != default:
+                cs["mood"] = default
+                changed = True
+
+        if cs.get("energy") != old_energy:
+            changed = True
+
+    if changed:
+        pass  # caller saves state
+
+    return states, changed
+
 # Active hours (only run between these hours, Beijing time)
 ACTIVE_HOUR_START = 7
 ACTIVE_HOUR_END = 23
@@ -944,12 +1048,14 @@ def _select_reply_character(whisper_author_id, user_content, whisper_content,
 
 def build_reply_prompt(whisper_content, whisper_author_name, user_reply_content,
                        characters_md, character_id, character_name, timeline_text,
-                       role_type="author", reply_to_user=""):
+                       role_type="author", reply_to_user="", character_states=None):
     """Build prompt for generating a reply to a user comment."""
     if role_type == "friend":
         opening = f"你看到好朋友{whisper_author_name}的动态下有用户评论，作为{character_name}，你去帮忙回复一下。"
     else:
         opening = f"你在自己的动态下回复用户评论。"
+
+    state_hint = _get_character_state_hint(character_id, character_name, character_states)
 
     system_prompt = f"""你是一个扮演角色的AI，在"豆包和朋友们的悄悄话"小站上回复评论。
 
@@ -958,7 +1064,7 @@ def build_reply_prompt(whisper_content, whisper_author_name, user_reply_content,
 
 情境：{opening}
 
-要求：
+{state_hint}要求：
 1. 回复要符合{character_name}的性格和说话风格
 2. 口语化、自然，像真实朋友聊天
 3. 如果是帮朋友回复，可以调侃朋友或和用户互动
@@ -980,12 +1086,12 @@ def build_reply_prompt(whisper_content, whisper_author_name, user_reply_content,
 
 def generate_reply(text_provider, whisper_content, whisper_author_name,
                    user_reply_content, characters_md, character_id, character_name,
-                   role_type="author", reply_to_user=""):
+                   role_type="author", reply_to_user="", character_states=None):
     """Generate a reply to a user comment."""
     system_prompt, user_prompt = build_reply_prompt(
         whisper_content, whisper_author_name, user_reply_content,
         characters_md, character_id, character_name, get_timeline_text(15),
-        role_type, reply_to_user
+        role_type, reply_to_user, character_states
     )
 
     messages = [
@@ -1004,7 +1110,8 @@ def generate_reply(text_provider, whisper_content, whisper_author_name,
 # ==================== Character Interactions ====================
 
 def build_interaction_prompt(whisper_data, whisper_author_name, existing_replies,
-                             characters_md, authors_data, now_dt, candidate_chars):
+                             characters_md, authors_data, now_dt, candidate_chars,
+                             character_states=None):
     """Build prompt for generating character-to-character interactions.
 
     candidate_chars: list of (char_id, nickname) tuples that are ALLOWED to
@@ -1029,6 +1136,13 @@ def build_interaction_prompt(whisper_data, whisper_author_name, existing_replies
                 lines.append(f"#{floor} {nick}: {content}")
         replies_text = "\n".join(lines)
 
+    # Character state hints for each candidate
+    state_hints_lines = []
+    for char_id, nick in candidate_chars:
+        hint = _get_character_state_hint(char_id, nick, character_states)
+        if hint:
+            state_hints_lines.append(hint)
+
     # Build character list from the PRE-FILTERED candidates (includes author
     # if they should participate this round). This prevents "全员到齐".
     char_list = []
@@ -1047,6 +1161,10 @@ def build_interaction_prompt(whisper_data, whisper_author_name, existing_replies
 - 糯糯：游戏宅口吻，比如会跑题提到打游戏，语气随意。例："刚打完一局，我也想吃！"
 emoji和标点符号不是绝对的规则，你要系统性理解这些角色，合理使用。以上的例子只是举例，再次强调，只是举例，需要你全面系统性考虑这个任务'''
 
+    state_hints_block = ""
+    if state_hints_lines:
+        state_hints_block = "各角色当前状态：\n" + "\n".join(state_hints_lines) + "\n\n"
+
     system_prompt = f"""你是"豆包和朋友们的悄悄话"小站的角色互动生成器。朋友们会看彼此的动态，自然地评论互动。
 
 角色设定：
@@ -1054,7 +1172,7 @@ emoji和标点符号不是绝对的规则，你要系统性理解这些角色，
 
 {voice_rules}
 
-互动原则（核心——决定真实感）：
+{state_hints_block}互动原则（核心——决定真实感）：
 1. 【生成数量】本次只生成1-3条回复。不要追求全员到齐，只从下方"可选角色"里挑人。平淡动态可能只1条，有话题的最多3条。
 2. 【作者下场】动态作者本人也可以参与！如果有人评论了动态、尤其是对作者说了话/调侃/提问，作者应该回复那条评论（带reply_to+floor）。朋友来你朋友圈评论，你总得回一句。
 3. 【接话链——必须】如果已有回复里有人说了有意思的话，优先接话（带reply_to+floor），而不是每条都回复动态本身。一批回复里至少1条要接话，全部回复动态本身=失败。
@@ -1091,7 +1209,7 @@ emoji和标点符号不是绝对的规则，你要系统性理解这些角色，
 
 def generate_character_interactions(text_provider, whisper_data, whisper_author_name,
                                     existing_replies, characters_md, authors_data, now_dt,
-                                    candidate_chars):
+                                    candidate_chars, character_states=None):
     """Generate character-to-character replies via AI.
 
     candidate_chars: list of (char_id, nickname) tuples allowed this round
@@ -1102,7 +1220,8 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
     """
     system_prompt, user_prompt = build_interaction_prompt(
         whisper_data, whisper_author_name, existing_replies,
-        characters_md, authors_data, now_dt, candidate_chars
+        characters_md, authors_data, now_dt, candidate_chars,
+        character_states
     )
 
     messages = [
@@ -1353,6 +1472,7 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
             characters_md = f.read()
 
     authors_data = load_json(AUTHORS_PATH) if os.path.exists(AUTHORS_PATH) else {}
+    character_states = state.get("character_states", {})
 
     # P5: window extended to 72h (was 48h) for cross-day accumulation
     cutoff = now_dt - timedelta(hours=72)
@@ -1477,7 +1597,8 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
 
         new_replies = generate_character_interactions(
             text_provider, w_data, author_name, existing_replies,
-            characters_md, authors_data, now_dt, candidate_chars
+            characters_md, authors_data, now_dt, candidate_chars,
+            character_states
         )
 
         if not new_replies:
@@ -1511,6 +1632,8 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
     print("\n--- Publish Whisper ---")
 
     state = d1_client.get_state()
+    state.setdefault("character_states", {})
+    character_states = state["character_states"]
     last_run = state.get("last_run", {}).get("whispers_publish", "")
     random_offset = state.get("next_random_offset", {}).get("whispers_publish", 0)
 
@@ -1631,6 +1754,16 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
     # Save
     save_json(month_json_path, month_data)
     print(f"Saved whisper to {month_json_path}")
+
+    # Update character state
+    cs = character_states.setdefault(character_id, {})
+    cs["mood"] = _infer_mood(content_data["content"], character_id)
+    cs["energy"] = max(20, cs.get("energy", 50) - 5)  # expends some energy
+    cs["last_active"] = now_str
+    topics = _extract_topics(content_data["content"])
+    if topics:
+        existing = cs.get("recent_topics", [])
+        cs["recent_topics"] = (topics + existing)[:3]
 
     # Update state
     state["last_run"]["whispers_publish"] = now_str
@@ -1838,7 +1971,8 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
                 ai_reply = generate_reply(
                     text_provider, whisper_content, whisper_author_name,
                     user_content, characters_md, char_id, char_name,
-                    role_type=role_type, reply_to_user=user_nickname
+                    role_type=role_type, reply_to_user=user_nickname,
+                    character_states=character_states
                 )
 
                 if ai_reply:
@@ -1983,7 +2117,10 @@ def main():
 
     # Update heartbeat count
     state = d1_client.get_state()
+    state.setdefault("character_states", {})
     state["stats"]["total_heartbeats"] = state["stats"].get("total_heartbeats", 0) + 1
+    # Evolve character states based on time
+    _evolve_character_states(state["character_states"], now)
     d1_client.save_state(state)
 
     changes_made = False
