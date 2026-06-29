@@ -2248,9 +2248,9 @@ def main():
     if image_provider:
         preload_avatars()
 
-    # Prompt provider for image prompt building/rephrasing: use the "free"
+    # Prompt provider for image prompt building/rephrasing: use the "oc"
     # text profile if available, else fall back to default.
-    prompt_provider = text_providers.get("free") or text_providers.get("default")
+    prompt_provider = text_providers.get("oc") or text_providers.get("default")
 
     # Update heartbeat count
     state = d1_client.get_state()
