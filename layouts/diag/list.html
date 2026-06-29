@@ -1,31 +1,32 @@
 {{ define "main" }}
 <div class="diag-page">
     <h2 class="diag-title">配图替换</h2>
-    <p class="diag-desc">提交后会进入异步队列，下次 cron runner 执行时自动应用（解图、转 webp、重打包 tar、更新 JSON、提交 git）。</p>
+    <p class="diag-desc">提交后进入异步队列，下次调度时自动应用。</p>
 
     <form id="diag-form" class="diag-form">
         <div class="diag-field">
             <label for="diag-secret">令牌</label>
-            <input type="password" id="diag-secret" name="secret" autocomplete="off" placeholder="X-Diag-Secret" required>
-            <small class="diag-hint">提交时作为 X-Diag-Secret 头校验，本地不存储。</small>
+            <input type="password" id="diag-secret" name="secret" autocomplete="off" required>
+            <small class="diag-hint">仅本次提交使用，不存储。</small>
         </div>
 
         <div class="diag-field">
-            <label for="diag-whisper-id">动态 ID</label>
-            <input type="text" id="diag-whisper-id" name="whisper_id" placeholder="2026-06-28-nuonuo-0cd4cf" required>
-            <small class="diag-hint">格式 YYYY-MM-DD-slug。可在动态 URL 里看到。</small>
+            <label for="diag-whisper-id">动态</label>
+            <input type="text" id="diag-whisper-id" name="whisper_id"
+                   placeholder="可粘贴动态链接、路径或 ID" required autocomplete="off">
+            <small id="diag-whisper-parsed" class="diag-hint diag-parsed" hidden></small>
         </div>
 
         <div class="diag-field">
             <label for="diag-seq">图片序号</label>
             <input type="number" id="diag-seq" name="seq" min="1" max="9" value="1" required>
-            <small class="diag-hint">替换第几张图，默认 1。若动态原本无图，会补上 images 字段。</small>
+            <small class="diag-hint">替换第几张图，默认 1。</small>
         </div>
 
         <div class="diag-field">
             <label for="diag-image">图片文件</label>
             <input type="file" id="diag-image" name="image" accept="image/png,image/jpeg,image/webp,image/gif" required>
-            <small class="diag-hint">支持 png/jpg/webp/gif，runner 会自动转 webp。最大 2MB（base64 后）。</small>
+            <small class="diag-hint">支持 png/jpg/webp/gif，最大 2MB。</small>
         </div>
 
         <div id="diag-preview" class="diag-preview" hidden>
@@ -33,7 +34,7 @@
             <img id="diag-preview-img" alt="预览">
         </div>
 
-        <button type="submit" id="diag-submit" class="diag-submit">提交替换请求</button>
+        <button type="submit" id="diag-submit" class="diag-submit">提交</button>
     </form>
 
     <div id="diag-status" class="diag-status" hidden></div>
@@ -87,6 +88,12 @@
     color: var(--text-muted, #999);
     font-size: 0.8rem;
 }
+.diag-parsed {
+    color: #1e7e34;
+}
+.diag-parsed.err {
+    color: #bd2130;
+}
 .diag-preview {
     display: flex;
     flex-direction: column;
@@ -138,23 +145,110 @@
     .diag-submit { background: #2c7fd6; }
     .diag-status.ok { color: #6fdc8c; }
     .diag-status.err { color: #ff6b7d; }
+    .diag-parsed { color: #6fdc8c; }
+    .diag-parsed.err { color: #ff6b7d; }
 }
 </style>
 
 <script>
 (function() {
     const form = document.getElementById('diag-form');
+    const whisperInput = document.getElementById('diag-whisper-id');
+    const parsedHint = document.getElementById('diag-whisper-parsed');
     const fileInput = document.getElementById('diag-image');
     const previewBox = document.getElementById('diag-preview');
     const previewImg = document.getElementById('diag-preview-img');
     const submitBtn = document.getElementById('diag-submit');
     const statusBox = document.getElementById('diag-status');
 
+    // 匹配 YYYY-MM-DD-slug 格式（最终目标格式）
+    const ID_RE = /^(\d{4})-(\d{2})-(\d{2})-(.+)$/;
+
     function showStatus(msg, isOk) {
         statusBox.hidden = false;
         statusBox.textContent = msg;
         statusBox.className = 'diag-status ' + (isOk ? 'ok' : 'err');
     }
+
+    // 从任意输入提取动态 ID（YYYY-MM-DD-slug）
+    // 支持：
+    //   - https://xxx.org/2026/06/28/nuonuo-0cd4cf/
+    //   - /2026/06/28/nuonuo-0cd4cf/
+    //   - 2026/06/28/nuonuo-0cd4cf
+    //   - 2026-06-28-nuonuo-0cd4cf  （已是目标格式）
+    function parseWhisperId(input) {
+        const s = input.trim();
+        if (!s) return { ok: false, value: '', msg: '' };
+
+        // 已是目标格式
+        if (ID_RE.test(s)) {
+            return { ok: true, value: s, msg: '识别：' + s };
+        }
+
+        // 尝试从路径里抓 YYYY/MM/DD-slug 或 YYYY/MM/DD/slug
+        // 统一把 / 转成 - 处理，但要避免误伤
+        // 先把 URL 的协议/域名去掉
+        let path = s;
+        try {
+            if (/^https?:\/\//.test(s)) {
+                const u = new URL(s);
+                path = u.pathname;
+            }
+        } catch (e) { /* 不是合法 URL，按裸路径处理 */ }
+
+        // 去掉首尾空白和斜杠
+        path = path.replace(/^\/+|\/+$/g, '');
+
+        // 匹配 YYYY/MM/DD/slug（分隔符可能是 / 或 -）
+        // 取路径前 4 段
+        const segs = path.split(/[\/]+/);
+        if (segs.length >= 4) {
+            const y = segs[0], m = segs[1], d = segs[2];
+            // slug 可能含 -，所以第 4 段及之后全部拼回
+            const slug = segs.slice(3).join('/');
+            if (/^\d{4}$/.test(y) && /^\d{2}$/.test(m) && /^\d{2}$/.test(d) && slug) {
+                // slug 里的 / 不合法，转成 -
+                const cleanSlug = slug.replace(/\//g, '-');
+                const id = `${y}-${m}-${d}-${cleanSlug}`;
+                return { ok: true, value: id, msg: '识别：' + id };
+            }
+        }
+
+        // 尝试把所有 / 转成 - 再匹配（兼容 2026/06/28/nuonuo-0cd4cf 没去斜杠的情况）
+        const collapsed = path.replace(/\//g, '-');
+        if (ID_RE.test(collapsed)) {
+            return { ok: true, value: collapsed, msg: '识别：' + collapsed };
+        }
+
+        return { ok: false, value: s, msg: '无法识别，请检查输入' };
+    }
+
+    function updateParsed() {
+        const r = parseWhisperId(whisperInput.value);
+        if (!whisperInput.value.trim()) {
+            parsedHint.hidden = true;
+            return;
+        }
+        parsedHint.hidden = false;
+        if (r.ok) {
+            parsedHint.textContent = r.msg;
+            parsedHint.className = 'diag-hint diag-parsed';
+        } else {
+            parsedHint.textContent = r.msg;
+            parsedHint.className = 'diag-hint diag-parsed err';
+        }
+    }
+
+    // 输入时实时解析显示
+    whisperInput.addEventListener('input', updateParsed);
+    whisperInput.addEventListener('blur', function() {
+        // 失焦时若识别成功，把输入框替换成标准格式
+        const r = parseWhisperId(whisperInput.value);
+        if (r.ok && r.value !== whisperInput.value) {
+            whisperInput.value = r.value;
+            updateParsed();
+        }
+    });
 
     // 文件选择后预览
     fileInput.addEventListener('change', function() {
@@ -183,12 +277,20 @@
         statusBox.hidden = true;
 
         const secret = document.getElementById('diag-secret').value.trim();
-        const whisperId = document.getElementById('diag-whisper-id').value.trim();
+        const parsed = parseWhisperId(whisperInput.value);
         const seq = parseInt(document.getElementById('diag-seq').value, 10) || 1;
         const file = fileInput.files[0];
 
-        if (!secret || !whisperId || !file) {
-            showStatus('请填写完整：令牌、动态 ID、图片文件。', false);
+        if (!secret) {
+            showStatus('请填写令牌。', false);
+            return;
+        }
+        if (!parsed.ok) {
+            showStatus('动态识别失败，请检查输入。', false);
+            return;
+        }
+        if (!file) {
+            showStatus('请选择图片文件。', false);
             return;
         }
 
@@ -205,7 +307,7 @@
         });
 
         const body = {
-            whisper_id: whisperId,
+            whisper_id: parsed.value,
             image_base64: base64,
             content_type: file.type || 'image/webp',
             seq: seq
@@ -226,25 +328,18 @@
             const data = await resp.json().catch(() => ({}));
 
             if (resp.ok && data.status === 'queued') {
-                showStatus(
-                    `已加入队列 ✓\n` +
-                    `key: ${data.key}\n` +
-                    `whisper_id: ${data.whisper_id}\n` +
-                    `seq: ${data.seq}\n` +
-                    `请求时间: ${data.requested_at}\n` +
-                    `下次 cron 执行时自动应用。`,
-                    true
-                );
+                showStatus('已提交，等待调度应用。', true);
                 form.reset();
                 previewBox.hidden = true;
+                parsedHint.hidden = true;
             } else {
-                showStatus(`提交失败 (${resp.status})\n${data.error || resp.statusText || '未知错误'}`, false);
+                showStatus('提交失败：' + (data.error || resp.statusText || '未知错误'), false);
             }
         } catch (err) {
-            showStatus(`网络错误：${err.message}`, false);
+            showStatus('网络错误：' + err.message, false);
         } finally {
             submitBtn.disabled = false;
-            submitBtn.textContent = '提交替换请求';
+            submitBtn.textContent = '提交';
         }
     });
 })();
