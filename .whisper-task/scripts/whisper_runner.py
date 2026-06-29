@@ -320,37 +320,6 @@ def build_image_prompt(text_provider, content, character_id, mentioned_chars,
     char_names = [_roman(character_id)] + [_roman(a) for a in mentioned_chars]
     char_names_text = ", ".join(char_names)
 
-    #system_prompt = f"""You write image generation prompts for the flux-2-klein-4b model. These images illustrate short social-media posts ("whispers") from a group of friends.
-#
-#CRITICAL RULES (the prompt is the single most important factor for output quality):
-#1. Output ONLY English. No Chinese characters anywhere - translate the entire scene (objects, places, actions, mood) to English. Use the romanized character names provided below. No explanation, no quotes, no markdown.
-#2. Be CONCRETE and VISUAL: use specific nouns (objects, places, body language, facial expressions). Avoid abstract adjectives.
-#3. Describe the SCENE and ACTION matching the post content. Never describe character appearance (hair color, eye color, clothing, body type, etc.) - character appearance is locked to reference avatar images passed separately, the prompt only describes what characters are DOING and the scene around them.
-#4. Refer to characters only by their romanized names (e.g. "Doro and Guga eating together"), never by appearance traits.
-#5. If multiple characters are mentioned, describe them interacting naturally in the scene.
-#
-#OUTPUT FORMAT - use this labeled multi-line structure with blank-line grouping (do NOT describe character appearance in any line, only actions/scene/environment):
-#Action: <what the character(s) are doing, specific verbs and body language>
-#Object: <key objects/props in the scene, specific nouns>
-#Expression: <facial expression only, no appearance traits>
-#
-#Setting: <location/scene description>
-#Time: <time of day>
-#Weather: <weather if relevant>
-#Environment details: <concrete background elements: furniture, plants, objects, textures>
-#
-#Mood: <emotional atmosphere>
-#Style: digital illustration, soft painterly textures
-#Palette: <2-4 dominant colors matching the scene mood>
-#Lighting: <specific light source and how it falls on the scene>
-#Quality: detailed rendering, shallow depth of field, 8k
-#
-#Do NOT add any other lines. Do NOT describe hair, face shape, clothing, or body type - those come from reference images.
-#
-#Characters appearing in this image (refer to them by name only): {char_names_text}
-#
-#The model output is 1024x768 (landscape). Compose accordingly."""
-
     system_prompt = f"""You are a prompt generator. Your task is to generate a structured character scene description based on user prompt.
 
 Variable Fields to Fill (based on user prompt, generate values for these only):

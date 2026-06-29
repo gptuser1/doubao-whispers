@@ -65,7 +65,7 @@ class WorkersAIText(TextProvider):
             "messages": messages,
             "max_tokens": max_tokens,
             "temperature": temperature,
-            "chat_template_kwargs:": { "enable_thinking": True }
+            "chat_template_kwargs": { "enable_thinking": True }
         }
 
         data = json.dumps(payload).encode("utf-8")
