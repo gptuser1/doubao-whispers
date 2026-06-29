@@ -777,26 +777,29 @@ def apply_image_replacements(now_dt, dry_run=False):
     """拾取 KV 中的待处理配图替换请求并逐个应用。
 
     流程：KV.list → 按 whisper_id 分组取最新 → 解码图片 → 非webp转webp →
-    写 static/images/ → repack 当月 tar → 更新 whisper JSON（补图时加 images 字段）→
-    删除 KV key。每次 cron 都跑（KV.list 很便宜），无 KV 配置时静默跳过。
+    写 static/images/ → repack 当月 tar → 更新 whisper JSON（补图时加 images 字段）。
+    KV key 的删除推迟到 git push 成功之后（由 main() 执行），避免 push 失败时
+    本地改动丢失导致替换请求永久丢失。每次 cron 都跑（KV.list 很便宜），无 KV
+    配置时静默跳过。
 
-    Returns True if any changes were made.
+    Returns (changes_made, processed_kv_keys) — processed_kv_keys 是成功应用的
+    KV key 列表，由调用方在 push 成功后删除。
     """
     print("\n--- Apply Image Replacements ---")
     kv = _get_diag_kv()
     if kv is None:
         print("[diag] KV not configured (CF_DEFAULT_ACCOUNT_ID/CF_DEFAULT_API_TOKEN/CF_DIAG_KV_ID), skipping")
-        return False
+        return False, []
 
     try:
         keys = kv.list_keys(prefix=_DIAG_KV_REPLACE_PREFIX)
     except Exception as e:
         print(f"[diag] KV list failed: {e}", file=sys.stderr)
-        return False
+        return False, []
 
     if not keys:
         print("No pending image replacements")
-        return False
+        return False, []
 
     print(f"Found {len(keys)} pending image replacement request(s)")
 
@@ -826,14 +829,15 @@ def apply_image_replacements(now_dt, dry_run=False):
 
     if not requests_by_whisper:
         print("No valid image replacement requests")
-        return False
+        return False, []
 
     if dry_run:
         for wid, (req, _, _) in requests_by_whisper.items():
             print(f"  [DRY RUN] Would replace image for {wid} (seq={req.get('seq',1)})")
-        return False
+        return False, []
 
     changes_made = False
+    processed_keys = []  # KV keys for successfully-applied replacements; deleted only after git push
     for wid, (req, _, all_keys) in requests_by_whisper.items():
         month_str = req.get("month_str", wid[:7])
         seq = req.get("seq", 1)
@@ -923,8 +927,9 @@ def apply_image_replacements(now_dt, dry_run=False):
             print(f"    WARNING: repack failed for {month_str}, image written but tar not updated",
                   file=sys.stderr)
 
-        # 删除 KV key
-        _delete_keys_silent(kv, all_keys)
+        # Defer KV key deletion to main() — only delete after git push
+        # succeeds, so a push failure doesn't lose the replacement request.
+        processed_keys.extend(all_keys)
 
         changes_made = True
         print(f"    Replaced image for {wid}: {image_filename}")
@@ -932,7 +937,7 @@ def apply_image_replacements(now_dt, dry_run=False):
     print(f"Image replacements complete: "
           f"{sum(1 for w in requests_by_whisper.values()) } processed, "
           f"changes={'yes' if changes_made else 'no'}")
-    return changes_made
+    return changes_made, processed_keys
 
 
 def _delete_keys_silent(kv, keys):
@@ -2510,7 +2515,7 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
 
     if not trigger_result.get("trigger", False):
         print("Check replies: not triggered, skipping")
-        return False
+        return False, []
 
     # Get pending replies from D1 (is_doubao = 0)
     replies = d1_client.get_pending_replies()
@@ -2520,7 +2525,7 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
         new_offset = random.randint(0, 5)
         state["next_random_offset"]["whispers_check_replies"] = new_offset
         d1_client.save_state(state)
-        return False
+        return False, []
 
     print(f"Found {len(replies)} pending replies to process")
 
@@ -2550,7 +2555,7 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
 
     if dry_run:
         print(f"[DRY RUN] Would process {len(replies)} replies across {len(replies_by_whisper)} whispers")
-        return False
+        return False, []
 
     # Process each whisper's replies
     new_replies_added = 0
@@ -2664,11 +2669,9 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
             if month_str in existing_replies_cache:
                 existing_replies_cache[month_str] = load_month_file(reply_file)
 
-    # Delete user replies from D1 — they've been synced to repo json, so the
-    # D1 cache rows are no longer needed. Keeps D1 from growing unbounded.
-    if reply_ids_to_delete:
-        print(f"Deleting {len(reply_ids_to_delete)} synced user replies from D1")
-        d1_client.delete_replies(reply_ids_to_delete)
+    # NOTE: D1 reply deletion is deferred to main(), after git push succeeds.
+    # If push fails, the local repo changes are lost (next checkout is fresh),
+    # so keeping the D1 rows lets the next run re-process them — no data loss.
 
     # Update state
     state["last_run"]["whispers_check_replies"] = now_str
@@ -2678,38 +2681,56 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
     d1_client.save_state(state)
 
     print(f"Reply processing complete: {new_replies_added} AI replies generated")
-    return new_replies_added > 0
+    return new_replies_added > 0, reply_ids_to_delete
 
 
 # ==================== Git Operations ====================
 
 def git_commit_and_push(changes_made, dry_run=False):
-    """Commit and push changes if any."""
+    """Commit and push changes. Returns True on success, False on failure.
+
+    If the push is rejected (remote moved ahead — common when a concurrent
+    run or manual push landed between checkout and push), pulls --rebase to
+    replay our commit on top and retries. Gives up after a few attempts so
+    we don't loop forever on a real conflict.
+    """
     if not changes_made:
         print("\nNo changes to commit")
-        return
+        return True
 
     if dry_run:
         print(f"\n[DRY RUN] Would commit and push changes")
-        return
+        return True
 
     # Configure git
     run_script(["git", "config", "user.name", "Fox"])
     run_script(["git", "config", "user.email", "fox@example.com"])
 
-    # Add changes
+    # Add and commit
     run_script(["git", "add", "-A"])
+    run_script(["git", "commit", "-m", "feat: update whispers via automated runner"])
 
-    # Commit
-    commit_msg = "feat: update whispers via automated runner"
-    run_script(["git", "commit", "-m", commit_msg])
+    # Push with rebase-retry. The remote often moves ahead between checkout
+    # and push (concurrent runner, manual push). A plain push fails
+    # non-fast-forward in that case; pull --rebase replays our commit on top
+    # and we retry. Give up after 3 attempts on a real conflict.
+    max_attempts = 3
+    for attempt in range(1, max_attempts + 1):
+        _, rc = run_script(["git", "push"])
+        if rc == 0:
+            print("Pushed changes to remote")
+            return True
+        if attempt >= max_attempts:
+            print(f"Failed to push after {max_attempts} attempts, giving up", file=sys.stderr)
+            return False
+        print(f"Push rejected (attempt {attempt}/{max_attempts}), pulling --rebase...", file=sys.stderr)
+        _, pull_rc = run_script(["git", "pull", "--rebase", "origin", "main"])
+        if pull_rc != 0:
+            print("git pull --rebase failed (likely a real conflict), giving up", file=sys.stderr)
+            run_script(["git", "rebase", "--abort"])
+            return False
 
-    # Push
-    stdout, rc = run_script(["git", "push"])
-    if rc == 0:
-        print("Pushed changes to remote")
-    else:
-        print("Failed to push changes", file=sys.stderr)
+    return False
 
 
 # ==================== Main Entry ====================
@@ -2814,7 +2835,7 @@ def main():
         changes_made = True
 
     # Task 2: Check replies
-    replied = do_check_replies(config, d1_client, get_provider("check_replies"), now, args.dry_run)
+    replied, reply_ids_to_delete = do_check_replies(config, d1_client, get_provider("check_replies"), now, args.dry_run)
     if replied:
         changes_made = True
 
@@ -2826,7 +2847,7 @@ def main():
     # Task 4: Apply pending image replacements from the diagnostic KV queue.
     # Runs every cron (no trigger check) — KV.list is cheap and replacements
     # are on-demand. Silently skips if KV env vars not configured.
-    replaced = apply_image_replacements(now, args.dry_run)
+    replaced, kv_keys_to_delete = apply_image_replacements(now, args.dry_run)
     if replaced:
         changes_made = True
 
@@ -2847,10 +2868,28 @@ def main():
               f"total={combined_usage['total']} "
               f"cache_hit={combined_usage['cache_hit']}")
 
-    # Git commit and push
-    git_commit_and_push(changes_made, args.dry_run)
+    # Git commit and push. Destructive cleanups (D1 reply deletion, KV key
+    # deletion) are deferred until AFTER a successful push — if the push
+    # fails, the local file changes are lost (next checkout is fresh), so
+    # keeping the D1 rows and KV keys lets the next run re-process them
+    # instead of silently dropping user data.
+    push_ok = git_commit_and_push(changes_made, args.dry_run)
+
+    if push_ok and changes_made and not args.dry_run:
+        if reply_ids_to_delete:
+            print(f"Deleting {len(reply_ids_to_delete)} synced user replies from D1")
+            d1_client.delete_replies(reply_ids_to_delete)
+        if kv_keys_to_delete:
+            kv = _get_diag_kv()
+            if kv:
+                print(f"Deleting {len(kv_keys_to_delete)} processed image-replacement KV keys")
+                _delete_keys_silent(kv, kv_keys_to_delete)
 
     print(f"\n=== Whisper Runner finished ===")
+    if not push_ok:
+        print("WARNING: git push failed — D1 replies and KV keys were NOT deleted, "
+              "next run will retry", file=sys.stderr)
+        return 1
     return 0
 
 
