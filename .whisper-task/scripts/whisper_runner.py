@@ -2353,9 +2353,28 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
             existing_replies_cache[month_str] = load_month_file(reply_file_path) if os.path.exists(reply_file_path) else {}
         existing_replies = existing_replies_cache[month_str].get(whisper_id, [])
 
+        # Collect ALL new replies (user replies + character replies) for this
+        # whisper, to be written to the repo json file in one batch at the end.
+        # D1 is ONLY a transient cache for pending user replies; the canonical
+        # store for both user and character replies is data/replies/*.json.
+        # Character replies are NEVER written to D1.
+        new_replies_for_whisper = []
+
         for user_reply in whisper_replies:
             user_content = user_reply.get("content", "")
             user_nickname = user_reply.get("nickname", "匿名")
+
+            # Add the user reply itself to the repo json (author="" marks it
+            # as a user reply, matching the existing data format).
+            user_reply_ts = user_reply.get("timestamp", "")
+            new_replies_for_whisper.append({
+                "nickname": user_nickname,
+                "content": user_content,
+                "timestamp": user_reply_ts,
+                "author": "",
+                "reply_to": user_reply.get("reply_to", "") or "",
+                "reply_to_floor": user_reply.get("reply_to_floor") or 0,
+            })
 
             # Consolidated: one model call decides who replies + generates content
             smart_replies = generate_smart_reply(
@@ -2368,7 +2387,6 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
             # Compute a safe base timestamp for character replies:
             # MUST be later than the user reply it responds to (否则会出现角色回复
             # 早于被回复的用户评论，破坏时序)，且不晚于当前真实时间。
-            user_reply_ts = user_reply.get("timestamp", "")
             try:
                 user_reply_dt = datetime.fromisoformat(user_reply_ts)
                 if user_reply_dt.tzinfo is None:
@@ -2389,21 +2407,29 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
                     # 下一条角色回复稍晚于此条（连续回复自然递增），但不超过 now
                     reply_dt = min(reply_dt + timedelta(seconds=random.randint(20, 60)),
                                    now_dt)
-                    # Get next floor number
-                    max_floor = d1_client.get_max_floor(whisper_id)
-                    new_floor = max_floor + 1
 
-                    # Insert character reply into D1
-                    d1_client.add_character_reply(
-                        whisper_id, char_name, ai_reply,
-                        reply_time, new_floor,
-                        author_id=char_id,
-                        reply_to=user_nickname if role_type == "friend" else "",
-                        reply_to_floor=user_reply.get("floor") if role_type == "friend" else None
-                    )
+                    new_replies_for_whisper.append({
+                        "nickname": char_name,
+                        "content": ai_reply,
+                        "timestamp": reply_time,
+                        "author": char_id,
+                        "reply_to": user_nickname if role_type == "friend" else "",
+                        "reply_to_floor": user_reply.get("floor") if role_type == "friend" else 0,
+                    })
                     new_replies_added += 1
                     role_tag = f"[{role_type}]"
                     print(f"  {role_tag} {char_name} replied to {whisper_id}: {ai_reply[:50]}...")
+
+        # Write all new replies (user + character) to repo json in one batch.
+        # add_replies() merges with existing replies and recalculates floors
+        # by timestamp, so ordering stays consistent.
+        if new_replies_for_whisper:
+            reply_file = os.path.join(REPLIES_DIR, f"{month_str}.json")
+            add_replies(reply_file, whisper_id, new_replies_for_whisper)
+            # Invalidate the cache so subsequent whispers in the same run see
+            # the updated replies (avoids stale floor/timestamp context).
+            if month_str in existing_replies_cache:
+                existing_replies_cache[month_str] = load_month_file(reply_file)
 
     # Mark user replies as processed (is_doubao = 2)
     if reply_ids_to_mark:
