@@ -60,20 +60,35 @@ function handleOptions(request) {
 // 处理 GET 请求 - 获取回复列表
 async function handleGet(request, env, whisperId) {
   const db = env.DB;
-  
+
   const result = await db.prepare(
     `SELECT * FROM replies WHERE whisper_id = ? ORDER BY timestamp ASC`
   ).bind(whisperId).all();
-  
+
   const replies = result.results || [];
-  
+
+  // 角色昵称 -> author ID 反查表。is_doubao=1 的行一定是系统写入的角色回复，
+  // 6 个角色昵称唯一且受控，借此补出 author 字段供前端区分样式/头像。
+  // （replies 表未存 author_id 列，故用昵称反查，避免 DB 迁移。）
+  const NICKNAME_TO_AUTHOR = {
+    '豆包': 'doubao',
+    '咕嘎': 'guga',
+    'Doro': 'doro',
+    '菲比': 'feibi',
+    '白子': 'baizi',
+    '糯糯': 'nuonuo',
+  };
+
   // 构建公开的回复对象（移除内部字段）
   const publicReplies = replies.map(r => {
+    const isChar = r.is_doubao === 1;
     const reply = {
       nickname: r.nickname,
       content: r.content,
       timestamp: r.timestamp,
-      is_doubao: r.is_doubao === 1,
+      is_doubao: isChar,
+      // 角色回复补出 author（用户回复为空字符串，与仓库 data/replies 一致）
+      author: isChar ? (NICKNAME_TO_AUTHOR[r.nickname] || '') : '',
       floor: r.floor,
     };
     if (r.reply_to) {

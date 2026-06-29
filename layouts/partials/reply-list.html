@@ -63,14 +63,25 @@ const AUTHOR_AVATARS = {
     'guga': { name: '咕嘎', avatar: '/images/avatar-guga.webp' },
     'doro': { name: 'Doro', avatar: '/images/avatar-doro.webp' },
     'feibi': { name: '菲比', avatar: '/images/avatar-feibi.webp' },
-    'baizi': { name: '白子', avatar: '/images/avatar-baizi.webp' }
+    'baizi': { name: '白子', avatar: '/images/avatar-baizi.webp' },
+    'nuonuo': { name: '糯糯', avatar: '/images/avatar-nuonuo.webp' }
 };
 
 // 生成回复头像 HTML
-function getReplyAvatarHtml(author) {
+// author: 角色 ID；isDoubao: 是否角色回复；nickname: 兜底用昵称反查
+function getReplyAvatarHtml(author, isDoubao, nickname) {
     if (author && AUTHOR_AVATARS[author]) {
         const info = AUTHOR_AVATARS[author];
         return `<img src="${info.avatar}" alt="${info.name}" class="reply-avatar-img">`;
+    }
+    // 兜底：角色回复但缺 author 字段时，按昵称反查头像
+    if (isDoubao && nickname) {
+        for (const id in AUTHOR_AVATARS) {
+            if (AUTHOR_AVATARS[id].name === nickname) {
+                const info = AUTHOR_AVATARS[id];
+                return `<img src="${info.avatar}" alt="${info.name}" class="reply-avatar-img">`;
+            }
+        }
     }
     return '👤';
 }
@@ -82,7 +93,9 @@ let currentReplyToFloor = '';
 // 生成回复项 HTML
 function createReplyElement(reply, floor) {
     const replyEl = document.createElement('div');
-    replyEl.className = 'reply-item' + (reply.author ? ' reply-role' : '') + (reply.reply_to ? ' reply-nested' : '');
+    // 角色回复加 reply-role 样式：优先用 author 字段，缺失时用 is_doubao 兜底
+    const isRole = reply.author || reply.is_doubao;
+    replyEl.className = 'reply-item' + (isRole ? ' reply-role' : '') + (reply.reply_to ? ' reply-nested' : '');
     replyEl.setAttribute('data-nickname', reply.nickname);
     replyEl.setAttribute('data-floor', floor);
     
@@ -99,7 +112,7 @@ function createReplyElement(reply, floor) {
     
     replyEl.innerHTML = `
         <div class="reply-avatar">
-            ${getReplyAvatarHtml(reply.author)}
+            ${getReplyAvatarHtml(reply.author, reply.is_doubao, reply.nickname)}
         </div>
         <div class="reply-content">
             <div class="reply-header">

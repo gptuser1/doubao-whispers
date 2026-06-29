@@ -2263,12 +2263,30 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
                 existing_replies, timeline_text
             )
 
-            # Stagger reply timestamps (C2: add time offset like character interactions)
-            reply_dt = now_dt - timedelta(minutes=random.randint(1, 3))
+            # Compute a safe base timestamp for character replies:
+            # MUST be later than the user reply it responds to (否则会出现角色回复
+            # 早于被回复的用户评论，破坏时序)，且不晚于当前真实时间。
+            user_reply_ts = user_reply.get("timestamp", "")
+            try:
+                user_reply_dt = datetime.fromisoformat(user_reply_ts)
+                if user_reply_dt.tzinfo is None:
+                    user_reply_dt = user_reply_dt.replace(tzinfo=TZ_BEIJING)
+            except Exception:
+                user_reply_dt = now_dt
+
+            # earliest = 用户回复后 15 秒；同时允许最多比 now 早 90 秒（自然抖动）；
+            # 二者取较晚者，确保既晚于用户回复又不超 now。
+            earliest = user_reply_dt + timedelta(seconds=15)
+            base_dt = max(earliest, now_dt - timedelta(seconds=random.randint(0, 90)))
+            base_dt = min(base_dt, now_dt)  # 不能晚于 now
+
+            reply_dt = base_dt
             for char_id, char_name, role_type, ai_reply in smart_replies:
                 if ai_reply:
                     reply_time = reply_dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
-                    reply_dt = reply_dt - timedelta(minutes=random.randint(2, 8))
+                    # 下一条角色回复稍晚于此条（连续回复自然递增），但不超过 now
+                    reply_dt = min(reply_dt + timedelta(seconds=random.randint(20, 60)),
+                                   now_dt)
                     # Get next floor number
                     max_floor = d1_client.get_max_floor(whisper_id)
                     new_floor = max_floor + 1
