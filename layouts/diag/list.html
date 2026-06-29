@@ -1,0 +1,252 @@
+{{ define "main" }}
+<div class="diag-page">
+    <h2 class="diag-title">配图替换</h2>
+    <p class="diag-desc">提交后会进入异步队列，下次 cron runner 执行时自动应用（解图、转 webp、重打包 tar、更新 JSON、提交 git）。</p>
+
+    <form id="diag-form" class="diag-form">
+        <div class="diag-field">
+            <label for="diag-secret">令牌</label>
+            <input type="password" id="diag-secret" name="secret" autocomplete="off" placeholder="X-Diag-Secret" required>
+            <small class="diag-hint">提交时作为 X-Diag-Secret 头校验，本地不存储。</small>
+        </div>
+
+        <div class="diag-field">
+            <label for="diag-whisper-id">动态 ID</label>
+            <input type="text" id="diag-whisper-id" name="whisper_id" placeholder="2026-06-28-nuonuo-0cd4cf" required>
+            <small class="diag-hint">格式 YYYY-MM-DD-slug。可在动态 URL 里看到。</small>
+        </div>
+
+        <div class="diag-field">
+            <label for="diag-seq">图片序号</label>
+            <input type="number" id="diag-seq" name="seq" min="1" max="9" value="1" required>
+            <small class="diag-hint">替换第几张图，默认 1。若动态原本无图，会补上 images 字段。</small>
+        </div>
+
+        <div class="diag-field">
+            <label for="diag-image">图片文件</label>
+            <input type="file" id="diag-image" name="image" accept="image/png,image/jpeg,image/webp,image/gif" required>
+            <small class="diag-hint">支持 png/jpg/webp/gif，runner 会自动转 webp。最大 2MB（base64 后）。</small>
+        </div>
+
+        <div id="diag-preview" class="diag-preview" hidden>
+            <span class="diag-preview-label">预览：</span>
+            <img id="diag-preview-img" alt="预览">
+        </div>
+
+        <button type="submit" id="diag-submit" class="diag-submit">提交替换请求</button>
+    </form>
+
+    <div id="diag-status" class="diag-status" hidden></div>
+</div>
+
+<style>
+.diag-page {
+    max-width: 640px;
+    margin: 2rem auto;
+    padding: 1.5rem;
+    background: var(--bg, #fff);
+    border: 1px solid var(--border, #eee);
+    border-radius: var(--radius, 8px);
+}
+.diag-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.4rem;
+}
+.diag-desc {
+    margin: 0 0 1.5rem 0;
+    color: var(--text-muted, #888);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+.diag-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.diag-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+.diag-field label {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+.diag-field input[type="text"],
+.diag-field input[type="password"],
+.diag-field input[type="number"],
+.diag-field input[type="file"] {
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--border, #ddd);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    background: var(--bg-input, #fff);
+    color: var(--text, #333);
+}
+.diag-hint {
+    color: var(--text-muted, #999);
+    font-size: 0.8rem;
+}
+.diag-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.diag-preview-img {
+    max-width: 100%;
+    max-height: 280px;
+    border-radius: 6px;
+    border: 1px solid var(--border, #eee);
+}
+.diag-submit {
+    padding: 0.7rem 1.2rem;
+    background: #0066cc;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.diag-submit:hover {
+    background: #0052a3;
+}
+.diag-submit:disabled {
+    background: #999;
+    cursor: not-allowed;
+}
+.diag-status {
+    margin-top: 1.2rem;
+    padding: 0.8rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+.diag-status.ok {
+    background: rgba(40, 167, 69, 0.1);
+    border: 1px solid rgba(40, 167, 69, 0.3);
+    color: #1e7e34;
+}
+.diag-status.err {
+    background: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    color: #bd2130;
+}
+@media (prefers-color-scheme: dark) {
+    .diag-submit { background: #2c7fd6; }
+    .diag-status.ok { color: #6fdc8c; }
+    .diag-status.err { color: #ff6b7d; }
+}
+</style>
+
+<script>
+(function() {
+    const form = document.getElementById('diag-form');
+    const fileInput = document.getElementById('diag-image');
+    const previewBox = document.getElementById('diag-preview');
+    const previewImg = document.getElementById('diag-preview-img');
+    const submitBtn = document.getElementById('diag-submit');
+    const statusBox = document.getElementById('diag-status');
+
+    function showStatus(msg, isOk) {
+        statusBox.hidden = false;
+        statusBox.textContent = msg;
+        statusBox.className = 'diag-status ' + (isOk ? 'ok' : 'err');
+    }
+
+    // 文件选择后预览
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) {
+            previewBox.hidden = true;
+            return;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+            showStatus('文件过大（>2MB），请压缩后再上传。', false);
+            this.value = '';
+            previewBox.hidden = true;
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImg.src = e.target.result;
+            previewBox.hidden = false;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // 提交
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        statusBox.hidden = true;
+
+        const secret = document.getElementById('diag-secret').value.trim();
+        const whisperId = document.getElementById('diag-whisper-id').value.trim();
+        const seq = parseInt(document.getElementById('diag-seq').value, 10) || 1;
+        const file = fileInput.files[0];
+
+        if (!secret || !whisperId || !file) {
+            showStatus('请填写完整：令牌、动态 ID、图片文件。', false);
+            return;
+        }
+
+        // 读取文件为 base64（去掉 data:...;base64, 前缀）
+        const reader = new FileReader();
+        const base64 = await new Promise((resolve, reject) => {
+            reader.onload = () => {
+                const result = reader.result;
+                const idx = result.indexOf(',');
+                resolve(idx >= 0 ? result.slice(idx + 1) : result);
+            };
+            reader.onerror = () => reject(new Error('文件读取失败'));
+            reader.readAsDataURL(file);
+        });
+
+        const body = {
+            whisper_id: whisperId,
+            image_base64: base64,
+            content_type: file.type || 'image/webp',
+            seq: seq
+        };
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = '提交中...';
+
+        try {
+            const resp = await fetch('/api/_diag/replace-image', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Diag-Secret': secret
+                },
+                body: JSON.stringify(body)
+            });
+            const data = await resp.json().catch(() => ({}));
+
+            if (resp.ok && data.status === 'queued') {
+                showStatus(
+                    `已加入队列 ✓\n` +
+                    `key: ${data.key}\n` +
+                    `whisper_id: ${data.whisper_id}\n` +
+                    `seq: ${data.seq}\n` +
+                    `请求时间: ${data.requested_at}\n` +
+                    `下次 cron 执行时自动应用。`,
+                    true
+                );
+                form.reset();
+                previewBox.hidden = true;
+            } else {
+                showStatus(`提交失败 (${resp.status})\n${data.error || resp.statusText || '未知错误'}`, false);
+            }
+        } catch (err) {
+            showStatus(`网络错误：${err.message}`, false);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = '提交替换请求';
+        }
+    });
+})();
+</script>
+{{ end }}
