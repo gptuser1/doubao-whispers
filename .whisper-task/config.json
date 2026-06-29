@@ -19,6 +19,12 @@
         "model": "@cf/zai-org/glm-4.7-flash",
         "account_id_env": "CF_DEFAULT_ACCOUNT_ID",
         "api_token_env": "CF_DEFAULT_API_TOKEN"
+      },
+      "oc": {
+        "provider": "openai",
+        "model": "deepseek-v4-flash-free",
+        "base_url": "https://opencode.ai/zen/v1",
+        "api_key_env": "OPENAI_OC_API_KEY"
       }
     },
     "image": {
