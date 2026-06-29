@@ -2044,6 +2044,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-06-29T15:13:21+08:00",
       "floor": 7
+    },
+    {
+      "nickname": "匿名网友",
+      "content": "玩的什么游戏啊",
+      "timestamp": "2026-06-29T21:17:20.140+08:00",
+      "author": "",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "floor": 8
+    },
+    {
+      "nickname": "糯糯",
+      "content": "昨晚在打《英雄联盟》排位呢～打到半夜超上头的！今晚周一还要继续冲分，你玩吗？🎮",
+      "timestamp": "2026-06-29T21:17:34+08:00",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "floor": 9
     }
   ]
 }
