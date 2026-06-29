@@ -21,10 +21,14 @@ import json
 import os
 import sys
 import time
-import urllib.request
-import urllib.error
 import base64
+import requests
 from abc import ABC, abstractmethod
+
+
+# Default User-Agent — custom string avoids Cloudflare bot detection (1010)
+# that blocks the default urllib/requests User-Agents on some endpoints.
+_DEFAULT_UA = "doubao-whispers/1.0"
 
 
 # ==================== Retry Helpers ====================
@@ -99,44 +103,40 @@ class WorkersAIText(TextProvider):
             "chat_template_kwargs": { "enable_thinking": True }
         }
 
-        data = json.dumps(payload).encode("utf-8")
+        headers = {
+            "Authorization": f"Bearer {self.api_token}",
+            "Content-Type": "application/json",
+            "User-Agent": _DEFAULT_UA,
+        }
 
         max_retries = 3
         for attempt in range(max_retries + 1):
-            req = urllib.request.Request(url, data=data, method="POST")
-            req.add_header("Authorization", f"Bearer {self.api_token}")
-            req.add_header("Content-Type", "application/json")
-            req.add_header("User-Agent", "doubao-whispers/1.0")
-
             try:
-                with urllib.request.urlopen(req, timeout=600) as resp:
-                    result = json.loads(resp.read().decode("utf-8"))
-
-                if result.get("success"):
-                    return result.get("result", {}).get("response", "").strip()
-                else:
-                    errors = result.get("errors", [])
-                    err_msg = errors[0].get("message", "unknown error") if errors else "unknown error"
-                    err_code = errors[0].get("code", 0) if errors else 0
-                    if _should_retry(status_code=err_code, body=err_msg) and attempt < max_retries:
-                        _retry_sleep(attempt, f"WorkersAI rate limit: {err_msg[:80]}")
-                        continue
-                    raise RuntimeError(f"WorkersAI error: {err_msg}")
-            except urllib.error.HTTPError as e:
-                err_body = ""
-                try:
-                    err_body = e.read().decode("utf-8")
-                except Exception:
-                    pass
-                if _should_retry(status_code=e.code, body=err_body) and attempt < max_retries:
-                    _retry_sleep(attempt, f"HTTP {e.code}")
-                    continue
-                raise RuntimeError(f"WorkersAI request failed: HTTP {e.code} {err_body[:200]}")
-            except urllib.error.URLError as e:
+                resp = requests.post(url, json=payload, headers=headers, timeout=600)
+            except requests.RequestException as e:
                 if attempt < max_retries:
                     _retry_sleep(attempt, f"URL error: {e}")
                     continue
                 raise RuntimeError(f"WorkersAI request failed: {e}")
+
+            if resp.status_code >= 400:
+                err_body = resp.text
+                if _should_retry(status_code=resp.status_code, body=err_body) and attempt < max_retries:
+                    _retry_sleep(attempt, f"HTTP {resp.status_code}")
+                    continue
+                raise RuntimeError(f"WorkersAI request failed: HTTP {resp.status_code} {err_body[:200]}")
+
+            result = resp.json()
+            if result.get("success"):
+                return result.get("result", {}).get("response", "").strip()
+            else:
+                errors = result.get("errors", [])
+                err_msg = errors[0].get("message", "unknown error") if errors else "unknown error"
+                err_code = errors[0].get("code", 0) if errors else 0
+                if _should_retry(status_code=err_code, body=err_msg) and attempt < max_retries:
+                    _retry_sleep(attempt, f"WorkersAI rate limit: {err_msg[:80]}")
+                    continue
+                raise RuntimeError(f"WorkersAI error: {err_msg}")
 
 
 class OpenAIText(TextProvider):
@@ -163,71 +163,66 @@ class OpenAIText(TextProvider):
             "max_tokens": max_tokens,
             "temperature": temperature,
             "stream": False,
-            # Disable thinking mode (DeepSeek V4 defaults to thinking,
-            # which consumes tokens on reasoning_content instead of content)
-            "thinking": {"type": "disabled"},
-            "enable_thinking": False,
+            # Explicitly enable thinking mode
+            "thinking": {"type": "enabled"},
+            "enable_thinking": True,
         }
 
-        data = json.dumps(payload).encode("utf-8")
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "User-Agent": _DEFAULT_UA,
+        }
 
         max_retries = 3
         for attempt in range(max_retries + 1):
-            req = urllib.request.Request(url, data=data, method="POST")
-            req.add_header("Authorization", f"Bearer {self.api_key}")
-            req.add_header("Content-Type", "application/json")
-            # Custom User-Agent to avoid Cloudflare bot detection (1010)
-            req.add_header("User-Agent", "doubao-whispers/1.0")
-
             try:
-                with urllib.request.urlopen(req, timeout=600) as resp:
-                    result = json.loads(resp.read().decode("utf-8"))
-
-                # Some APIs return 200 + error body for rate limiting
-                if result.get("error"):
-                    err_str = str(result["error"])
-                    if _should_retry(body=err_str) and attempt < max_retries:
-                        _retry_sleep(attempt, f"Rate limited: {err_str[:80]}")
-                        continue
-                    raise RuntimeError(f"OpenAI error: {result['error']}")
-
-                # Log token usage from API response (DeepSeek/SiliconFlow return cache stats too)
-                usage = result.get("usage") or {}
-                if usage:
-                    prompt = usage.get("prompt_tokens", 0)
-                    completion = usage.get("completion_tokens", 0)
-                    total = usage.get("total_tokens", 0)
-                    cache_hit = usage.get("prompt_cache_hit_tokens", 0)
-                    cache_miss = usage.get("prompt_cache_miss_tokens", 0)
-                    self.last_usage = {"prompt": prompt, "completion": completion,
-                                       "total": total, "cache_hit": cache_hit}
-                    self.usage_total["prompt"] += prompt
-                    self.usage_total["completion"] += completion
-                    self.usage_total["total"] += total
-                    self.usage_total["cache_hit"] += cache_hit
-                    cache_note = ""
-                    if cache_hit or cache_miss:
-                        cache_note = f" (cache hit={cache_hit}, miss={cache_miss})"
-                    print(f"[AI usage] model={self.model} prompt={prompt} "
-                          f"completion={completion} total={total}{cache_note}",
-                          file=sys.stderr)
-
-                return result.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
-            except urllib.error.HTTPError as e:
-                err_body = ""
-                try:
-                    err_body = e.read().decode("utf-8")
-                except Exception:
-                    pass
-                if _should_retry(status_code=e.code, body=err_body) and attempt < max_retries:
-                    _retry_sleep(attempt, f"HTTP {e.code}")
-                    continue
-                raise RuntimeError(f"OpenAI request failed: HTTP {e.code} {err_body[:200]}")
-            except urllib.error.URLError as e:
+                resp = requests.post(url, json=payload, headers=headers, timeout=600)
+            except requests.RequestException as e:
                 if attempt < max_retries:
                     _retry_sleep(attempt, f"URL error: {e}")
                     continue
                 raise RuntimeError(f"OpenAI request failed: {e}")
+
+            if resp.status_code >= 400:
+                err_body = resp.text
+                if _should_retry(status_code=resp.status_code, body=err_body) and attempt < max_retries:
+                    _retry_sleep(attempt, f"HTTP {resp.status_code}")
+                    continue
+                raise RuntimeError(f"OpenAI request failed: HTTP {resp.status_code} {err_body[:200]}")
+
+            result = resp.json()
+
+            # Some APIs return 200 + error body for rate limiting
+            if result.get("error"):
+                err_str = str(result["error"])
+                if _should_retry(body=err_str) and attempt < max_retries:
+                    _retry_sleep(attempt, f"Rate limited: {err_str[:80]}")
+                    continue
+                raise RuntimeError(f"OpenAI error: {result['error']}")
+
+            # Log token usage from API response (DeepSeek/SiliconFlow return cache stats too)
+            usage = result.get("usage") or {}
+            if usage:
+                prompt = usage.get("prompt_tokens", 0)
+                completion = usage.get("completion_tokens", 0)
+                total = usage.get("total_tokens", 0)
+                cache_hit = usage.get("prompt_cache_hit_tokens", 0)
+                cache_miss = usage.get("prompt_cache_miss_tokens", 0)
+                self.last_usage = {"prompt": prompt, "completion": completion,
+                                   "total": total, "cache_hit": cache_hit}
+                self.usage_total["prompt"] += prompt
+                self.usage_total["completion"] += completion
+                self.usage_total["total"] += total
+                self.usage_total["cache_hit"] += cache_hit
+                cache_note = ""
+                if cache_hit or cache_miss:
+                    cache_note = f" (cache hit={cache_hit}, miss={cache_miss})"
+                print(f"[AI usage] model={self.model} prompt={prompt} "
+                      f"completion={completion} total={total}{cache_note}",
+                      file=sys.stderr)
+
+            return result.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
 
 
 # ==================== Image Providers ====================
@@ -287,31 +282,20 @@ class WorkersAIImage(ImageProvider):
         """
         url = f"https://api.cloudflare.com/client/v4/accounts/{self.account_id}/ai/run/{self.model}"
 
-        # Build multipart form-data body manually (stdlib only, no requests)
-        boundary = "----WorkersAIBoundary" + os.urandom(8).hex()
-        body_parts = []
+        headers = {
+            "Authorization": f"Bearer {self.api_token}",
+            "User-Agent": _DEFAULT_UA,
+        }
 
-        def add_field(name, value):
-            body_parts.append(f"--{boundary}\r\n".encode())
-            body_parts.append(f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode())
-            body_parts.append(value.encode("utf-8") if isinstance(value, str) else value)
-            body_parts.append(b"\r\n")
-
-        def add_file_field(name, filename, content_bytes, content_type="image/png"):
-            body_parts.append(f"--{boundary}\r\n".encode())
-            body_parts.append(
-                f'Content-Disposition: form-data; name="{name}"; filename="{filename}"\r\n'.encode()
-            )
-            body_parts.append(f"Content-Type: {content_type}\r\n\r\n".encode())
-            body_parts.append(content_bytes)
-            body_parts.append(b"\r\n")
-
-        # Required fields
-        add_field("prompt", prompt)
-        add_field("width", "1024")
-        add_field("height", "768")
+        # Form fields
+        data = {
+            "prompt": prompt,
+            "width": "1024",
+            "height": "768",
+        }
 
         # Optional reference images (max 4). CF flux-2 accepts up to 4 512x512 tiles.
+        files = []
         if reference_images:
             refs = reference_images[:4]
             for idx, ref in enumerate(refs):
@@ -326,30 +310,21 @@ class WorkersAIImage(ImageProvider):
                         # Field name "image" for single, "image[]" for multiple.
                         # Using "image[]" for all so CF treats them as an array.
                         field_name = "image[]" if len(refs) > 1 else "image"
-                        add_file_field(field_name, f"ref_{idx}.png", ref_bytes, "image/png")
+                        files.append((field_name, (f"ref_{idx}.png", ref_bytes, "image/png")))
                 except Exception as e:
                     print(f"[image] Skipping reference {ref}: {e}", file=sys.stderr)
 
-        body_parts.append(f"--{boundary}--\r\n".encode())
-        body = b"".join(body_parts)
-
-        req = urllib.request.Request(url, data=body, method="POST")
-        req.add_header("Authorization", f"Bearer {self.api_token}")
-        req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+        try:
+            resp = requests.post(url, data=data, files=files, headers=headers, timeout=600)
+        except requests.RequestException as e:
+            err = RuntimeError(f"CF image gen request failed: {e}")
+            err.flagged = False
+            raise err
 
         try:
-            with urllib.request.urlopen(req, timeout=600) as resp:
-                result = json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            # CF returns 400 with JSON body when output is flagged (code 3030).
-            try:
-                result = json.loads(e.read().decode("utf-8"))
-            except Exception:
-                err = RuntimeError(f"CF image gen HTTP {e.code}: {e.reason}")
-                err.flagged = False
-                raise err
-        except urllib.error.URLError as e:
-            err = RuntimeError(f"CF image gen request failed: {e}")
+            result = resp.json()
+        except ValueError:
+            err = RuntimeError(f"CF image gen HTTP {resp.status_code}: {resp.text[:200]}")
             err.flagged = False
             raise err
 

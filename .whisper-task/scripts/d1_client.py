@@ -9,8 +9,7 @@ Uses the REST API at data.klinux.dpdns.org with Bearer token auth.
 import json
 import os
 import sys
-import urllib.request
-import urllib.error
+import requests
 from datetime import datetime, timezone, timedelta
 
 
@@ -33,22 +32,25 @@ class D1Client:
         url = f"{self.api_url}/query"
         payload = {"query": sql, "params": params or []}
 
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(url, data=data, method="POST")
-        req.add_header("Authorization", f"Bearer {self.api_key}")
-        req.add_header("Content-Type", "application/json")
-        req.add_header("User-Agent", "WhisperRunner/1.0")
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "User-Agent": "WhisperRunner/1.0",
+        }
 
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                result = json.loads(resp.read().decode("utf-8"))
-
-            if not result.get("success", True) and "error" in result:
-                raise RuntimeError(f"D1 query error: {result['error']}")
-
-            return result.get("results", [])
-        except urllib.error.URLError as e:
+            resp = requests.post(url, json=payload, headers=headers, timeout=30)
+        except requests.RequestException as e:
             raise RuntimeError(f"D1 request failed: {e}")
+
+        if resp.status_code >= 400:
+            raise RuntimeError(f"D1 request failed: HTTP {resp.status_code} {resp.text[:200]}")
+
+        result = resp.json()
+        if not result.get("success", True) and "error" in result:
+            raise RuntimeError(f"D1 query error: {result['error']}")
+
+        return result.get("results", [])
 
     # ==================== State Management ====================
 
