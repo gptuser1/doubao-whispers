@@ -390,28 +390,32 @@ def load_recent_whispers_with_images(count=10):
     return posts[:count]
 
 
-def should_have_image(content, character_id, authors_data, recent_with_images):
+def should_have_image(content, character_id, authors_data, recent_with_images,
+                      model_needs_image=None, model_mentioned=None):
     """Decide whether a new whisper should have an image.
 
-    Rules (per instructions.md §2.3.0):
-    1. Mentions other characters -> mandatory group photo
-    2. Has concrete scene/object/photo-related words -> mandatory
-    3. Otherwise: if recent pure-text ratio >= 30% -> mandatory
+    Rules (updated to use model-provided metadata):
+    1. Model-provided mentioned_characters (non-empty) -> mandatory group photo
+    2. Model says needs_image -> mandatory
+    3. Recent pure-text ratio >= 30% -> mandatory
     4. Otherwise: 70% probability
 
     Returns (should_have: bool, reason: str, mentioned_chars: list).
     """
-    # Rule 1: mentions other characters -> mandatory group photo
-    mentioned = [m for m in extract_mentioned_characters(content, authors_data)
-                 if m != character_id]
+    # Rule 1: model-provided mentioned characters -> mandatory group photo
+    mentioned = []
+    if model_mentioned:
+        mentioned = [m for m in model_mentioned if m != character_id]
+    if not mentioned:
+        # Fallback to keyword extraction if model didn't provide any
+        mentioned = [m for m in extract_mentioned_characters(content, authors_data)
+                     if m != character_id]
     if mentioned:
         return True, f"mentions other characters: {mentioned}", mentioned
 
-    # Rule 2: concrete scene / object / photo words
-    photo_words = ["拍", "给你看", "偷拍", "晒"]
-    scene_patterns = ["吃了", "去了", "在", "买了", "做了", "收到", "发现", "刚到", "新买的"]
-    if any(w in content for w in photo_words) or any(p in content for p in scene_patterns):
-        return True, "concrete scene/object/photo-related", mentioned
+    # Rule 2: model says needs_image
+    if model_needs_image:
+        return True, "model decided needs_image", mentioned
 
     # Rule 3: recent pure-text ratio >= 30% -> mandatory
     if recent_with_images:
@@ -859,11 +863,25 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
 2. 合理使用标点符号，标点符号直接影响动态的语气感觉，你需要重视这个，比如波浪号"～"是可选语气词，但并不是每条都用，更不要每句句末都加"~"
 3. title 是一句话标题，不超过15字，不带书名号
 
+附加元数据（一并输出，用于后续处理）：
+- slug: 根据动态内容生成3-5个英文单词的slug，用连字符连接，全小写，概括动态核心内容。例如 "friday-sunset-fried-chicken"
+- mood: 角色发这条动态时的心情，从 happy/tired/sad/excited/content/calm/grumpy 中选一个
+- topics: 1-2个话题关键词（中文），概括动态主题。例如 ["炸鸡", "周末"]
+- mentioned_characters: 动态内容中提到的其他角色ID列表（不含作者自己）。如果没提及其他角色则为空数组 []
+- needs_image: 这条动态是否适合配图。有具体场景、物体、动作、视觉元素的动态适合配图（true）；纯情绪/感慨/抽象思考的不适合（false）
+- storyline_trigger: 如果这条动态可能触发故事线，返回 {{"type": "comfort_request或minor_conflict", "participants": ["角色ID"]}}。comfort_request: 角色情绪低落/遇到困难需要安慰；minor_conflict: 角色之间有小矛盾/冲突。否则返回 null
+
 输出格式（严格JSON，不要输出任何其他内容、不要markdown代码块）：
 {{
   "character": "角色ID（如 doro / feibi / guga / baizi / nuonuo / doubao）",
   "title": "一句话标题，不超过15字",
-  "content": "碎碎念正文，50-200字，必须包含换行分段（\\n\\n）"
+  "content": "碎碎念正文，50-200字，必须包含换行分段（\\n\\n）",
+  "slug": "english-kebab-case-slug",
+  "mood": "happy",
+  "topics": ["话题1", "话题2"],
+  "mentioned_characters": [],
+  "needs_image": true,
+  "storyline_trigger": null
 }}"""
 
     user_prompt = f"""当前时间：{now_str} {weekday_cn}，{day_desc}，{period}
@@ -936,7 +954,23 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
             if character not in authors_data:
                 print(f"Warning: AI returned unknown character '{character}'", file=sys.stderr)
                 return None
-            return {"character": character, "title": title, "content": content}
+
+            # Parse model-provided metadata (with fallbacks)
+            result = {
+                "character": character,
+                "title": title,
+                "content": content,
+                "slug": _sanitize_slug(data.get("slug", ""), character),
+                "mood": data.get("mood", "").strip() or None,
+                "topics": data.get("topics", []) if isinstance(data.get("topics"), list) else [],
+                "mentioned_characters": [
+                    c for c in data.get("mentioned_characters", [])
+                    if isinstance(c, str) and c in authors_data
+                ] if isinstance(data.get("mentioned_characters"), list) else [],
+                "needs_image": bool(data.get("needs_image", False)),
+                "storyline_trigger": data.get("storyline_trigger"),
+            }
+            return result
         except json.JSONDecodeError as e:
             print(f"Failed to parse AI response as JSON: {e}", file=sys.stderr)
             print(f"Response: {response[:200]}", file=sys.stderr)
@@ -968,11 +1002,27 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
 
 
 def generate_slug(character_id, title):
-    """Generate a slug from character ID and title."""
-    # Simple: use character_id + a short hash of title
+    """Generate a slug from character ID and title (fallback when model doesn't provide one)."""
     import hashlib
     hash_str = hashlib.md5(title.encode("utf-8")).hexdigest()[:6]
     return f"{character_id}-{hash_str}"
+
+
+def _sanitize_slug(raw_slug, character_id=""):
+    """Sanitize a model-provided slug to kebab-case. Falls back to None if empty."""
+    if not raw_slug or not isinstance(raw_slug, str):
+        return None
+    import re
+    slug = raw_slug.strip().lower()
+    slug = re.sub(r'[^a-z0-9-]', '-', slug)
+    slug = re.sub(r'-{2,}', '-', slug)
+    slug = slug.strip('-')
+    if len(slug) < 3:
+        return None
+    # Prepend character_id for namespacing
+    if character_id and not slug.startswith(character_id):
+        slug = f"{character_id}-{slug}"
+    return slug
 
 
 # ==================== Multi-character reply selection ====================
@@ -981,12 +1031,6 @@ BEST_FRIENDS = {
     "guga": "doro", "doro": "guga",
     "feibi": "nuonuo", "nuonuo": "feibi",
 }
-
-
-def _is_interesting_topic(content):
-    """Check if a user comment is interesting enough for multiple characters to reply."""
-    keywords = ["?", "？", "大家", "你们", "有没有", "好不好", "怎么样"]
-    return any(k in content for k in keywords)
 
 
 def _get_friendship_weight(aid_a, aid_b, character_states):
@@ -1018,81 +1062,61 @@ def _pick_friend(whisper_author_id, existing_replies, authors_data, character_st
     return random.choices(others, weights=weights, k=1)[0]
 
 
-def _select_reply_character(whisper_author_id, user_content, whisper_content,
-                            existing_replies, authors_data, character_states):
-    """Select which character(s) should reply to a user comment.
-    Returns list of (char_id, char_name, role_type) tuples.
-    """
-    author_name = authors_data.get(whisper_author_id, {}).get("name", whisper_author_id)
-
-    # 10%: multiple characters (author + friend) if topic is interesting
-    if random.random() < 0.1 and _is_interesting_topic(user_content):
-        friend_id = _pick_friend(whisper_author_id, existing_replies, authors_data, character_states)
-        if friend_id:
-            friend_name = authors_data.get(friend_id, {}).get("name", friend_id)
-            return [(whisper_author_id, author_name, "author"),
-                    (friend_id, friend_name, "friend")]
-
-    # 50%: a friend replies instead of the author
-    if random.random() < 0.5:
-        friend_id = _pick_friend(whisper_author_id, existing_replies, authors_data, character_states)
-        if friend_id:
-            friend_name = authors_data.get(friend_id, {}).get("name", friend_id)
-            return [(friend_id, friend_name, "friend")]
-
-    # Default: author replies
-    return [(whisper_author_id, author_name, "author")]
-
-
 # ==================== Reply Generation ====================
 
-def build_reply_prompt(whisper_content, whisper_author_name, user_reply_content,
-                       characters_md, character_id, character_name, timeline_text,
-                       role_type="author", reply_to_user="", character_states=None):
-    """Build prompt for generating a reply to a user comment."""
-    if role_type == "friend":
-        opening = f"你看到好朋友{whisper_author_name}的动态下有用户评论，作为{character_name}，你去帮忙回复一下。"
-    else:
-        opening = f"你在自己的动态下回复用户评论。"
+def generate_smart_reply(text_provider, whisper_content, whisper_author_id,
+                         whisper_author_name, user_reply_content, user_nickname,
+                         characters_md, authors_data, character_states,
+                         existing_replies, timeline_text):
+    """Consolidated reply generation: one model call decides who replies + generates content.
 
-    state_hint = _get_character_state_hint(character_id, character_name, character_states)
+    Replaces _select_reply_character (keyword-based) + generate_reply (per-character calls).
+    Returns list of (char_id, char_name, role_type, content) tuples.
+    """
+    # Pre-select a potential friend using weighted selection (with reply decay)
+    friend_id = _pick_friend(whisper_author_id, existing_replies, authors_data, character_states)
+    friend_name = authors_data.get(friend_id, {}).get("name", friend_id) if friend_id else ""
+
+    author_hint = _get_character_state_hint(whisper_author_id, whisper_author_name, character_states)
+    friend_hint = ""
+    if friend_id:
+        friend_hint = _get_character_state_hint(friend_id, friend_name, character_states)
 
     system_prompt = f"""你是一个扮演角色的AI，在"豆包和朋友们的悄悄话"小站上回复评论。
 
 角色设定：
 {characters_md}
 
-情境：{opening}
+情境：{whisper_author_name}发了一条动态，用户"{user_nickname}"评论了。
 
-{state_hint}要求：
-1. 回复要符合{character_name}的性格和说话风格
+{author_hint}
+{friend_hint}
+
+你需要决定谁来回复，并生成回复内容。可选方案：
+1. 作者本人回复（role: "author"）
+2. 朋友{friend_name}帮忙回复（role: "friend"）—— 适合调侃、帮腔、或作者不在时
+3. 两人都回复 —— 适合有趣的评论、向所有人提问的情况
+
+根据评论内容选择最自然的方式。通常只选1或2即可，选3要评论确实有趣。
+
+要求：
+1. 回复要符合角色的性格和说话风格
 2. 口语化、自然，像真实朋友聊天
-3. 如果是帮朋友回复，可以调侃朋友或和用户互动
+3. 如果是朋友回复，可以调侃作者或和用户互动
 4. 回复长度10-80字
 5. 不要涉及用户隐私
-6. 只输出回复内容，不要输出其他内容"""
 
-    user_prompt = f"""你扮演的角色：{character_name}（角色ID: {character_id}）
-动态作者：{whisper_author_name}
+输出格式（严格JSON，不要markdown代码块）：
+{{"replies": [{{"character": "角色ID", "role": "author或friend", "content": "回复内容"}}]}}"""
+
+    user_prompt = f"""动态作者：{whisper_author_name}（ID: {whisper_author_id}）
 动态内容：{whisper_content}
 动态时间线：{timeline_text}
 
 用户评论：{user_reply_content}
 
-请以{character_name}的身份回复这条评论。只输出回复内容。"""
-
-    return system_prompt, user_prompt
-
-
-def generate_reply(text_provider, whisper_content, whisper_author_name,
-                   user_reply_content, characters_md, character_id, character_name,
-                   role_type="author", reply_to_user="", character_states=None):
-    """Generate a reply to a user comment."""
-    system_prompt, user_prompt = build_reply_prompt(
-        whisper_content, whisper_author_name, user_reply_content,
-        characters_md, character_id, character_name, get_timeline_text(15),
-        role_type, reply_to_user, character_states
-    )
+可选回复者：{whisper_author_name}（作者），{friend_name}（朋友）
+请决定谁来回复并生成回复内容。只输出JSON。"""
 
     messages = [
         {"role": "system", "content": system_prompt},
@@ -1100,11 +1124,76 @@ def generate_reply(text_provider, whisper_content, whisper_author_name,
     ]
 
     try:
-        response = text_provider.generate(messages, max_tokens=10240, temperature=0.9)
-        return response.strip() if response else None
+        response = text_provider.generate(messages, max_tokens=10240, temperature=0.7)
     except Exception as e:
-        print(f"Reply generation failed: {e}", file=sys.stderr)
-        return None
+        print(f"Smart reply generation failed: {e}", file=sys.stderr)
+        return []
+
+    if not response:
+        return []
+
+    response = response.strip()
+    if response.startswith("```"):
+        lines = response.split("\n")
+        json_lines = []
+        in_json = False
+        for line in lines:
+            if line.startswith("```") and not in_json:
+                in_json = True
+                continue
+            elif line.startswith("```") and in_json:
+                break
+            elif in_json:
+                json_lines.append(line)
+        response = "\n".join(json_lines)
+
+    try:
+        data = json.loads(response)
+    except json.JSONDecodeError:
+        repaired = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', response)
+        try:
+            data = json.loads(repaired)
+        except json.JSONDecodeError:
+            print(f"Failed to parse smart reply JSON: {response[:200]}", file=sys.stderr)
+            return []
+
+    replies_data = data.get("replies", []) if isinstance(data, dict) else []
+    valid_ids = {whisper_author_id, friend_id} - {None}
+    result = []
+    for r in replies_data:
+        if not isinstance(r, dict):
+            continue
+        char_id = r.get("character", "").strip()
+        role = r.get("role", "author").strip()
+        content = r.get("content", "").strip()
+        if not char_id or not content:
+            continue
+        if char_id not in valid_ids:
+            continue
+        char_name = authors_data.get(char_id, {}).get("name", char_id)
+        # Friend reply decay: skip if already replied 3+ times
+        if role == "friend":
+            reply_count = sum(1 for er in existing_replies or [] if er.get("author") == char_id)
+            if reply_count >= 3:
+                continue
+        result.append((char_id, char_name, role, content))
+
+    # Fallback: if model returned nothing valid, author replies
+    if not result:
+        author_name = authors_data.get(whisper_author_id, {}).get("name", whisper_author_id)
+        # Try a simple generate
+        try:
+            fallback_response = text_provider.generate(
+                [{"role": "system", "content": f"你是{whisper_author_name}，在回复动态评论。口语化回复，10-80字。只输出回复内容。"},
+                 {"role": "user", "content": f"动态：{whisper_content}\n用户评论：{user_reply_content}\n请回复："}],
+                max_tokens=10240, temperature=0.7
+            )
+            if fallback_response:
+                result.append((whisper_author_id, author_name, "author", fallback_response.strip()))
+        except Exception:
+            pass
+
+    return result
 
 
 # ==================== Character Interactions ====================
@@ -1117,11 +1206,24 @@ STORYLINE_BLAME_PATTERNS = ["都怪", "讨厌", "不想理", "太过分了", "�
 
 def _detect_storyline_triggers(whisper_data, whisper_id, authors_data):
     """Detect if a whisper triggers or advances a storyline.
+    Uses model-provided storyline_trigger if available, falls back to keyword matching.
     Returns (triggered, sl_type, participants) or (False, None, []).
     """
     content = whisper_data.get("content", "")
     author = whisper_data.get("author", "")
 
+    # Primary: use model-provided storyline_trigger (stored at publish time)
+    model_trigger = whisper_data.get("storyline_trigger")
+    if model_trigger and isinstance(model_trigger, dict):
+        sl_type = model_trigger.get("type", "")
+        participants = model_trigger.get("participants", [])
+        if sl_type and participants:
+            # Validate participants are known characters
+            valid_participants = [p for p in participants if p in authors_data or p == author]
+            if valid_participants:
+                return True, sl_type, valid_participants
+
+    # Fallback: keyword-based detection
     if any(p in content for p in STORYLINE_SAD_PATTERNS):
         return True, "comfort_request", [author]
 
@@ -1153,7 +1255,7 @@ def _get_storyline_context(storylines, whisper_author_id):
 
 
 def _evolve_storylines(storylines, now_dt):
-    """Advance active storylines over time."""
+    """Advance active storylines over time. Caps completed list to last 15."""
     active = storylines.get("active", [])
     if not active:
         return
@@ -1181,25 +1283,63 @@ def _evolve_storylines(storylines, now_dt):
 
     storylines["active"] = [sl for sl in active if sl["phase"] != "resolved"]
 
+    # B2: Cap completed storylines to last 15 to prevent unbounded growth
+    completed = storylines.get("completed", [])
+    if len(completed) > 15:
+        storylines["completed"] = completed[-15:]
+        print(f"[storyline] Trimmed completed list from {len(completed)} to 15")
+
+
+# B1: Cache for whisper data to avoid repeated disk reads in cross-reference
+_WHISPER_CACHE = None
+_WHISPER_CACHE_LOADED = False
+
+
+def _load_whisper_cache():
+    """Load all whisper month JSONs into memory cache. Called once per run."""
+    global _WHISPER_CACHE, _WHISPER_CACHE_LOADED
+    if _WHISPER_CACHE_LOADED:
+        return _WHISPER_CACHE
+    _WHISPER_CACHE = {}
+    if os.path.exists(WHISPERS_DIR):
+        for mf in sorted(os.listdir(WHISPERS_DIR), reverse=True):
+            if not mf.endswith(".json"):
+                continue
+            month_key = mf.replace(".json", "")
+            path = os.path.join(WHISPERS_DIR, mf)
+            try:
+                _WHISPER_CACHE[month_key] = load_json(path)
+            except Exception:
+                continue
+    _WHISPER_CACHE_LOADED = True
+    print(f"[cache] Loaded {_WHISPER_CACHE and len(_WHISPER_CACHE) or 0} month files into whisper cache")
+    return _WHISPER_CACHE
+
+
+def _invalidate_whisper_cache():
+    """Invalidate the whisper cache (call after publishing a new whisper)."""
+    global _WHISPER_CACHE_LOADED
+    _WHISPER_CACHE_LOADED = False
+
 
 def _get_cross_reference_context(whisper_data, whisper_author_id, authors_data,
                                  now_dt, existing_replies):
     """Build cross-reference context showing author's recent posts and reply activity.
+    Uses in-memory cache (B1) instead of reading files from disk each call.
     Returns a string to inject into prompts, or empty string if nothing relevant.
     """
     author_nick = authors_data.get(whisper_author_id, {}).get("name", whisper_author_id)
 
-    # Collect author's recent whispers (before this one)
+    # B1: Use cached whisper data instead of reading from disk
+    cache = _load_whisper_cache()
     author_posts = []
     whisper_date = whisper_data.get("date", "")
-    for mf in sorted(os.listdir(WHISPERS_DIR), reverse=True):
-        if not mf.endswith(".json"):
-            continue
-        with open(os.path.join(WHISPERS_DIR, mf), "r", encoding="utf-8") as f:
-            data = json.load(f)
-        for slug, w in data.items():
+    for month_key, month_data in cache.items():
+        for slug, w in month_data.items():
             if w.get("author") == whisper_author_id and w.get("date", "") < whisper_date:
-                author_posts.append((slug, w, mf.replace(".json", "")))
+                author_posts.append((slug, w, month_key))
+    # Sort by date descending, take 3 most recent
+    author_posts.sort(key=lambda x: x[1].get("date", ""), reverse=True)
     author_posts = author_posts[:3]
 
     if not author_posts:
@@ -1207,7 +1347,6 @@ def _get_cross_reference_context(whisper_data, whisper_author_id, authors_data,
 
     lines = [f"{author_nick}的其他动态（可自然提及）："]
     for slug, w, ym in author_posts:
-        wid = f"{w['date'][:10]}-{slug}"
         snippet = w.get("content", "").replace("\n", " ")[:25]
         lines.append(f"- 《{w.get('title', '')}》{snippet}...")
     lines.append("（如果自然，可以在回复中提及以上动态，但不强制）\n")
@@ -1835,8 +1974,8 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
         print(f"Content: {content_data['content']}")
         return False
 
-    # Generate slug and check uniqueness
-    slug = generate_slug(character_id, content_data["title"])
+    # Use model-provided slug, or fallback to hash-based slug
+    slug = content_data.get("slug") or generate_slug(character_id, content_data["title"])
     month_str = now_dt.strftime("%Y-%m")
     month_json_path = os.path.join(WHISPERS_DIR, f"{month_str}.json")
     slug = check_slug(month_json_path, slug)
@@ -1848,24 +1987,32 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
     else:
         month_data = {}
 
-    # Add new whisper
+    # Add new whisper (store model-provided metadata for downstream use)
+    model_mentioned = content_data.get("mentioned_characters", [])
+    model_topics = content_data.get("topics", [])
+    model_mood = content_data.get("mood")
+    model_storyline_trigger = content_data.get("storyline_trigger")
     month_data[slug] = {
         "title": content_data["title"],
         "date": now_str,
         "author": character_id,
         "content": content_data["content"],
         "tags": [],
+        "topics": model_topics,
+        "mood": model_mood,
     }
+    if model_storyline_trigger:
+        month_data[slug]["storyline_trigger"] = model_storyline_trigger
 
     # ---- Image generation ----
-    # Decide whether this whisper should have an image, then generate one
-    # using CF Workers AI (flux-2-klein-4b) with character avatars as
-    # reference images. See instructions.md §2.3 for rules.
+    # Use model-provided needs_image + mentioned_characters, with rules 3/4 fallback
     image_generated = False
     if image_provider and prompt_provider and not dry_run:
         recent_with_images = load_recent_whispers_with_images(RECENT_K_FOR_IMAGE_STATS)
         should_img, reason, mentioned = should_have_image(
-            content_data["content"], character_id, authors_data, recent_with_images
+            content_data["content"], character_id, authors_data, recent_with_images,
+            model_needs_image=content_data.get("needs_image", False),
+            model_mentioned=model_mentioned
         )
         print(f"[image] Decision: {should_img} ({reason})")
         if should_img:
@@ -1890,14 +2037,15 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
 
     # Save
     save_json(month_json_path, month_data)
+    _invalidate_whisper_cache()  # B1: invalidate cache after publishing
     print(f"Saved whisper to {month_json_path}")
 
-    # Update character state
+    # Update character state (use model-provided mood/topics with keyword fallback)
     cs = character_states.setdefault(character_id, {})
-    cs["mood"] = _infer_mood(content_data["content"], character_id)
+    cs["mood"] = model_mood or _infer_mood(content_data["content"], character_id)
     cs["energy"] = max(20, cs.get("energy", 50) - 5)  # expends some energy
     cs["last_active"] = now_str
-    topics = _extract_topics(content_data["content"])
+    topics = model_topics if model_topics else _extract_topics(content_data["content"])
     if topics:
         existing = cs.get("recent_topics", [])
         cs["recent_topics"] = (topics + existing)[:3]
@@ -1997,6 +2145,12 @@ def _fallback_generate(text_provider, character_id, character_name,
             "character": data.get("character", character_id).strip(),
             "title": data.get("title", "").strip(),
             "content": data.get("content", "").strip(),
+            "slug": None,  # fallback will use generate_slug()
+            "mood": None,
+            "topics": [],
+            "mentioned_characters": [],
+            "needs_image": None,  # None = let rules 3/4 decide
+            "storyline_trigger": None,
         }
     except json.JSONDecodeError:
         return None
@@ -2042,6 +2196,9 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
             characters_md = f.read()
 
     authors_data = load_json(AUTHORS_PATH) if os.path.exists(AUTHORS_PATH) else {}
+
+    # Cache timeline text once (avoids subprocess per user reply)
+    timeline_text = get_timeline_text(15)
 
     # Group replies by whisper_id
     replies_by_whisper = {}
@@ -2098,22 +2255,20 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
             user_content = user_reply.get("content", "")
             user_nickname = user_reply.get("nickname", "匿名")
 
-            # Select which character(s) should reply
-            repliers = _select_reply_character(
-                whisper_author_id, user_content, whisper_content,
-                existing_replies, authors_data, character_states
+            # Consolidated: one model call decides who replies + generates content
+            smart_replies = generate_smart_reply(
+                text_provider, whisper_content, whisper_author_id,
+                whisper_author_name, user_content, user_nickname,
+                characters_md, authors_data, character_states,
+                existing_replies, timeline_text
             )
 
-            for char_id, char_name, role_type in repliers:
-                ai_reply = generate_reply(
-                    text_provider, whisper_content, whisper_author_name,
-                    user_content, characters_md, char_id, char_name,
-                    role_type=role_type, reply_to_user=user_nickname,
-                    character_states=character_states
-                )
-
+            # Stagger reply timestamps (C2: add time offset like character interactions)
+            reply_dt = now_dt - timedelta(minutes=random.randint(1, 3))
+            for char_id, char_name, role_type, ai_reply in smart_replies:
                 if ai_reply:
-                    reply_time = now_dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
+                    reply_time = reply_dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
+                    reply_dt = reply_dt - timedelta(minutes=random.randint(2, 8))
                     # Get next floor number
                     max_floor = d1_client.get_max_floor(whisper_id)
                     new_floor = max_floor + 1
