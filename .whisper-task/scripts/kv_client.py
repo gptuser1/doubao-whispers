@@ -1,25 +1,27 @@
 #!/usr/bin/env python3
-"""Cloudflare KV REST API client for the runner.
+"""Cloudflare KV REST API client.
 
-Used by apply_image_replacements() to pick up pending image-replacement
-requests that the diagnostic endpoint (functions/api/_diag/replace-image.js)
-wrote into KV.
+Generic client for the diagnostic KV namespace. Reads/writes/deletes keys
+via the Cloudflare REST API. The client itself is feature-agnostic —
+callers decide the key prefix/structure, so future diagnostic features
+(e.g. diag:reload, diag:flush) can share this same client without
+per-feature env vars.
 
-Env vars (set in GitHub Actions):
-  CF_KV_ACCOUNT_ID   — Cloudflare account ID
-  CF_KV_NAMESPACE_ID — KV namespace ID (the diagnostic namespace)
-  CF_KV_API_TOKEN    — API token with Workers KV read/write on that namespace
+The client is constructed with explicit account_id / namespace_id /
+api_token; the caller chooses which env vars to read them from (e.g.
+CF_DEFAULT_ACCOUNT_ID + CF_DEFAULT_API_TOKEN + CF_DIAG_KV_ID, so the
+diag namespace reuses the existing default CF credentials rather than
+needing its own token).
 
 Usage:
     from kv_client import KVClient
-    kv = KVClient()  # reads env vars
-    keys = kv.list_keys(prefix="pending_replace:")
+    kv = KVClient(account_id, namespace_id, api_token)
+    keys = kv.list_keys(prefix="diag:replace:")
     value = kv.get_value(key)
     kv.delete_key(key)
+    kv.put_value(key, value)
 """
 
-import os
-import sys
 import requests
 
 
@@ -27,18 +29,16 @@ _KV_BASE = "https://api.cloudflare.com/client/v4/accounts/{aid}/storage/kv/names
 
 
 class KVClient:
-    """Cloudflare KV REST API client (runner side)."""
+    """Cloudflare KV REST API client (feature-agnostic)."""
 
-    def __init__(self, account_id=None, namespace_id=None, api_token=None):
-        self.account_id = account_id or os.environ.get("CF_KV_ACCOUNT_ID", "")
-        self.namespace_id = namespace_id or os.environ.get("CF_KV_NAMESPACE_ID", "")
-        self.api_token = api_token or os.environ.get("CF_KV_API_TOKEN", "")
-
-        if not (self.account_id and self.namespace_id and self.api_token):
+    def __init__(self, account_id, namespace_id, api_token):
+        if not (account_id and namespace_id and api_token):
             raise ValueError(
-                "KVClient requires CF_KV_ACCOUNT_ID, CF_KV_NAMESPACE_ID, "
-                "and CF_KV_API_TOKEN environment variables"
+                "KVClient requires account_id, namespace_id, and api_token"
             )
+        self.account_id = account_id
+        self.namespace_id = namespace_id
+        self.api_token = api_token
 
     def _url(self, suffix=""):
         base = _KV_BASE.format(aid=self.account_id, nid=self.namespace_id)
@@ -55,7 +55,7 @@ class KVClient:
 
         Returns list of key name strings. KV list returns at most 1000 keys
         per call; for simplicity we fetch one page (the diagnostic use case
-        won't have thousands of pending replacements).
+        won't have thousands of pending requests).
         """
         params = {"limit": limit}
         if prefix:
@@ -76,7 +76,7 @@ class KVClient:
         return [k["name"] for k in (data.get("result") or [])]
 
     def get_value(self, key):
-        """Get a key's value as a string (the endpoint stores JSON strings)."""
+        """Get a key's value as a string."""
         resp = requests.get(
             self._url(f"values/{key}"),
             headers=self._headers(),
@@ -85,6 +85,21 @@ class KVClient:
         if resp.status_code >= 400:
             raise RuntimeError(f"KV get failed: HTTP {resp.status_code} {resp.text[:200]}")
         return resp.text
+
+    def put_value(self, key, value, ttl=None):
+        """Write a key's value. value is a string. ttl is optional seconds."""
+        data = {"value": value}
+        if ttl:
+            data["expiration_ttl"] = ttl
+        resp = requests.put(
+            self._url(f"values/{key}"),
+            headers=self._headers(),
+            data=data,
+            timeout=30,
+        )
+        if resp.status_code >= 400:
+            raise RuntimeError(f"KV put failed: HTTP {resp.status_code} {resp.text[:200]}")
+        return True
 
     def delete_key(self, key):
         """Delete a key."""

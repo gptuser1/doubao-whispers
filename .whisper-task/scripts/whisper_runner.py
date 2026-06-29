@@ -715,7 +715,31 @@ def repack_month_images(month_str):
 
 # ==================== Image Replacement (Diagnostic) ====================
 
-_KV_REPLACE_PREFIX = "pending_replace:"
+# KV key prefix for image-replacement requests. The diag KV namespace is
+# shared by current and future diagnostic features; each feature gets its
+# own prefix under "diag:" so they can be listed/processed independently.
+# Examples: diag:replace: (image replacement), diag:reload: (future), etc.
+_DIAG_KV_REPLACE_PREFIX = "diag:replace:"
+
+
+def _get_diag_kv():
+    """Build a KVClient for the diagnostic KV namespace.
+
+    Reuses the default Cloudflare account + API token (the diag namespace
+    doesn't need its own token) and reads the namespace ID from
+    CF_DIAG_KV_ID. Returns None if any env var is missing (the diagnostic
+    feature silently disables in environments that haven't configured it).
+    """
+    account_id = os.environ.get("CF_DEFAULT_ACCOUNT_ID", "")
+    api_token = os.environ.get("CF_DEFAULT_API_TOKEN", "")
+    namespace_id = os.environ.get("CF_DIAG_KV_ID", "")
+    if not (account_id and api_token and namespace_id):
+        return None
+    try:
+        return KVClient(account_id, namespace_id, api_token)
+    except ValueError as e:
+        print(f"[diag] KV client init failed: {e}", file=sys.stderr)
+        return None
 
 
 def _resolve_image_filename(whisper_id, whisper_data, seq):
@@ -758,20 +782,14 @@ def apply_image_replacements(now_dt, dry_run=False):
 
     Returns True if any changes were made.
     """
-    # KV 环境变量未配置时静默跳过（本地开发、未配置诊断服务的环境）
-    if not (os.environ.get("CF_KV_ACCOUNT_ID") and os.environ.get("CF_KV_NAMESPACE_ID")
-            and os.environ.get("CF_KV_API_TOKEN")):
-        return False
-
     print("\n--- Apply Image Replacements ---")
-    try:
-        kv = KVClient()
-    except ValueError as e:
-        print(f"[diag] KV not configured, skipping: {e}")
+    kv = _get_diag_kv()
+    if kv is None:
+        print("[diag] KV not configured (CF_DEFAULT_ACCOUNT_ID/CF_DEFAULT_API_TOKEN/CF_DIAG_KV_ID), skipping")
         return False
 
     try:
-        keys = kv.list_keys(prefix=_KV_REPLACE_PREFIX)
+        keys = kv.list_keys(prefix=_DIAG_KV_REPLACE_PREFIX)
     except Exception as e:
         print(f"[diag] KV list failed: {e}", file=sys.stderr)
         return False
@@ -794,7 +812,7 @@ def apply_image_replacements(now_dt, dry_run=False):
         wid = req.get("whisper_id", "")
         if not wid:
             continue
-        # key 格式: pending_replace:{whisper_id}:{ts}，ts 越大越新
+        # key 格式: diag:replace:{whisper_id}:{ts}，ts 越大越新
         ts_part = key.rsplit(":", 1)[-1]
         try:
             ts = int(ts_part)

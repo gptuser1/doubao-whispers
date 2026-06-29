@@ -3,19 +3,22 @@
 // 这是一个隐藏的诊断端点，不在前端任何页面暴露。用于一期需求：
 // 替换指定 whisper 的配图。流程为异步：
 //   1. 调用方 POST 本端点（带 secret 头 + whisper_id + 图片 base64）
-//   2. 端点校验 secret 后，把请求写入 KV（pending_replace:{whisper_id}:{ts}）
+//   2. 端点校验 secret 后，把请求写入 KV（diag:replace:{whisper_id}:{ts}）
 //   3. cron runner 执行时拾取 KV 中的待处理请求，解码图片、转 webp、
 //      写入 static/images/、重打包当月 tar、更新 whisper JSON，最后删除 KV key
 //
-// KV 绑定：IMAGE_REPLACE_KV（见 wrangler.toml）
+// KV 绑定：DIAG_KV（见 wrangler.toml，诊断 namespace，未来其他诊断功能共用）
 // 认证：X-Diag-Secret 请求头需匹配环境变量 DIAG_SECRET
+//
+// KV key 前缀 diag:replace: 是本功能专属；未来其他诊断功能用各自前缀
+// （如 diag:reload:），共用同一个 DIAG_KV namespace，互不干扰。
 
 const ALLOWED_ORIGINS = [
   'https://doubao-whispers.pages.dev',
   'https://whisper.imagic.dpdns.org'
 ];
 
-const KV_PREFIX = 'pending_replace:';
+const KV_PREFIX = 'diag:replace:';
 const WHISPER_ID_RE = /^\d{4}-\d{2}-\d{2}-.+$/;
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2MB base64 上限（解码后约 1.5MB）
 
@@ -68,8 +71,8 @@ export async function onRequest(context) {
   }
 
   // KV 绑定检查
-  if (!env.IMAGE_REPLACE_KV) {
-    return jsonResp(500, { error: 'IMAGE_REPLACE_KV binding missing' }, corsHeaders);
+  if (!env.DIAG_KV) {
+    return jsonResp(500, { error: 'DIAG_KV binding missing' }, corsHeaders);
   }
 
   // 解析请求体
@@ -113,7 +116,7 @@ export async function onRequest(context) {
   });
 
   try {
-    await env.IMAGE_REPLACE_KV.put(key, value);
+    await env.DIAG_KV.put(key, value);
   } catch (e) {
     return jsonResp(500, { error: `KV write failed: ${e.message}` }, corsHeaders);
   }
