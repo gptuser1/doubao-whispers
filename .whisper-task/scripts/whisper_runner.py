@@ -1109,6 +1109,79 @@ def generate_reply(text_provider, whisper_content, whisper_author_name,
 
 # ==================== Character Interactions ====================
 
+# ==================== Storylines (relationship arcs) ====================
+
+STORYLINE_SAD_PATTERNS = ["好烦", "委屈", "不开心", "难过", "生气", "被抢", "被骂", "被说", "好惨", "好累"]
+STORYLINE_BLAME_PATTERNS = ["都怪", "讨厌", "不想理", "太过分了", "再也不"]
+
+
+def _detect_storyline_triggers(whisper_data, whisper_id, authors_data):
+    """Detect if a whisper triggers or advances a storyline.
+    Returns (triggered, sl_type, participants) or (False, None, []).
+    """
+    content = whisper_data.get("content", "")
+    author = whisper_data.get("author", "")
+
+    if any(p in content for p in STORYLINE_SAD_PATTERNS):
+        return True, "comfort_request", [author]
+
+    for p in STORYLINE_BLAME_PATTERNS:
+        if p in content:
+            for aid, info in authors_data.items():
+                if aid != author and info.get("name", "") in content:
+                    return True, "minor_conflict", [author, aid]
+
+    return False, None, []
+
+
+def _get_storyline_context(storylines, whisper_author_id):
+    """Build storyline context string for prompts. Empty if no relevant storylines."""
+    active = storylines.get("active", []) if storylines else []
+    if not active:
+        return ""
+
+    relevant = [sl for sl in active if whisper_author_id in sl.get("participants", [])]
+    if not relevant:
+        return ""
+
+    phase_cn = {"active": "还在别扭中", "de-escalating": "关系在缓和", "resolved": "已经和好了"}
+    lines = ["【进行中的故事情节】"]
+    for sl in relevant:
+        lines.append(f"- {sl.get('summary', '')}（{phase_cn.get(sl.get('phase', ''), '')}）")
+    lines.append("回复时注意保持情绪一致，不要和 storyline 矛盾。\n")
+    return "\n".join(lines)
+
+
+def _evolve_storylines(storylines, now_dt):
+    """Advance active storylines over time."""
+    active = storylines.get("active", [])
+    if not active:
+        return
+
+    for sl in active:
+        started_str = sl.get("started_at", "")
+        if not started_str:
+            continue
+        try:
+            started = datetime.fromisoformat(started_str)
+        except (ValueError, TypeError):
+            continue
+
+        hours = (now_dt - started).total_seconds() / 3600
+
+        if sl["phase"] == "active" and hours > 48:
+            sl["phase"] = "de-escalating"
+            print(f"[storyline] {sl['id']}: active → de-escalating")
+
+        elif sl["phase"] == "de-escalating" and hours > 72:
+            sl["phase"] = "resolved"
+            sl["resolved_at"] = now_dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
+            storylines.setdefault("completed", []).append(sl)
+            print(f"[storyline] {sl['id']}: resolved!")
+
+    storylines["active"] = [sl for sl in active if sl["phase"] != "resolved"]
+
+
 def _get_cross_reference_context(whisper_data, whisper_author_id, authors_data,
                                  now_dt, existing_replies):
     """Build cross-reference context showing author's recent posts and reply activity.
@@ -1198,6 +1271,12 @@ emoji和标点符号不是绝对的规则，你要系统性理解这些角色，
         whisper_data, whisper_author_id, authors_data, now_dt, existing_replies
     )
 
+    # Storyline context for the whisper author
+    storyline_block = _get_storyline_context(
+        character_states.get("storylines", {}) if character_states else {},
+        whisper_author_id
+    )
+
     state_hints_block = ""
     if state_hints_lines:
         state_hints_block = "各角色当前状态：\n" + "\n".join(state_hints_lines) + "\n\n"
@@ -1209,7 +1288,7 @@ emoji和标点符号不是绝对的规则，你要系统性理解这些角色，
 
 {voice_rules}
 
-{state_hints_block}互动原则（核心——决定真实感）：
+{state_hints_block}{storyline_block}互动原则（核心——决定真实感）：
 1. 【生成数量】本次只生成1-3条回复。不要追求全员到齐，只从下方"可选角色"里挑人。平淡动态可能只1条，有话题的最多3条。
 2. 【作者下场】动态作者本人也可以参与！如果有人评论了动态、尤其是对作者说了话/调侃/提问，作者应该回复那条评论（带reply_to+floor）。朋友来你朋友圈评论，你总得回一句。
 3. 【接话链——必须】如果已有回复里有人说了有意思的话，优先接话（带reply_to+floor），而不是每条都回复动态本身。一批回复里至少1条要接话，全部回复动态本身=失败。
@@ -1650,6 +1729,26 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
         for r in new_replies:
             reply_to_info = f" (reply to {r['reply_to']}#{r['reply_to_floor']})" if r.get("reply_to") else ""
             print(f"    + {r['nickname']}: {r['content'][:40]}...{reply_to_info}")
+
+        # Storyline detection for this whisper
+        triggered, sl_type, participants = _detect_storyline_triggers(w_data, whisper_id, authors_data)
+        if triggered:
+            storylines = state.setdefault("storylines", {"active": [], "completed": []})
+            # Check if already active
+            existing = [sl for sl in storylines["active"] if sl.get("trigger_whisper_id") == whisper_id]
+            if not existing:
+                new_sl = {
+                    "id": f"{sl_type}-{whisper_id}",
+                    "type": sl_type,
+                    "phase": "active",
+                    "participants": participants,
+                    "trigger_whisper_id": whisper_id,
+                    "started_at": now_str,
+                    "summary": w_data.get("content", "")[:40],
+                    "escalation_level": 1,
+                }
+                storylines["active"].append(new_sl)
+                print(f"[storyline] New {sl_type} started: {new_sl['id']}")
 
     # Update state
     state["last_run"]["character_interactions"] = now_str
@@ -2156,9 +2255,11 @@ def main():
     # Update heartbeat count
     state = d1_client.get_state()
     state.setdefault("character_states", {})
+    state.setdefault("storylines", {"active": [], "completed": []})
     state["stats"]["total_heartbeats"] = state["stats"].get("total_heartbeats", 0) + 1
-    # Evolve character states based on time
+    # Evolve character states and storylines based on time
     _evolve_character_states(state["character_states"], now)
+    _evolve_storylines(state["storylines"], now)
     d1_client.save_state(state)
 
     changes_made = False
