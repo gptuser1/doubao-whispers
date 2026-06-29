@@ -22,6 +22,7 @@ import sys
 import random
 import re
 import time
+import base64
 from datetime import datetime, timezone, timedelta
 
 # Add scripts directory to path
@@ -30,6 +31,7 @@ sys.path.insert(0, SCRIPT_DIR)
 
 from ai_client import create_text_provider, create_image_provider, merge_usage_into_state
 from d1_client import D1Client
+from kv_client import KVClient
 from character_selector import select_character, CHARACTER_WEIGHTS
 from reply_utils import add_replies, load_month_file
 
@@ -709,6 +711,219 @@ def repack_month_images(month_str):
     else:
         print(f"[image] WARNING: pack_images.py failed for {month_str}", file=sys.stderr)
     return rc == 0
+
+
+# ==================== Image Replacement (Diagnostic) ====================
+
+_KV_REPLACE_PREFIX = "pending_replace:"
+
+
+def _resolve_image_filename(whisper_id, whisper_data, seq):
+    """从 whisper JSON 的 images 字段推导要替换/补的图片文件名。
+
+    优先用 whisper JSON 已有的 images[seq-1]（去掉 /images/ 前缀），
+    否则用默认 {whisper_id}-{seq}.webp。
+    返回 (filename, images_field_present)。
+    """
+    images = whisper_data.get("images") or []
+    idx = seq - 1
+    if 0 <= idx < len(images):
+        url = images[idx]
+        # url 形如 "/images/2026-06-28-nuonuo-0cd4cf-1.webp"
+        filename = url.split("/images/")[-1] if "/images/" in url else url.lstrip("/")
+        return filename, True
+    return f"{whisper_id}-{seq}.webp", False
+
+
+def _ext_for_content_type(content_type):
+    """根据 content_type 推导临时文件扩展名（给 process_image.py 喂输入用）。"""
+    ct = (content_type or "").lower()
+    if "png" in ct:
+        return ".png"
+    if "jpeg" in ct or "jpg" in ct:
+        return ".jpg"
+    if "webp" in ct:
+        return ".webp"
+    if "gif" in ct:
+        return ".gif"
+    return ".png"
+
+
+def apply_image_replacements(now_dt, dry_run=False):
+    """拾取 KV 中的待处理配图替换请求并逐个应用。
+
+    流程：KV.list → 按 whisper_id 分组取最新 → 解码图片 → 非webp转webp →
+    写 static/images/ → repack 当月 tar → 更新 whisper JSON（补图时加 images 字段）→
+    删除 KV key。每次 cron 都跑（KV.list 很便宜），无 KV 配置时静默跳过。
+
+    Returns True if any changes were made.
+    """
+    # KV 环境变量未配置时静默跳过（本地开发、未配置诊断服务的环境）
+    if not (os.environ.get("CF_KV_ACCOUNT_ID") and os.environ.get("CF_KV_NAMESPACE_ID")
+            and os.environ.get("CF_KV_API_TOKEN")):
+        return False
+
+    print("\n--- Apply Image Replacements ---")
+    try:
+        kv = KVClient()
+    except ValueError as e:
+        print(f"[diag] KV not configured, skipping: {e}")
+        return False
+
+    try:
+        keys = kv.list_keys(prefix=_KV_REPLACE_PREFIX)
+    except Exception as e:
+        print(f"[diag] KV list failed: {e}", file=sys.stderr)
+        return False
+
+    if not keys:
+        print("No pending image replacements")
+        return False
+
+    print(f"Found {len(keys)} pending image replacement request(s)")
+
+    # 取出所有请求值
+    requests_by_whisper = {}  # whisper_id -> (latest_value, all_keys_for_this_whisper)
+    for key in keys:
+        try:
+            raw = kv.get_value(key)
+            req = json.loads(raw)
+        except Exception as e:
+            print(f"[diag] Failed to read KV key {key}: {e}", file=sys.stderr)
+            continue
+        wid = req.get("whisper_id", "")
+        if not wid:
+            continue
+        # key 格式: pending_replace:{whisper_id}:{ts}，ts 越大越新
+        ts_part = key.rsplit(":", 1)[-1]
+        try:
+            ts = int(ts_part)
+        except ValueError:
+            ts = 0
+        prev = requests_by_whisper.get(wid)
+        if prev is None or ts > prev[1]:
+            requests_by_whisper[wid] = (req, ts, [])
+        # 收集所有 key 以便处理完一起删
+        requests_by_whisper[wid][2].append(key)
+
+    if not requests_by_whisper:
+        print("No valid image replacement requests")
+        return False
+
+    if dry_run:
+        for wid, (req, _, _) in requests_by_whisper.items():
+            print(f"  [DRY RUN] Would replace image for {wid} (seq={req.get('seq',1)})")
+        return False
+
+    changes_made = False
+    for wid, (req, _, all_keys) in requests_by_whisper.items():
+        month_str = req.get("month_str", wid[:7])
+        seq = req.get("seq", 1)
+        image_b64 = req.get("image_base64", "")
+        content_type = req.get("content_type", "image/webp")
+
+        print(f"  Processing {wid} (seq={seq})")
+
+        # 校验 whisper 存在
+        whisper_json_path = os.path.join(WHISPERS_DIR, f"{month_str}.json")
+        if not os.path.exists(whisper_json_path):
+            print(f"    Skip: whisper file {month_str}.json not found")
+            _delete_keys_silent(kv, all_keys)
+            continue
+        month_data = load_json(whisper_json_path)
+        slug_part = wid[11:]
+        whisper_data = month_data.get(slug_part)
+        if not whisper_data:
+            print(f"    Skip: whisper {wid} not found in {month_str}.json")
+            _delete_keys_silent(kv, all_keys)
+            continue
+
+        # 推导图片文件名
+        image_filename, had_images = _resolve_image_filename(wid, whisper_data, seq)
+        final_path = os.path.join(IMAGES_DIR, image_filename)
+
+        # 解码 base64 写临时文件
+        try:
+            img_bytes = base64.b64decode(image_b64)
+        except Exception as e:
+            print(f"    Skip: base64 decode failed: {e}")
+            _delete_keys_silent(kv, all_keys)
+            continue
+
+        os.makedirs(IMAGES_DIR, exist_ok=True)
+        is_webp = "webp" in (content_type or "").lower() or image_filename.lower().endswith(".webp")
+
+        if is_webp:
+            # 直接写 webp
+            try:
+                with open(final_path, "wb") as f:
+                    f.write(img_bytes)
+            except Exception as e:
+                print(f"    Skip: write webp failed: {e}")
+                _delete_keys_silent(kv, all_keys)
+                continue
+        else:
+            # 非 webp：先写临时文件，再用 process_image.py 转 webp
+            ext = _ext_for_content_type(content_type)
+            tmp_path = final_path + ".tmp" + ext
+            try:
+                with open(tmp_path, "wb") as f:
+                    f.write(img_bytes)
+                # 调 process_image.py 转换
+                _, rc = run_script([sys.executable, PROCESS_IMAGE_SCRIPT, tmp_path, final_path])
+                if rc != 0 or not os.path.exists(final_path):
+                    print(f"    Skip: process_image.py conversion failed")
+                    _delete_keys_silent(kv, all_keys)
+                    continue
+            finally:
+                if os.path.exists(tmp_path):
+                    try:
+                        os.remove(tmp_path)
+                    except OSError:
+                        pass
+
+        # 补图：whisper 原本无 images 字段，加上
+        if not had_images:
+            images_list = whisper_data.get("images") or []
+            new_url = f"/images/{image_filename}"
+            if new_url not in images_list:
+                # 插到 seq-1 位置或末尾
+                while len(images_list) < seq - 1:
+                    images_list.append("")
+                if seq - 1 < len(images_list):
+                    images_list[seq - 1] = new_url
+                else:
+                    images_list.append(new_url)
+                whisper_data["images"] = [x for x in images_list if x]
+                month_data[slug_part] = whisper_data
+                save_json(whisper_json_path, month_data)
+                print(f"    Added images field to {wid}: {whisper_data['images']}")
+
+        # 重打包当月 tar（pack_images.py 会自动从旧 tar补齐其他图 + 重新打包，
+        # 且不会用旧 tar 覆盖我们刚写的新文件）
+        if not repack_month_images(month_str):
+            print(f"    WARNING: repack failed for {month_str}, image written but tar not updated",
+                  file=sys.stderr)
+
+        # 删除 KV key
+        _delete_keys_silent(kv, all_keys)
+
+        changes_made = True
+        print(f"    Replaced image for {wid}: {image_filename}")
+
+    print(f"Image replacements complete: "
+          f"{sum(1 for w in requests_by_whisper.values()) } processed, "
+          f"changes={'yes' if changes_made else 'no'}")
+    return changes_made
+
+
+def _delete_keys_silent(kv, keys):
+    """删除一组 KV key，失败只记录不中断。"""
+    for k in keys:
+        try:
+            kv.delete_key(k)
+        except Exception as e:
+            print(f"[diag] KV delete failed for {k}: {e}", file=sys.stderr)
 
 
 # ==================== Content Generation ====================
@@ -2587,6 +2802,13 @@ def main():
     # Task 3: Character interactions (generate character-to-character replies)
     interacted = do_character_interactions(config, d1_client, get_provider("character_interactions"), now, args.dry_run)
     if interacted:
+        changes_made = True
+
+    # Task 4: Apply pending image replacements from the diagnostic KV queue.
+    # Runs every cron (no trigger check) — KV.list is cheap and replacements
+    # are on-demand. Silently skips if KV env vars not configured.
+    replaced = apply_image_replacements(now, args.dry_run)
+    if replaced:
         changes_made = True
 
     # Record token usage stats into D1 state (sum across all providers)

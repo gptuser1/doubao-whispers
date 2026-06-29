@@ -5,3 +5,11 @@ compatibility_date = "2026-06-19"
 binding = "DB"
 database_name = "ocean"
 database_id = "1def5ff8-4c2e-4c21-9d99-40ca845c693a"
+
+# KV namespace for the diagnostic image-replacement service.
+# The endpoint (functions/api/_diag/replace-image.js) writes pending
+# replacement requests here; the cron runner reads & deletes them.
+# Fill in the real namespace id after `wrangler kv namespace create`.
+[[kv_namespaces]]
+binding = "IMAGE_REPLACE_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
