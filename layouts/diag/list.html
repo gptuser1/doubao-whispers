@@ -26,7 +26,7 @@
         <div class="diag-field">
             <label for="diag-image">图片文件</label>
             <input type="file" id="diag-image" name="image" accept="image/png,image/jpeg,image/webp,image/gif" required>
-            <small class="diag-hint">支持 png/jpg/webp/gif，上传前自动压缩为 WebP（最大边 1200px）。</small>
+            <small class="diag-hint">支持 png/jpg/webp/gif，上传前自动压缩为 WebP（最大边 1024px）。</small>
         </div>
 
         <div id="diag-preview" class="diag-preview" hidden>
@@ -194,10 +194,11 @@
     // 压缩后的 webp blob，由 fileInput change 事件填充，submit 时读取
     let compressedBlob = null;
 
-    // 将图片压缩为 WebP blob，与 runner 端 process_image.py 参数对齐：
-    // 最大边 1200px（不放大）、质量从 0.8 起自适应下调至 <=1.8MB。
-    // 这样原本数 MB 的 png/jpg 会压到几百 KB，大幅减小上传压力，
-    // 且 runner 最终也是存 webp，前端预压缩不改变最终结果质量。
+    // 将图片压缩为 WebP blob，与 runner 实际存储尺寸对齐：
+    // CF flux-2 输出固定 1024×768，runner 调 process_image.py 时走默认
+    // max_size=1200，但 1024<1200 所以不缩放，最终存的就是 1024×768。
+    // 前端压缩用最大边 1024（不放大）、质量从 0.8 起自适应下调至
+    // <=1.8MB，既减小上传压力又不改变最终结果质量。
     function loadImg(file) {
         return new Promise((resolve, reject) => {
             const url = URL.createObjectURL(file);
@@ -208,7 +209,7 @@
         });
     }
 
-    async function compressToWebp(file, maxDim = 1200) {
+    async function compressToWebp(file, maxDim = 1024) {
         const img = await loadImg(file);
         let w = img.naturalWidth, h = img.naturalHeight;
         // 等比缩放，最大边不超过 maxDim，小图不放大（与 process_image.py 一致）
