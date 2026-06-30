@@ -26,15 +26,21 @@
         <div class="diag-field">
             <label for="diag-image">图片文件</label>
             <input type="file" id="diag-image" name="image" accept="image/png,image/jpeg,image/webp,image/gif" required>
-            <small class="diag-hint">支持 png/jpg/webp/gif，最大 2MB。</small>
+            <small class="diag-hint">支持 png/jpg/webp/gif，上传前自动压缩为 WebP（最大边 1200px）。</small>
         </div>
 
         <div id="diag-preview" class="diag-preview" hidden>
-            <span class="diag-preview-label">预览：</span>
+            <span class="diag-preview-label">预览（已压缩为 WebP）：</span>
             <img id="diag-preview-img" alt="预览">
+            <small id="diag-compress-info" class="diag-hint"></small>
         </div>
 
         <button type="submit" id="diag-submit" class="diag-submit">提交</button>
+
+        <div id="diag-progress" class="diag-progress" hidden>
+            <div class="diag-progress-bar"><div id="diag-progress-fill"></div></div>
+            <span id="diag-progress-text" class="diag-hint">0%</span>
+        </div>
     </form>
 
     <div id="diag-status" class="diag-status" hidden></div>
@@ -122,6 +128,27 @@
     background: #999;
     cursor: not-allowed;
 }
+.diag-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+.diag-progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--border, #eee);
+    border-radius: 4px;
+    overflow: hidden;
+}
+#diag-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: #0066cc;
+    transition: width 0.15s;
+}
+@media (prefers-color-scheme: dark) {
+    #diag-progress-fill { background: #2c7fd6; }
+}
 .diag-status {
     margin-top: 1.2rem;
     padding: 0.8rem 1rem;
@@ -160,6 +187,56 @@
     const previewImg = document.getElementById('diag-preview-img');
     const submitBtn = document.getElementById('diag-submit');
     const statusBox = document.getElementById('diag-status');
+    const compressInfo = document.getElementById('diag-compress-info');
+    const progressBox = document.getElementById('diag-progress');
+    const progressFill = document.getElementById('diag-progress-fill');
+    const progressText = document.getElementById('diag-progress-text');
+    // 压缩后的 webp blob，由 fileInput change 事件填充，submit 时读取
+    let compressedBlob = null;
+
+    // 将图片压缩为 WebP blob，与 runner 端 process_image.py 参数对齐：
+    // 最大边 1200px（不放大）、质量从 0.8 起自适应下调至 <=1.8MB。
+    // 这样原本数 MB 的 png/jpg 会压到几百 KB，大幅减小上传压力，
+    // 且 runner 最终也是存 webp，前端预压缩不改变最终结果质量。
+    function loadImg(file) {
+        return new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+            img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('图片读取失败')); };
+            img.src = url;
+        });
+    }
+
+    async function compressToWebp(file, maxDim = 1200) {
+        const img = await loadImg(file);
+        let w = img.naturalWidth, h = img.naturalHeight;
+        // 等比缩放，最大边不超过 maxDim，小图不放大（与 process_image.py 一致）
+        if (Math.max(w, h) > maxDim) {
+            const r = maxDim / Math.max(w, h);
+            w = Math.max(1, Math.round(w * r));
+            h = Math.max(1, Math.round(h * r));
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        // 质量自适应：0.8 → 0.7 → ... → 0.5，直到 <=1.8MB
+        const MAX_BYTES = 1.8 * 1024 * 1024;
+        for (let q = 0.8; q >= 0.5; q -= 0.1) {
+            const blob = await new Promise(r => canvas.toBlob(r, 'image/webp', q));
+            if (blob && blob.size <= MAX_BYTES) return { blob, width: w, height: h, quality: q };
+        }
+        // 兜底：最低质量
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/webp', 0.5));
+        return { blob, width: w, height: h, quality: 0.5 };
+    }
+
+    function fmtSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+    }
 
     // 匹配 YYYY-MM-DD-slug 格式（最终目标格式）
     const ID_RE = /^(\d{4})-(\d{2})-(\d{2})-(.+)$/;
@@ -250,36 +327,43 @@
         }
     });
 
-    // 文件选择后预览
-    fileInput.addEventListener('change', function() {
+    // 文件选择后压缩为 WebP 并预览
+    fileInput.addEventListener('change', async function() {
         const file = this.files[0];
         if (!file) {
             previewBox.hidden = true;
+            compressedBlob = null;
             return;
         }
-        if (file.size > 2 * 1024 * 1024) {
-            showStatus('文件过大（>2MB），请压缩后再上传。', false);
-            this.value = '';
-            previewBox.hidden = true;
-            return;
-        }
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            previewImg.src = e.target.result;
+        try {
+            showStatus('压缩中...', true);
+            const { blob, width, height, quality } = await compressToWebp(file);
+            compressedBlob = blob;
+            previewImg.src = URL.createObjectURL(blob);
             previewBox.hidden = false;
-        };
-        reader.readAsDataURL(file);
+            compressInfo.textContent =
+                `${file.name}：${fmtSize(file.size)} → ${fmtSize(blob.size)} ` +
+                `（${width}×${height}，质量 ${quality.toFixed(1)}）`;
+            statusBox.hidden = true;
+        } catch (err) {
+            showStatus('压缩失败：' + err.message, false);
+            compressedBlob = null;
+            previewBox.hidden = true;
+            this.value = '';
+        }
     });
 
     // 提交
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
         statusBox.hidden = true;
+        progressBox.hidden = true;
+        progressFill.style.width = '0%';
+        progressText.textContent = '0%';
 
         const secret = document.getElementById('diag-secret').value.trim();
         const parsed = parseWhisperId(whisperInput.value);
         const seq = parseInt(document.getElementById('diag-seq').value, 10) || 1;
-        const file = fileInput.files[0];
 
         if (!secret) {
             showStatus('请填写令牌。', false);
@@ -289,12 +373,12 @@
             showStatus('动态识别失败，请检查输入。', false);
             return;
         }
-        if (!file) {
-            showStatus('请选择图片文件。', false);
+        if (!compressedBlob) {
+            showStatus('请先选择图片（等待压缩完成）。', false);
             return;
         }
 
-        // 读取文件为 base64（去掉 data:...;base64, 前缀）
+        // 读取压缩后的 webp blob 为 base64
         const reader = new FileReader();
         const base64 = await new Promise((resolve, reject) => {
             reader.onload = () => {
@@ -303,43 +387,61 @@
                 resolve(idx >= 0 ? result.slice(idx + 1) : result);
             };
             reader.onerror = () => reject(new Error('文件读取失败'));
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(compressedBlob);
         });
 
         const body = {
             whisper_id: parsed.value,
             image_base64: base64,
-            content_type: file.type || 'image/webp',
+            content_type: 'image/webp',
             seq: seq
         };
+        const bodyStr = JSON.stringify(body);
 
         submitBtn.disabled = true;
         submitBtn.textContent = '提交中...';
+        progressBox.hidden = false;
+
+        // 用 XHR 替代 fetch，以获得上传进度（fetch API 不支持上传进度）
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/_diag/replace-image');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('X-Diag-Secret', secret);
+
+        xhr.upload.onprogress = function(ev) {
+            if (ev.lengthComputable) {
+                const pct = Math.round(ev.loaded / ev.total * 100);
+                progressFill.style.width = pct + '%';
+                progressText.textContent = pct + '%';
+            }
+        };
 
         try {
-            const resp = await fetch('/api/_diag/replace-image', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Diag-Secret': secret
-                },
-                body: JSON.stringify(body)
+            const resp = await new Promise((resolve, reject) => {
+                xhr.onload = () => {
+                    let data = {};
+                    try { data = JSON.parse(xhr.responseText); } catch (_) {}
+                    resolve({ ok: xhr.status >= 200 && xhr.status < 300, data });
+                };
+                xhr.onerror = () => reject(new Error('网络错误'));
+                xhr.send(bodyStr);
             });
-            const data = await resp.json().catch(() => ({}));
 
-            if (resp.ok && data.status === 'queued') {
+            if (resp.ok && resp.data.status === 'queued') {
                 showStatus('已提交，等待调度应用。', true);
                 form.reset();
                 previewBox.hidden = true;
                 parsedHint.hidden = true;
+                compressedBlob = null;
             } else {
-                showStatus('提交失败：' + (data.error || resp.statusText || '未知错误'), false);
+                showStatus('提交失败：' + (resp.data.error || '未知错误'), false);
             }
         } catch (err) {
             showStatus('网络错误：' + err.message, false);
         } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = '提交';
+            progressBox.hidden = true;
         }
     });
 })();
