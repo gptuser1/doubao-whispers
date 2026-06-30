@@ -285,14 +285,17 @@ def get_author_nickname(author_id, authors_data):
 
 # ==================== Image Generation ====================
 
-# Avatar filename mapping. avatar.webp is doubao (no suffix).
-AVATAR_FILES = {
-    "doubao": "avatar.webp",
-    "guga": "avatar-guga.webp",
-    "doro": "avatar-doro.webp",
-    "feibi": "avatar-feibi.webp",
-    "baizi": "avatar-baizi.webp",
-    "nuonuo": "avatar-nuonuo.webp",
+# Reference image mapping for image generation. These are high-quality
+# 512x512 PNG character portraits in static/images/input/, used as reference
+# tiles for the CF flux-2 model. Separate from display avatars (avatar-*.webp)
+# which are tiny (200x200) and only used for the website UI.
+REFERENCE_IMAGE_FILES = {
+    "doubao": "input/doubao.png",
+    "guga": "input/guga.png",
+    "doro": "input/doro.png",
+    "feibi": "input/feibi.png",
+    "baizi": "input/baizi.png",
+    "nuonuo": "input/nuonuo.png",
 }
 
 # Romanized names for the image prompt. The flux-2-klein-4b model is
@@ -309,41 +312,42 @@ NAME_ROMANIZATION = {
     "nuonuo": "Nuonuo",
 }
 
-def get_avatar_path(author_id):
-    """Return absolute path to an author's avatar file, or None if missing."""
-    fname = AVATAR_FILES.get(author_id)
+def get_reference_image_path(author_id):
+    """Return absolute path to an author's 512x512 PNG reference image, or None."""
+    fname = REFERENCE_IMAGE_FILES.get(author_id)
     if not fname:
         return None
     path = os.path.join(IMAGES_DIR, fname)
     return path if os.path.exists(path) else None
 
 
-# Cache for pre-processed avatar PNG bytes, keyed by character id.
-# Populated once at startup by preload_avatars() so image generation can
+# Cache for pre-processed reference image PNG bytes, keyed by character id.
+# Populated once at startup by preload_references() so image generation can
 # reuse the cached bytes without re-reading and re-processing files.
-_AVATAR_CACHE = {}
+_REFERENCE_CACHE = {}
 
 
-def preload_avatars():
-    """Load and pre-process all character avatars into _AVATAR_CACHE.
+def preload_references():
+    """Load and pre-process all character reference images into _REFERENCE_CACHE.
 
-    Converts each avatar to <=512x512 PNG bytes (the format CF flux-2 expects),
-    so image generation can pass cached bytes directly instead of re-reading
-    files on every call.
+    Converts each reference image to <=512x512 PNG bytes (the format CF flux-2
+    expects), so image generation can pass cached bytes directly instead of
+    re-reading files on every call. The input/*.png files are already 512x512
+    so no resizing happens — they pass through at full resolution.
     """
     from ai_client import _prepare_reference_image
-    for aid in AVATAR_FILES:
-        path = get_avatar_path(aid)
+    for aid in REFERENCE_IMAGE_FILES:
+        path = get_reference_image_path(aid)
         if path:
             png_bytes = _prepare_reference_image(path)
             if png_bytes:
-                _AVATAR_CACHE[aid] = png_bytes
-                print(f"[avatar] Cached {aid}: {len(png_bytes)} bytes",
+                _REFERENCE_CACHE[aid] = png_bytes
+                print(f"[ref] Cached {aid}: {len(png_bytes)} bytes",
                       file=sys.stderr)
             else:
-                print(f"[avatar] Failed to cache {aid}", file=sys.stderr)
+                print(f"[ref] Failed to cache {aid}", file=sys.stderr)
         else:
-            print(f"[avatar] No avatar file for {aid}", file=sys.stderr)
+            print(f"[ref] No reference image file for {aid}", file=sys.stderr)
 
 
 def extract_mentioned_characters(content, authors_data):
@@ -570,26 +574,26 @@ def generate_whisper_image(image_provider, rephrase_provider, content, character
         return None, None
     print(f"[image] Prompt: {prompt[:120]}...")
 
-    # Collect reference images: author avatar + mentioned chars' avatars (max 4)
+    # Collect reference images: author + mentioned chars' reference images (max 4)
     # Use pre-cached PNG bytes if available, fall back to file paths.
     ref_chars = [character_id] + mentioned_chars
     ref_data = []
     for aid in ref_chars:
-        cached = _AVATAR_CACHE.get(aid)
+        cached = _REFERENCE_CACHE.get(aid)
         if cached:
             ref_data.append((aid, cached))
         else:
-            p = get_avatar_path(aid)
+            p = get_reference_image_path(aid)
             if p:
                 ref_data.append(p)
             else:
-                print(f"[image] No avatar found for {aid}", file=sys.stderr)
+                print(f"[image] No reference image found for {aid}", file=sys.stderr)
     ref_data = ref_data[:MAX_REFERENCE_IMAGES]
     if not ref_data:
-        print("[image] No reference avatars available, skipping image", file=sys.stderr)
+        print("[image] No reference images available, skipping image", file=sys.stderr)
         return None, None
     ref_labels = [r[0] if isinstance(r, tuple) else os.path.basename(r) for r in ref_data]
-    print(f"[image] Reference avatars: {ref_labels}")
+    print(f"[image] Reference images: {ref_labels}")
 
     # Output path: static/images/YYYY-MM-DD-{slug}-1.webp
     # CF returns PNG (base64); we save as .png then convert to .webp
@@ -2833,10 +2837,10 @@ def main():
         except Exception as e:
             print(f"Failed to init image provider (whispers will be text-only): {e}", file=sys.stderr)
 
-    # Pre-load and cache avatar PNG bytes so image generation doesn't
+    # Pre-load and cache reference image PNG bytes so image generation doesn't
     # re-read files on every call.
     if image_provider:
-        preload_avatars()
+        preload_references()
 
     # Prompt provider for image prompt building/rephrasing: use the "oc"
     # text profile if available, else fall back to default.

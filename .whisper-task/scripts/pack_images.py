@@ -15,8 +15,9 @@
     python pack_images.py 2026-06
 
 说明：
-- 只打包配图（文件名格式：YYYY-MM-DD-*.webp）
+- 只打包配图（文件名格式：YYYY-MM-DD-*.{webp,png}）
 - 头像文件（avatar-*.webp）不打包
+- 参考图（input/ 子目录）不打包（os.listdir 不递归子目录）
 - 每个月生成一个 YYYY-MM.tar 文件
 - 打包后的文件放在 data/images/ 目录
 """
@@ -34,8 +35,11 @@ PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
 STATIC_IMAGES_DIR = os.path.join(PROJECT_ROOT, 'static', 'images')
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, '.whisper-task', 'images')
 
-# 配图文件名格式：YYYY-MM-DD-xxx.webp
-IMAGE_PATTERN = re.compile(r'^(\d{4}-\d{2})-\d{2}-.+\.webp$')
+# 配图文件名格式：YYYY-MM-DD-xxx.{webp,png}
+# 同时匹配 .webp 和 .png，避免 .png 配图漏打包成为孤儿文件。
+# 参考图 input/*.png 不受影响：它们在子目录中，os.listdir 不递归，
+# 且文件名（doubao.png 等）也不匹配 YYYY-MM-DD- 前缀。
+IMAGE_PATTERN = re.compile(r'^(\d{4}-\d{2})-\d{2}-.+\.(webp|png)$')
 
 
 def get_images_by_month():
