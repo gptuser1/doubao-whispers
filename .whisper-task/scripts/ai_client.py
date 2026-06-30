@@ -309,9 +309,14 @@ class WorkersAIImage(ImageProvider):
                         # File path: load and process on the fly
                         ref_bytes = _prepare_reference_image(ref)
                     if ref_bytes:
-                        # Field name "image" for single, "image[]" for multiple.
-                        # Using "image[]" for all so CF treats them as an array.
-                        field_name = "image[]" if len(refs) > 1 else "image"
+                        # CF flux-2 expects reference images as input_image_0,
+                        # input_image_1, ... (0-indexed, up to 4). This matches
+                        # the see-u-say playground frontend, which is verified
+                        # to produce good character-consistency results. The
+                        # previous "image"/"image[]" field names were NOT
+                        # recognized by CF as reference inputs, so the model
+                        # was effectively doing pure text-to-image.
+                        field_name = f"input_image_{idx}"
                         files.append((field_name, (f"ref_{idx}.png", ref_bytes, "image/png")))
                 except Exception as e:
                     print(f"[image] Skipping reference {ref}: {e}", file=sys.stderr)
@@ -368,9 +373,16 @@ def _prepare_reference_image(path, max_size=512):
         from PIL import Image
         import io
         img = Image.open(path)
-        # Convert to RGB (drop alpha for PNG compatibility with the model)
-        if img.mode in ("RGBA", "LA", "P"):
-            img = img.convert("RGB")
+        # Composite onto a white background before dropping alpha. This mirrors
+        # the see-u-say playground frontend (canvas white fill + drawImage) so
+        # transparent reference images are handled identically. Without this,
+        # PIL's convert("RGB") turns transparent regions black, which confuses
+        # the model about the character's appearance.
+        if img.mode != "RGBA":
+            img = img.convert("RGBA")
+        background = Image.new("RGBA", img.size, (255, 255, 255, 255))
+        img = Image.alpha_composite(background, img)
+        img = img.convert("RGB")
         # Downscale only if larger than max_size; never upscale
         if img.width > max_size or img.height > max_size:
             ratio = min(max_size / img.width, max_size / img.height)
