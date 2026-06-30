@@ -530,7 +530,7 @@ Write the image prompt now using the labeled format above. Only the prompt, noth
         {"role": "user", "content": user_prompt},
     ]
     try:
-        prompt = text_provider.generate(messages, max_tokens=10240, temperature=0.3)
+        prompt = text_provider.generate(messages, max_tokens=10240, temperature=0.3, enable_thinking=True)
         prompt = prompt.strip().strip('"').strip("'").strip("`")
         # Strip markdown code fence if present
         if prompt.startswith("```"):
@@ -676,7 +676,7 @@ Rules:
         {"role": "user", "content": prompt},
     ]
     try:
-        new_prompt = rephrase_provider.generate(messages, max_tokens=10240, temperature=0.3)
+        new_prompt = rephrase_provider.generate(messages, max_tokens=10240, temperature=0.3, enable_thinking=True)
         new_prompt = new_prompt.strip().strip('"').strip("'").strip("`").strip()
         if new_prompt.startswith("```"):
             lines = new_prompt.split("\n")
@@ -1229,7 +1229,7 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
             {"role": "user", "content": user_prompt},
         ]
         try:
-            response = text_provider.generate(messages, max_tokens=10240, temperature=0.7)
+            response = text_provider.generate(messages, max_tokens=10240, temperature=0.7, enable_thinking=True)
         except Exception as e:
             print(f"AI generation failed: {e}", file=sys.stderr)
             return None
@@ -1438,7 +1438,7 @@ def generate_smart_reply(text_provider, whisper_content, whisper_author_id,
     ]
 
     try:
-        response = text_provider.generate(messages, max_tokens=10240, temperature=0.7)
+        response = text_provider.generate(messages, max_tokens=10240, temperature=0.7, enable_thinking=True)
     except Exception as e:
         print(f"Smart reply generation failed: {e}", file=sys.stderr)
         return []
@@ -1500,7 +1500,7 @@ def generate_smart_reply(text_provider, whisper_content, whisper_author_id,
             fallback_response = text_provider.generate(
                 [{"role": "system", "content": f"你是{whisper_author_name}，在回复动态评论。口语化回复，10-80字。只输出回复内容。"},
                  {"role": "user", "content": f"动态：{whisper_content}\n用户评论：{user_reply_content}\n请回复："}],
-                max_tokens=10240, temperature=0.7
+                max_tokens=10240, temperature=0.7, enable_thinking=True
             )
             if fallback_response:
                 result.append((whisper_author_id, author_name, "author", fallback_response.strip()))
@@ -1803,7 +1803,7 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
     ]
 
     try:
-        response = text_provider.generate(messages, max_tokens=10240, temperature=0.7)
+        response = text_provider.generate(messages, max_tokens=10240, temperature=0.7, enable_thinking=True)
     except Exception as e:
         print(f"Character interaction generation failed: {e}", file=sys.stderr)
         return None
@@ -2487,7 +2487,7 @@ def _fallback_generate(text_provider, character_id, character_name,
     ]
 
     try:
-        response = text_provider.generate(messages, max_tokens=10240, temperature=0.9)
+        response = text_provider.generate(messages, max_tokens=10240, temperature=0.9, enable_thinking=True)
     except Exception as e:
         print(f"Fallback AI generation failed: {e}", file=sys.stderr)
         return None
