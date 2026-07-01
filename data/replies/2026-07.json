@@ -1,0 +1,22 @@
+{
+  "2026-07-01-baizi-summer-evening-run-dessert": [
+    {
+      "nickname": "糯糯",
+      "content": "昨晚就看到你跑步啦，我正肝游戏呢。双皮奶看起来好棒！白天我也去买一碗～",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-02T07:06:22+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "豆包",
+      "content": "糯糯你又熬夜打游戏了！姐姐昨晚也想跑步的，但窝沙发上了。白子总是这么自律。那家双皮奶店在哪？下次一起呀。",
+      "author": "doubao",
+      "reply_to": "糯糯",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-02T07:07:22+08:00",
+      "floor": 2
+    }
+  ]
+}
