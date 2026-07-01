@@ -1987,18 +1987,19 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
             last_reply_dt = None
 
         # Stagger backward from now: last reply closest to now (most recent),
-        # earlier replies precede it. Each gap 20-60s.
-        spans = [random.randint(20, 60) for _ in valid_replies]
-        total_back = sum(spans) + random.randint(0, 30)
-        current_dt = now_dt - timedelta(seconds=total_back)
+        # earlier replies precede it. Each gap 1-3 min (front-end displays at
+        # minute precision, so second-level gaps would show identical times).
+        spans = [random.randint(1, 3) for _ in valid_replies]
+        total_back = sum(spans) + random.randint(0, 2)
+        current_dt = now_dt - timedelta(minutes=total_back)
         # Must not be earlier than the latest existing reply (preserve order)
         if last_reply_dt and current_dt < last_reply_dt:
-            current_dt = last_reply_dt + timedelta(seconds=random.randint(20, 60))
+            current_dt = last_reply_dt + timedelta(minutes=random.randint(1, 3))
         for reply, span in zip(valid_replies, spans):
             if current_dt > now_dt:
                 current_dt = now_dt
             reply["timestamp"] = current_dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
-            current_dt = current_dt + timedelta(seconds=span)
+            current_dt = current_dt + timedelta(minutes=span)
 
     return valid_replies if valid_replies else None
 
@@ -2667,10 +2668,11 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
             except Exception:
                 user_reply_dt = now_dt
 
-            # earliest = 用户回复后 15 秒；同时允许最多比 now 早 90 秒（自然抖动）；
+            # earliest = 用户回复后 1-2 分钟；同时允许最多比 now 早 1-3 分钟（自然抖动）；
             # 二者取较晚者，确保既晚于用户回复又不超 now。
-            earliest = user_reply_dt + timedelta(seconds=15)
-            base_dt = max(earliest, now_dt - timedelta(seconds=random.randint(0, 90)))
+            # 前端按分钟显示，所以抖动单位用分钟，避免多条回复显示同一时间。
+            earliest = user_reply_dt + timedelta(minutes=random.randint(1, 2))
+            base_dt = max(earliest, now_dt - timedelta(minutes=random.randint(0, 3)))
             base_dt = min(base_dt, now_dt)  # 不能晚于 now
 
             reply_dt = base_dt
@@ -2678,7 +2680,7 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
                 if ai_reply:
                     reply_time = reply_dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
                     # 下一条角色回复稍晚于此条（连续回复自然递增），但不超过 now
-                    reply_dt = min(reply_dt + timedelta(seconds=random.randint(20, 60)),
+                    reply_dt = min(reply_dt + timedelta(minutes=random.randint(1, 3)),
                                    now_dt)
 
                     new_replies_for_whisper.append({
