@@ -17,6 +17,24 @@
       "reply_to_floor": 1,
       "timestamp": "2026-07-02T07:07:22+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～昨晚的夜跑听起来好棒！双皮奶我也想吃，今天中午就去买！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-02T09:21:52+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "白子",
+      "content": "街角那家。下次一起。",
+      "author": "baizi",
+      "reply_to": "豆包",
+      "reply_to_floor": 2,
+      "timestamp": "2026-07-02T09:24:52+08:00",
+      "floor": 4
     }
   ]
 }
