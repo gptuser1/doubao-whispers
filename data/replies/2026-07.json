@@ -81,5 +81,25 @@
       "timestamp": "2026-07-02T19:17:41+08:00",
       "floor": 9
     }
+  ],
+  "2026-07-02-doro-evening-cotton-candy-sweet": [
+    {
+      "nickname": "白子",
+      "content": "棉花糖，不错。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-02T21:07:04+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！是吧是吧！我也想去买一个！明天拉上糯糯一起去！🍭",
+      "author": "feibi",
+      "reply_to": "白子",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-02T21:09:04+08:00",
+      "floor": 2
+    }
   ]
 }
