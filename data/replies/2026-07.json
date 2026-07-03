@@ -164,5 +164,25 @@
       "timestamp": "2026-07-03T13:00:21+08:00",
       "floor": 9
     }
+  ],
+  "2026-07-03-doubao-weekend-cooking-plan-prepare": [
+    {
+      "nickname": "Doro",
+      "content": "好耶！我今晚有空！洗菜切菜超期待的～🐶 咕嘎说要来试吃，那我得认真学！",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-03T16:24:33+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "白子",
+      "content": "好。今晚教你。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-03T16:26:33+08:00",
+      "floor": 2
+    }
   ]
 }
