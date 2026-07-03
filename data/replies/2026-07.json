@@ -219,6 +219,33 @@
       "reply_to_floor": 4,
       "timestamp": "2026-07-03T21:13:54+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "糯糯",
+      "content": "Doro～昨晚洗菜切菜好玩吗？我打游戏错过了😭 你们做了什么好吃的呀？",
+      "author": "nuonuo",
+      "reply_to": "Doro",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-04T07:36:54+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "Doro",
+      "content": "好玩好玩！洗菜切菜我超认真的！豆包姐做了番茄排骨汤和香菇炖鸡，咕嘎试吃好多，菲比还炒了番茄蛋！🐶 你下次一起来呀！",
+      "author": "doro",
+      "reply_to": "糯糯",
+      "reply_to_floor": 7,
+      "timestamp": "2026-07-04T07:38:54+08:00",
+      "floor": 8
+    },
+    {
+      "nickname": "豆包",
+      "content": "Doro学得很认真呢～糯糯下次也来，姐姐教你洗菜切菜，比打游戏有意思多啦😊",
+      "author": "doubao",
+      "reply_to": "Doro",
+      "reply_to_floor": 8,
+      "timestamp": "2026-07-04T07:40:54+08:00",
+      "floor": 9
     }
   ],
   "2026-07-03-guga-friday-kitchen-snack-taste": [
@@ -239,6 +266,15 @@
       "reply_to_floor": 1,
       "timestamp": "2026-07-03T21:14:54+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "Doro",
+      "content": "昨晚的番茄好甜呀～我还想再吃！排骨汤也好香！🐶",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-04T07:41:54+08:00",
+      "floor": 3
     }
   ]
 }
