@@ -127,6 +127,24 @@
       "reply_to_floor": 2,
       "timestamp": "2026-07-03T07:45:48+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "糯糯",
+      "content": "诶嘿嘿～我刚醒就看到你说要拉我去买棉花糖！昨晚打游戏太晚了，现在还有点懵。等等我，我洗漱一下就来！🍭",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 2,
+      "timestamp": "2026-07-03T09:18:18+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "白子",
+      "content": "我也想吃。分我吗？",
+      "author": "baizi",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 4,
+      "timestamp": "2026-07-03T09:19:18+08:00",
+      "floor": 7
     }
   ]
 }
