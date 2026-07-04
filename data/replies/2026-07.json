@@ -478,5 +478,25 @@
       "timestamp": "2026-07-04T20:35:45+08:00",
       "floor": 8
     }
+  ],
+  "2026-07-04-guga-first-homemade-cake-evening": [
+    {
+      "nickname": "Doro",
+      "content": "咕嘎好棒呀！蛋糕刚出炉的时候一定特别香～我明天要第一个冲到你面前！🐶✨",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-04T22:11:13+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！！蛋糕蛋糕！我明天也要抢！谁都不许跟我抢最大的那块！😆🎉",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-04T22:14:13+08:00",
+      "floor": 2
+    }
   ]
 }
