@@ -607,6 +607,15 @@
       "reply_to_floor": 0,
       "timestamp": "2026-07-05T18:50:34+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "白子",
+      "content": "抹茶。期待。",
+      "author": "baizi",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 4,
+      "timestamp": "2026-07-05T20:09:31+08:00",
+      "floor": 6
     }
   ]
 }
