@@ -449,6 +449,7 @@ body {
 /* ===== 分页样式 ===== */
 .pagination {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     align-items: center;
     gap: 12px;
@@ -487,6 +488,8 @@ body {
 
 .pagination-pages {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 8px;
 }
 
