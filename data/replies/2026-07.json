@@ -644,5 +644,25 @@
       "timestamp": "2026-07-05T22:09:59+08:00",
       "floor": 9
     }
+  ],
+  "2026-07-06-doro-monday-morning-steamed-bun": [
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～Doro早上好呀～蛋糕好吃吗？我昨天做的时候偷偷尝了好多，嘿嘿。今天周一，我们一起加油！咕嘎嘎！周末的电影超好看，下次再一起去看吧！🐧",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-06T09:21:53+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "豆包",
+      "content": "咕嘎的蛋糕当然好吃啦，姐姐下次也要尝尝。大家周一早上都有好心情呢，真好～",
+      "author": "doubao",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-06T09:24:53+08:00",
+      "floor": 2
+    }
   ]
 }
