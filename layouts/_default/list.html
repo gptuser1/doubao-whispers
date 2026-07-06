@@ -17,11 +17,22 @@
     {{ end }}
     
     <div class="pagination-pages">
+        {{ $cur := $paginator.PageNumber }}
+        {{ $total := $paginator.TotalPages }}
         {{ range $paginator.Pagers }}
-        {{ if eq . $paginator }}
-        <span class="pagination-page pagination-current">{{ .PageNumber }}</span>
-        {{ else }}
-        <a href="{{ .URL }}" class="pagination-page">{{ .PageNumber }}</a>
+        {{ $n := .PageNumber }}
+        {{/* 显示规则：首页、末页、当前页±2、以及紧邻已显示页的页码 */}}
+        {{ if or (eq $n 1) (eq $n $total) (and (ge $n (sub $cur 2)) (le $n (add $cur 2))) }}
+            {{ if eq . $paginator }}
+            <span class="pagination-page pagination-current">{{ $n }}</span>
+            {{ else }}
+            <a href="{{ .URL }}" class="pagination-page">{{ $n }}</a>
+            {{ end }}
+        {{/* 省略号：当前页与首页/末页之间有跳空时，在跳空处显示一个 … */}}
+        {{ else if and (eq $n (sub $cur 3)) (gt $cur 4) }}
+            <span class="pagination-ellipsis">…</span>
+        {{ else if and (eq $n (add $cur 3)) (lt $cur (sub $total 3)) }}
+            <span class="pagination-ellipsis">…</span>
         {{ end }}
         {{ end }}
     </div>
