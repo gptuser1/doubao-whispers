@@ -447,15 +447,24 @@ body {
 }
 
 /* ===== 分页样式 ===== */
+/* 两行布局：第一行页码，第二行 左箭头 | 跳页框 | 右箭头 */
 .pagination {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+        "pages pages pages"
+        "prev  jump  next";
     gap: 12px;
+    justify-items: center;
+    align-items: center;
     margin-top: 30px;
     padding: 20px 0;
 }
+.pagination-prev { grid-area: prev; }
+.pagination-pages { grid-area: pages; }
+.pagination-jump { grid-area: jump; }
+.pagination-next { grid-area: next; }
 
 .pagination-btn {
     width: 36px;
@@ -532,7 +541,7 @@ body {
 
 /* 跳页输入框 */
 .pagination-jump {
-    margin-left: 8px;
+    /* grid-area 已定位，无需 margin */
 }
 
 .pagination-jump-input {
