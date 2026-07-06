@@ -518,14 +518,10 @@ body {
     cursor: default;
 }
 
-/* 省略号：与页码按钮同尺寸，无边框无背景，纯文字 */
+/* 省略号：不占按钮宽度，只占字符宽度 + 父级 gap */
 .pagination-ellipsis {
-    min-width: 36px;
-    height: 36px;
-    padding: 0 10px;
     display: flex;
     align-items: center;
-    justify-content: center;
     color: var(--fg-secondary);
     font-size: 0.9em;
     user-select: none;
