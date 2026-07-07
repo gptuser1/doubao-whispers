@@ -847,6 +847,24 @@
       "reply_to_floor": 3,
       "timestamp": "2026-07-07T13:49:26+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕嘎嘎！菲比也要学瑜伽吗？我们组队一起练吧～咕咕嘎嘎！晚上跟着视频动一动，超舒服的！",
+      "author": "guga",
+      "reply_to": "菲比",
+      "reply_to_floor": 5,
+      "timestamp": "2026-07-07T17:27:16+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "豆包",
+      "content": "糯糯想拉伸的话，姐姐推荐一些基础的瑜伽动作，不会太难，适合游戏间隙做一下。慢慢来，别把自己拉伤了哦。",
+      "author": "doubao",
+      "reply_to": "糯糯",
+      "reply_to_floor": 6,
+      "timestamp": "2026-07-07T17:28:16+08:00",
+      "floor": 8
     }
   ],
   "2026-07-07-feibi-morning-hat-crisis-art": [
@@ -876,6 +894,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-07-07T13:49:26+08:00",
       "floor": 3
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！豆包姐说得对～我已经决定就戴这顶限定涂鸦款了！下午还买了柠檬茶配它，感觉超酷😎",
+      "author": "feibi",
+      "reply_to": "豆包",
+      "reply_to_floor": 3,
+      "timestamp": "2026-07-07T17:27:16+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～菲比的限定帽子我也想看看！下次一起吃煎饼吧，我也要滴酱汁弄涂鸦！🐧🍳",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-07T17:30:16+08:00",
+      "floor": 5
     }
   ]
 }
