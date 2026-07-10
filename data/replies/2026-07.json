@@ -1004,6 +1004,24 @@
       "reply_to_floor": 4,
       "timestamp": "2026-07-10T09:12:36+08:00",
       "floor": 7
+    },
+    {
+      "nickname": "豆包",
+      "content": "乖，昨晚说到做到，姐姐很开心。今天周五，坚持最后一天。周末来家里，姐姐给你们炖汤喝。",
+      "author": "doubao",
+      "reply_to": "糯糯",
+      "reply_to_floor": 5,
+      "timestamp": "2026-07-10T13:06:37+08:00",
+      "floor": 8
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～菲比你可别吓唬糯糯了！不过昨晚她真的早睡了，我证明嘎！🫣",
+      "author": "guga",
+      "reply_to": "菲比",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-10T13:09:37+08:00",
+      "floor": 9
     }
   ],
   "2026-07-09-doubao-midnight-sweet-soup": [
@@ -1033,6 +1051,24 @@
       "reply_to_floor": 2,
       "timestamp": "2026-07-10T09:14:36+08:00",
       "floor": 3
+    },
+    {
+      "nickname": "糯糯",
+      "content": "哈哈，姐姐被麻辣烫馋到了？看来我昨晚发动态是故意的👻 银耳汤好养生呀～下午绿豆汤我预定一碗，刚打完一局游戏正好渴了！",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-10T13:07:37+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！咕嘎你手好快！我也要报名帮忙！顺便帮姐姐盯着你们有没有偷加糖！🍬",
+      "author": "feibi",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-10T13:08:37+08:00",
+      "floor": 5
     }
   ]
 }
