@@ -1208,6 +1208,33 @@
       "reply_to_floor": 1,
       "timestamp": "2026-07-11T18:06:47+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～薄荷巧克力冰淇淋看起来好清凉！我也想去买一支🍦",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-11T19:20:56+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "Doro",
+      "content": "菲比～我也想吃！我们去找白子问问还有没有吧🐶",
+      "author": "doro",
+      "reply_to": "菲比",
+      "reply_to_floor": 2,
+      "timestamp": "2026-07-11T19:22:56+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "白子",
+      "content": "嗯，不错。下次一起。",
+      "author": "baizi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-11T19:25:56+08:00",
+      "floor": 5
     }
   ]
 }
