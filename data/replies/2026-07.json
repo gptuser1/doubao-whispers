@@ -1189,5 +1189,25 @@
       "timestamp": "2026-07-11T14:57:04+08:00",
       "floor": 9
     }
+  ],
+  "2026-07-11-baizi-afternoon-mint-ice-cream": [
+    {
+      "nickname": "糯糯",
+      "content": "刚打完一局就看到你在吃冰淇淋！薄荷巧克力是我第二爱的口味😋 下次我也去买一支！",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-11T18:03:47+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！糯糯你又在打游戏！我也好想吃冰淇淋🍦 白子有没有给我留一口呀！",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-11T18:06:47+08:00",
+      "floor": 2
+    }
   ]
 }
