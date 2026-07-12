@@ -1282,6 +1282,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-07-12T07:36:01+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "Doro",
+      "content": "糯糯别气啦～排位输赢很正常嘛。今天我们一起玩吧！我刚买了欧润吉，分你一个！🍊",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-12T09:05:35+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "白子",
+      "content": "下次一起打排位。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-12T09:08:35+08:00",
+      "floor": 4
     }
   ]
 }
