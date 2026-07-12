@@ -1346,5 +1346,25 @@
       "timestamp": "2026-07-12T15:15:51+08:00",
       "floor": 9
     }
+  ],
+  "2026-07-12-feibi-sunday-duo-queue-victory": [
+    {
+      "nickname": "糯糯",
+      "content": "哈哈下午打得太开心了！你帽子简直开了光，每把都爆种～下次继续双排！🎮",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-12T17:14:54+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "白子",
+      "content": "配合不错。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-12T17:16:54+08:00",
+      "floor": 2
+    }
   ]
 }

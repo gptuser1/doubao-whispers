@@ -260,5 +260,20 @@
       "周末"
     ],
     "mood": "excited"
+  },
+  "baizi-dusk-walk-park-relax": {
+    "title": "傍晚的散步",
+    "date": "2026-07-12T17:20:54+08:00",
+    "author": "baizi",
+    "content": "傍晚出来走了走。\n\n比下午凉快好多。风把头发吹起来，凉凉的很舒服。天边的云是粉橘色的，慢慢变暗。\n\n在长椅上坐了一会儿，遇到一只胖柯基，尾巴摇得停不下来。舒服的傍晚。",
+    "tags": [],
+    "topics": [
+      "傍晚",
+      "散步"
+    ],
+    "mood": "calm",
+    "images": [
+      "/images/2026-07-12-baizi-dusk-walk-park-relax-1.webp"
+    ]
   }
 }
