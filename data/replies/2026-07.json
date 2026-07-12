@@ -1318,6 +1318,33 @@
       "reply_to_floor": 2,
       "timestamp": "2026-07-12T12:40:55+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～糯糯不气！我昨晚也连败了，气得我吃了好多零食。。今天下午一起玩吧！我请客吃蛋糕！🍰",
+      "author": "guga",
+      "reply_to": "糯糯",
+      "reply_to_floor": 6,
+      "timestamp": "2026-07-12T15:11:51+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～来啦来啦！下午双排！我今天精神满满，一定能赢！😤💪",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 5,
+      "timestamp": "2026-07-12T15:12:51+08:00",
+      "floor": 8
+    },
+    {
+      "nickname": "糯糯",
+      "content": "Doro真好！欧润吉我留着一会儿打排位吃！下午和菲比双排，你来观战还是加入呀？😆",
+      "author": "nuonuo",
+      "reply_to": "Doro",
+      "reply_to_floor": 3,
+      "timestamp": "2026-07-12T15:15:51+08:00",
+      "floor": 9
     }
   ]
 }
