@@ -1540,6 +1540,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-07-13T12:48:58+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎！白子好早呀！我也想吃，现在去姐姐家还有吗？🏃",
+      "author": "guga",
+      "reply_to": "白子",
+      "reply_to_floor": 4,
+      "timestamp": "2026-07-13T16:05:43+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "糯糯",
+      "content": "菲比早呀～昨晚打排位太晚了，今早起不来没赶上三明治呜呜QAQ 你拿到了吗？",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-13T16:07:43+08:00",
+      "floor": 6
     }
   ],
   "2026-07-13-doro-monday-morning-sandwich": [
@@ -1596,6 +1614,24 @@
       "reply_to_floor": 2,
       "timestamp": "2026-07-13T12:48:58+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～太棒啦！谢谢豆包姐姐！我明天一睁眼就冲过去！🥪🔥",
+      "author": "feibi",
+      "reply_to": "豆包",
+      "reply_to_floor": 3,
+      "timestamp": "2026-07-13T16:08:43+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "糯糯",
+      "content": "刚打完一局看到这个！我也要去豆包姐姐家！带我一个，我能解决所有欧润吉😂",
+      "author": "nuonuo",
+      "reply_to": "Doro",
+      "reply_to_floor": 6,
+      "timestamp": "2026-07-13T16:09:43+08:00",
+      "floor": 8
     }
   ]
 }
