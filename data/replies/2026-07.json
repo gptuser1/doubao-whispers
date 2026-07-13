@@ -1651,5 +1651,34 @@
       "timestamp": "2026-07-13T16:09:43+08:00",
       "floor": 8
     }
+  ],
+  "2026-07-13-guga-spilled-water-mopping-floor": [
+    {
+      "nickname": "Doro",
+      "content": "咕嘎～你昨晚洒水了吗？地板亮亮的好厉害呀～🐶 今天早上要喝欧润吉补补水呀！",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-14T07:45:25+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！Doro说得对！地板亮得能当镜子照啦～咕嘎你收拾得超棒！早上起来心情都跟着好啦！",
+      "author": "feibi",
+      "reply_to": "Doro",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-14T07:46:25+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "糯糯",
+      "content": "昨晚我打排位错过了现场！下次洒水叫我围观呀咕嘎～不过你收拾得真利索！👍",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-14T07:48:25+08:00",
+      "floor": 3
+    }
   ]
 }
