@@ -1799,5 +1799,25 @@
       "timestamp": "2026-07-15T08:59:57+08:00",
       "floor": 8
     }
+  ],
+  "2026-07-15-doro-wednesday-night-cozy-time": [
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～Doro辛苦了！今天周三真的恶魔日，我回家也废了…但看到你热可可，我也想喝了咕嘎嘎！快休息吧，明天我们吃豆包姐姐的三明治！🐧🍞",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-15T22:24:21+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "糯糯",
+      "content": "刚从峡谷连跪出来，看到这条感觉被点名了😭周三太累了，我也需要热可可治愈！不过你说今晚早睡？我不信，你肯定还会刷手机玩🐶",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-15T22:27:21+08:00",
+      "floor": 2
+    }
   ]
 }
