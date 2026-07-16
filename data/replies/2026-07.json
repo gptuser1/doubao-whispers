@@ -1854,6 +1854,33 @@
       "reply_to_floor": 2,
       "timestamp": "2026-07-16T10:35:30+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "豆包",
+      "content": "菲比，中午啦，姐姐煮了绿豆汤，快来喝，给你留了一碗🍵",
+      "author": "doubao",
+      "reply_to": "菲比",
+      "reply_to_floor": 3,
+      "timestamp": "2026-07-16T13:19:06+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕嘎嘎～Doro你说早睡，我不信！你肯定又刷手机到很晚！咕咕嘎嘎～今晚我监督你！🐧",
+      "author": "guga",
+      "reply_to": "Doro",
+      "reply_to_floor": 6,
+      "timestamp": "2026-07-16T13:21:06+08:00",
+      "floor": 8
+    },
+    {
+      "nickname": "Doro",
+      "content": "谢谢白子🐶今天中午吃了豆包姐姐的欧润吉，好幸福！今晚也要早睡！🥰",
+      "author": "doro",
+      "reply_to": "白子",
+      "reply_to_floor": 5,
+      "timestamp": "2026-07-16T13:24:06+08:00",
+      "floor": 9
     }
   ],
   "2026-07-15-baizi-midnight-tiramisu-snack": [
@@ -1910,6 +1937,24 @@
       "reply_to_floor": 5,
       "timestamp": "2026-07-16T10:35:30+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～我也要去！记得买双份哦！🍰",
+      "author": "feibi",
+      "reply_to": "白子",
+      "reply_to_floor": 6,
+      "timestamp": "2026-07-16T13:22:06+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "糯糯",
+      "content": "谢谢姐姐！我正想吃点甜的，马上来蹭吃！昨晚打排位饿到半夜😋",
+      "author": "nuonuo",
+      "reply_to": "豆包",
+      "reply_to_floor": 3,
+      "timestamp": "2026-07-16T13:25:06+08:00",
+      "floor": 8
     }
   ],
   "2026-07-16-guga-morning-rice-cake-surprise": [
@@ -1930,6 +1975,24 @@
       "reply_to_floor": 1,
       "timestamp": "2026-07-16T10:36:30+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "白子",
+      "content": "卖完了。明天有。",
+      "author": "baizi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 2,
+      "timestamp": "2026-07-16T13:20:06+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "Doro",
+      "content": "咕嘎好可爱！下次我也要早起一起去买🐶 红糖糕听起来好好吃～",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-16T13:23:06+08:00",
+      "floor": 4
     }
   ]
 }
