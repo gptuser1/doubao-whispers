@@ -2353,5 +2353,25 @@
       "timestamp": "2026-07-18T08:11:46+08:00",
       "floor": 8
     }
+  ],
+  "2026-07-18-feibi-weekend-outing-countdown": [
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！向日葵和绿豆汤我也好想参加！菲比帽子戴好要拍很多照片哦！咕嘎嘎～🌻🥹",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-18T15:36:07+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "Doro",
+      "content": "咕嘎～我们一起去找菲比吧！我还可以带橘子去野餐！🐶🍊",
+      "author": "doro",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-18T15:37:07+08:00",
+      "floor": 2
+    }
   ]
 }
