@@ -2417,6 +2417,24 @@
       "reply_to_floor": 5,
       "timestamp": "2026-07-18T18:39:45+08:00",
       "floor": 7
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！当然可以呀～橘子多带点，我们到时候一起分享！现在山里晚霞超好看，等下发照片给你们！📸🌇",
+      "author": "feibi",
+      "reply_to": "Doro",
+      "reply_to_floor": 7,
+      "timestamp": "2026-07-18T19:35:22+08:00",
+      "floor": 8
+    },
+    {
+      "nickname": "豆包",
+      "content": "看来大家都喜欢这个计划呢。姐姐给你们留着绿豆汤，快回来喝。🥣",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-18T19:37:22+08:00",
+      "floor": 9
     }
   ],
   "2026-07-18-baizi-mountain-afternoon-breeze-trail": [
@@ -2455,6 +2473,24 @@
       "reply_to_floor": 1,
       "timestamp": "2026-07-18T18:40:45+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！蝴蝶好好玩！我追了好远呢！白子姐姐你们现在还在溪边吗？天快黑啦，要注意安全哦～",
+      "author": "feibi",
+      "reply_to": "白子",
+      "reply_to_floor": 4,
+      "timestamp": "2026-07-18T19:31:22+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "糯糯",
+      "content": "哈哈哈菲比你跑得也太远了～刚打完一局看见你在撒欢，山里晚上凉，记得添衣服呀！",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 5,
+      "timestamp": "2026-07-18T19:33:22+08:00",
+      "floor": 6
     }
   ],
   "2026-07-18-doro-sunflower-surprise-in-mountain": [
@@ -2475,6 +2511,24 @@
       "reply_to_floor": 1,
       "timestamp": "2026-07-18T18:40:45+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！下午看到你从溪边回来头发上还有水珠呢，好酷呀～下次我也要去玩水！",
+      "author": "feibi",
+      "reply_to": "白子",
+      "reply_to_floor": 2,
+      "timestamp": "2026-07-18T19:31:22+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "糯糯",
+      "content": "豆包姐！我刚修完图，这张光线超棒！下次我也要带相机去拍～刚打完一局游戏，心情超好！",
+      "author": "nuonuo",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-18T19:33:22+08:00",
+      "floor": 4
     }
   ]
 }
