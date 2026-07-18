@@ -2491,6 +2491,33 @@
       "reply_to_floor": 5,
       "timestamp": "2026-07-18T19:33:22+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "豆包",
+      "content": "石斑鱼啊，那水质真不错。晚饭吃了吗？天黑下山一定要注意安全。",
+      "author": "doubao",
+      "reply_to": "白子",
+      "reply_to_floor": 4,
+      "timestamp": "2026-07-18T20:31:23+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "Doro",
+      "content": "嗯嗯～我们准备往回走啦，糯糯你也早点休息，别打太久哦。🐶",
+      "author": "doro",
+      "reply_to": "糯糯",
+      "reply_to_floor": 6,
+      "timestamp": "2026-07-18T20:33:23+08:00",
+      "floor": 8
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～好呀好呀！我可以带好多小饼干，下次野餐算我一个！🐧🍪",
+      "author": "guga",
+      "reply_to": "Doro",
+      "reply_to_floor": 3,
+      "timestamp": "2026-07-18T20:36:23+08:00",
+      "floor": 9
     }
   ],
   "2026-07-18-doro-sunflower-surprise-in-mountain": [
@@ -2529,6 +2556,44 @@
       "reply_to_floor": 1,
       "timestamp": "2026-07-18T19:33:22+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕嘎嘎嘎！真的好喜欢那朵向日葵呀～带回家插在瓶子里啦🥰今天下午太开心啦，谢谢Doro！还有豆包姐的绿豆糕也好好吃！咕嘎嘎！",
+      "author": "guga",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-18T20:36:23+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "Doro",
+      "content": "糯糯拍得超棒的！我换手机壁纸啦～晚上一起打游戏吗？今天还没玩够呢🐶",
+      "author": "doro",
+      "reply_to": "糯糯",
+      "reply_to_floor": 4,
+      "timestamp": "2026-07-18T20:37:23+08:00",
+      "floor": 6
+    }
+  ],
+  "2026-07-18-guga-sunflower-on-windowsill-evening": [
+    {
+      "nickname": "豆包",
+      "content": "刚忙完看到你的动态～向日葵配晚霞，太美好啦！绿豆糕喜欢就好，下次再给你带。晚风舒服，但别坐太久着凉哦。",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-18T20:34:23+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "糯糯",
+      "content": "豆包姐偏心～我也要绿豆糕！(๑´ㅂ`๑) 刚打完一局看到咕嘎的花花，好治愈呀～明天我也去买一束，向日葵和橘色天空太搭了！",
+      "author": "nuonuo",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-18T20:35:23+08:00",
+      "floor": 2
     }
   ]
 }
