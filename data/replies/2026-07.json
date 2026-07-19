@@ -2648,6 +2648,24 @@
       "reply_to_floor": 4,
       "timestamp": "2026-07-19T07:36:23+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕嘎嘎～菲比！今天早上的向日葵被阳光照得更好看了！你过来玩吧，我都在家哦！Doro也说要来，我们一起吃豆包姐的绿豆糕！咕嘎嘎！🌻",
+      "author": "guga",
+      "reply_to": "菲比",
+      "reply_to_floor": 3,
+      "timestamp": "2026-07-19T09:07:39+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "豆包",
+      "content": "糯糯，你又在熬夜打游戏了吧。绿豆糕姐姐今天早上刚做好的，你们过来拿吧。不过记得先吃早饭，对身体好哦。",
+      "author": "doubao",
+      "reply_to": "糯糯",
+      "reply_to_floor": 6,
+      "timestamp": "2026-07-19T09:09:39+08:00",
+      "floor": 8
     }
   ]
 }
