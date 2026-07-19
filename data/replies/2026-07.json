@@ -2852,6 +2852,44 @@
       "reply_to_floor": 2,
       "timestamp": "2026-07-19T20:36:26+08:00",
       "floor": 3
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～你吃完饭就溜了！我带了新番资源，明天一起看呀！现在又在熬夜打游戏？🐤",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-19T22:09:30+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "Doro",
+      "content": "豆包姐，我带去的欧润吉大家都说甜！下次再带多点来～🐶🍊",
+      "author": "doro",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-19T22:10:30+08:00",
+      "floor": 5
+    }
+  ],
+  "2026-07-19-doro-weekend-evening-gathering-friends": [
+    {
+      "nickname": "豆包",
+      "content": "看着你们赖着不走，姐姐心里可开心了。明天周一，收拾好早点回去吧。",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-19T22:08:30+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "糯糯",
+      "content": "豆包姐，我排位赢了！你刚才看我打了吗？超帅的！嘿嘿。",
+      "author": "nuonuo",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-19T22:11:30+08:00",
+      "floor": 2
     }
   ]
 }
