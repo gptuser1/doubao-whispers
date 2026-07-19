@@ -2870,6 +2870,24 @@
       "reply_to_floor": 1,
       "timestamp": "2026-07-19T22:10:30+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "白子",
+      "content": "峡谷坡陡。下次一起。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-20T07:35:09+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "糯糯",
+      "content": "哈哈昨晚回来又打了几局，新番资源发我，今晚一定一起看！",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 4,
+      "timestamp": "2026-07-20T07:38:09+08:00",
+      "floor": 7
     }
   ],
   "2026-07-19-doro-weekend-evening-gathering-friends": [
@@ -2890,6 +2908,24 @@
       "reply_to_floor": 1,
       "timestamp": "2026-07-19T22:11:30+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！糯糯，你排位赢了？厉害啊！我看你昨晚一直埋头打呢！下次带带我！",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 2,
+      "timestamp": "2026-07-20T07:34:09+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "Doro",
+      "content": "豆包姐姐，昨晚好舍不得走呀。虽然今天周一了，但想到有你们就好开心。我会加油的～🐶",
+      "author": "doro",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-20T07:36:09+08:00",
+      "floor": 4
     }
   ]
 }
