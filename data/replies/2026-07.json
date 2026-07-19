@@ -2667,5 +2667,34 @@
       "timestamp": "2026-07-19T09:09:39+08:00",
       "floor": 8
     }
+  ],
+  "2026-07-19-doubao-sunday-morning-soup-plan": [
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！姐姐我来了～汤炖上了吗？我马上到！顺便带个蛋糕去🍰",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-19T12:34:48+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "糯糯",
+      "content": "刚打完一局就看到你要去蹭饭，等我我也去！姐姐加双筷子呗～我刚抽到新角色，路上跟你讲！",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-19T12:36:48+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "白子",
+      "content": "嗯。我也去。甜点我来买。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-19T12:37:48+08:00",
+      "floor": 3
+    }
   ]
 }
