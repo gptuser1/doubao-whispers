@@ -397,31 +397,36 @@ def load_recent_whispers_with_images(count=10):
 
 
 def should_have_image(content, character_id, authors_data, recent_with_images,
-                      model_needs_image=None, model_mentioned=None):
+                      model_needs_image=None, model_scene_chars=None):
     """Decide whether a new whisper should have an image.
 
-    Rules (updated to use model-provided metadata):
-    1. Model-provided mentioned_characters (non-empty) -> mandatory group photo
+    Rules:
+    1. Model-provided scene_characters (non-empty) -> mandatory group photo.
+       scene_characters = characters ACTUALLY IN THE SCENE (not merely
+       mentioned/recalled). This is a semantic judgment made by the whisper-
+       generating AI; we trust it and do NOT fall back to keyword matching,
+       which incorrectly treats narrative mentions ("上次被豆包姐抓到") as
+       co-present and forces unwanted group photos.
     2. Model says needs_image -> mandatory
     3. Recent pure-text ratio >= 30% -> mandatory
     4. Otherwise: 70% probability
 
-    Returns (should_have: bool, reason: str, mentioned_chars: list).
+    Returns (should_have: bool, reason: str, scene_chars: list).
     """
-    # Rule 1: model-provided mentioned characters -> mandatory group photo
-    mentioned = []
-    if model_mentioned:
-        mentioned = [m for m in model_mentioned if m != character_id]
-    if not mentioned:
-        # Fallback to keyword extraction if model didn't provide any
-        mentioned = [m for m in extract_mentioned_characters(content, authors_data)
-                     if m != character_id]
-    if mentioned:
-        return True, f"mentions other characters: {mentioned}", mentioned
+    # Rule 1: model-provided scene characters -> mandatory group photo.
+    # No keyword-matching fallback: if the AI didn't flag anyone as in-scene,
+    # treat it as a solo scene. Keyword matching caused false positives where
+    # narratively-mentioned characters (e.g. "被豆包姐抓到") were forced into
+    # the image.
+    scene_chars = []
+    if model_scene_chars:
+        scene_chars = [m for m in model_scene_chars if m != character_id]
+    if scene_chars:
+        return True, f"scene has other characters: {scene_chars}", scene_chars
 
     # Rule 2: model says needs_image
     if model_needs_image:
-        return True, "model decided needs_image", mentioned
+        return True, "model decided needs_image", scene_chars
 
     # Rule 3: recent pure-text ratio >= 30% -> mandatory
     if recent_with_images:
@@ -429,15 +434,15 @@ def should_have_image(content, character_id, authors_data, recent_with_images,
         with_img = sum(1 for w in recent_with_images if w.get("images"))
         pure_text_ratio = (total - with_img) / total if total > 0 else 0
         if pure_text_ratio >= PURE_TEXT_RATIO_THRESHOLD:
-            return True, f"pure-text ratio {pure_text_ratio:.0%} >= {PURE_TEXT_RATIO_THRESHOLD:.0%}", mentioned
+            return True, f"pure-text ratio {pure_text_ratio:.0%} >= {PURE_TEXT_RATIO_THRESHOLD:.0%}", scene_chars
 
     # Rule 4: probabilistic (70%)
     if random.random() < IMAGE_PROBABILITY:
-        return True, f"probabilistic (p={IMAGE_PROBABILITY})", mentioned
-    return False, "skipped (no mandatory rule, probability missed)", mentioned
+        return True, f"probabilistic (p={IMAGE_PROBABILITY})", scene_chars
+    return False, "skipped (no mandatory rule, probability missed)", scene_chars
 
 
-def build_image_prompt(text_provider, content, character_id, mentioned_chars,
+def build_image_prompt(text_provider, content, character_id, scene_chars,
                        authors_data, now_dt):
     """Build an English image generation prompt via Qwen3-8B.
 
@@ -461,7 +466,7 @@ def build_image_prompt(text_provider, content, character_id, mentioned_chars,
     # know character names — only the reference image positions matter).
     def _roman(aid):
         return NAME_ROMANIZATION.get(aid, get_author_nickname(aid, authors_data))
-    char_names = [_roman(character_id)] + [_roman(a) for a in mentioned_chars]
+    char_names = [_roman(character_id)] + [_roman(a) for a in scene_chars]
     ref_mapping = ", ".join(
         f"reference image {i+1} = {name}" for i, name in enumerate(char_names)
     )
@@ -547,7 +552,7 @@ Write the image prompt now using the labeled format above. Only the prompt, noth
 
 
 def generate_whisper_image(image_provider, rephrase_provider, content, character_id,
-                           mentioned_chars, authors_data, now_dt, slug, date_str):
+                           scene_chars, authors_data, now_dt, slug, date_str):
     """Generate one image for a whisper.
 
     Args:
@@ -555,7 +560,7 @@ def generate_whisper_image(image_provider, rephrase_provider, content, character
         rephrase_provider: text provider for prompt building/rephrasing (Qwen3-8B)
         content: whisper content text
         character_id: author id
-        mentioned_chars: list of other character ids mentioned
+        scene_chars: list of other character ids actually in the scene
         authors_data: authors dict
         now_dt: datetime
         slug: whisper slug
@@ -568,15 +573,16 @@ def generate_whisper_image(image_provider, rephrase_provider, content, character
     """
     # Build prompt
     prompt = build_image_prompt(rephrase_provider, content, character_id,
-                                mentioned_chars, authors_data, now_dt)
+                                scene_chars, authors_data, now_dt)
     if not prompt:
         print("[image] Failed to build prompt, skipping image", file=sys.stderr)
         return None, None
     print(f"[image] Prompt: {prompt[:120]}...")
 
-    # Collect reference images: author + mentioned chars' reference images (max 4)
-    # Use pre-cached PNG bytes if available, fall back to file paths.
-    ref_chars = [character_id] + mentioned_chars
+    # Collect reference images: author + scene chars' reference images (max 4).
+    # Only characters actually in the scene get a reference image sent; a
+    # narratively-mentioned character (e.g. "上次被豆包姐抓到") does NOT.
+    ref_chars = [character_id] + scene_chars
     ref_data = []
     for aid in ref_chars:
         cached = _REFERENCE_CACHE.get(aid)
@@ -1179,7 +1185,7 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
 - slug: 根据动态内容生成3-5个英文单词的slug，用连字符连接，全小写，概括动态核心内容。例如 "friday-sunset-fried-chicken"
 - mood: 角色发这条动态时的心情，从 happy/tired/sad/excited/content/calm/grumpy 中选一个
 - topics: 1-2个话题关键词（中文），概括动态主题。例如 ["炸鸡", "周末"]
-- mentioned_characters: 动态内容中提到的其他角色ID列表（不含作者自己）。如果没提及其他角色则为空数组 []
+- scene_characters: 这条动态描述的场景中【实际在场】的其他角色ID列表（不含作者自己）。只有真正出现在画面里的角色才填；回忆/提及/吐槽/转述的对象不算在场。例如"上次被豆包姐抓到"不算豆包在场，填 []；"和豆包一起做饭"才算，填 ["doubao"]。如果场景里只有作者自己，填空数组 []
 - needs_image: 这条动态是否适合配图。有具体场景、物体、动作、视觉元素的动态适合配图（true）；纯情绪/感慨/抽象思考的不适合（false）
 - storyline_trigger: 如果这条动态可能触发故事线，返回 {{"type": "comfort_request或minor_conflict", "participants": ["角色ID"]}}。comfort_request: 角色情绪低落/遇到困难需要安慰；minor_conflict: 角色之间有小矛盾/冲突。否则返回 null
 
@@ -1191,7 +1197,7 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
   "slug": "english-kebab-case-slug",
   "mood": "happy",
   "topics": ["话题1", "话题2"],
-  "mentioned_characters": [],
+  "scene_characters": [],
   "needs_image": true,
   "storyline_trigger": null
 }}"""
@@ -1275,10 +1281,10 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
                 "slug": _sanitize_slug(data.get("slug", ""), character),
                 "mood": data.get("mood", "").strip() or None,
                 "topics": data.get("topics", []) if isinstance(data.get("topics"), list) else [],
-                "mentioned_characters": [
-                    c for c in data.get("mentioned_characters", [])
+                "scene_characters": [
+                    c for c in data.get("scene_characters", [])
                     if isinstance(c, str) and c in authors_data
-                ] if isinstance(data.get("mentioned_characters"), list) else [],
+                ] if isinstance(data.get("scene_characters"), list) else [],
                 "needs_image": bool(data.get("needs_image", False)),
                 "storyline_trigger": data.get("storyline_trigger"),
             }
@@ -2364,7 +2370,7 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
         month_data = {}
 
     # Add new whisper (store model-provided metadata for downstream use)
-    model_mentioned = content_data.get("mentioned_characters", [])
+    model_scene_chars = content_data.get("scene_characters", [])
     model_topics = content_data.get("topics", [])
     model_mood = content_data.get("mood")
     model_storyline_trigger = content_data.get("storyline_trigger")
@@ -2381,21 +2387,21 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
         month_data[slug]["storyline_trigger"] = model_storyline_trigger
 
     # ---- Image generation ----
-    # Use model-provided needs_image + mentioned_characters, with rules 3/4 fallback
+    # Use model-provided needs_image + scene_characters, with rules 3/4 fallback
     image_generated = False
     if image_provider and prompt_provider and not dry_run:
         recent_with_images = load_recent_whispers_with_images(RECENT_K_FOR_IMAGE_STATS)
-        should_img, reason, mentioned = should_have_image(
+        should_img, reason, scene_chars = should_have_image(
             content_data["content"], character_id, authors_data, recent_with_images,
             model_needs_image=content_data.get("needs_image", False),
-            model_mentioned=model_mentioned
+            model_scene_chars=model_scene_chars
         )
         print(f"[image] Decision: {should_img} ({reason})")
         if should_img:
             date_str = now_dt.strftime("%Y-%m-%d")
             img_filename, img_path = generate_whisper_image(
                 image_provider, prompt_provider,
-                content_data["content"], character_id, mentioned,
+                content_data["content"], character_id, scene_chars,
                 authors_data, now_dt, slug, date_str
             )
             if img_filename and img_path and os.path.exists(img_path):
@@ -2524,7 +2530,7 @@ def _fallback_generate(text_provider, character_id, character_name,
             "slug": None,  # fallback will use generate_slug()
             "mood": None,
             "topics": [],
-            "mentioned_characters": [],
+            "scene_characters": [],
             "needs_image": None,  # None = let rules 3/4 decide
             "storyline_trigger": None,
         }
