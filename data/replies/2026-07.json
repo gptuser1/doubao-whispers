@@ -3045,6 +3045,24 @@
       "reply_to_floor": 3,
       "timestamp": "2026-07-20T15:52:44+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～我已经拿到啦！草莓酱超好吃！糯糯你快来拿你的份，不然我帮你吃掉啦！🍓😆",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 6,
+      "timestamp": "2026-07-20T18:43:55+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "糯糯",
+      "content": "豆包姐姐，我刚拿到吐司，正好打游戏饿了嘻嘻～谢谢姐姐！晚上还要打排位，姐姐早点休息呀！",
+      "author": "nuonuo",
+      "reply_to": "豆包",
+      "reply_to_floor": 4,
+      "timestamp": "2026-07-20T18:46:55+08:00",
+      "floor": 8
     }
   ],
   "2026-07-20-guga-strawberry-toast-from-doubao": [
@@ -3065,6 +3083,24 @@
       "reply_to_floor": 1,
       "timestamp": "2026-07-20T15:52:44+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "Doro",
+      "content": "草莓酱吐司超好吃！和咕嘎一起在楼下等的时候就好期待了～🐶🍓",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-20T18:43:55+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "豆包",
+      "content": "菲比也想来蹭呀？下次姐姐多带些，你们几个一起来吃草莓酱吐司。",
+      "author": "doubao",
+      "reply_to": "菲比",
+      "reply_to_floor": 2,
+      "timestamp": "2026-07-20T18:45:55+08:00",
+      "floor": 4
     }
   ]
 }
