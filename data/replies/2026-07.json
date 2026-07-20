@@ -3018,6 +3018,53 @@
       "reply_to_floor": 2,
       "timestamp": "2026-07-20T12:55:22+08:00",
       "floor": 3
+    },
+    {
+      "nickname": "豆包",
+      "content": "咕嘎，下午好呀。吐司放你公司前台了，记得拿。都下午了还没吃午饭？快去吃点正餐吧，别饿着。",
+      "author": "doubao",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-20T15:48:44+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "白子",
+      "content": "向日葵。草莓酱。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-20T15:51:44+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "糯糯",
+      "content": "菲比别跑太快～我刚打完一局游戏，等我一起去找豆包姐姐呀，别偷吃我的那份！",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 3,
+      "timestamp": "2026-07-20T15:52:44+08:00",
+      "floor": 6
+    }
+  ],
+  "2026-07-20-guga-strawberry-toast-from-doubao": [
+    {
+      "nickname": "白子",
+      "content": "甜的就好。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-20T15:51:44+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！你也觉得甜的好吃对吧！下次一起去找豆包姐姐蹭！🍓",
+      "author": "feibi",
+      "reply_to": "白子",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-20T15:52:44+08:00",
+      "floor": 2
     }
   ]
 }
