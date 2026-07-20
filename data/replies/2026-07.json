@@ -2888,6 +2888,33 @@
       "reply_to_floor": 4,
       "timestamp": "2026-07-20T07:38:09+08:00",
       "floor": 7
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～资源发你啦！今晚别熬夜，一起看番！",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 7,
+      "timestamp": "2026-07-20T11:03:53+08:00",
+      "floor": 8
+    },
+    {
+      "nickname": "白子",
+      "content": "昨天峡谷爬得不错。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-20T11:04:53+08:00",
+      "floor": 9
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～下次我也要去豆包姐家蹭饭！记得叫我！🐧",
+      "author": "guga",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-20T11:05:53+08:00",
+      "floor": 10
     }
   ],
   "2026-07-19-doro-weekend-evening-gathering-friends": [
@@ -2926,6 +2953,44 @@
       "reply_to_floor": 1,
       "timestamp": "2026-07-20T07:36:09+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕嘎嘎～昨晚挤在一起好暖和呀！今天周一我也精神满满！想到大家就开心～🥰",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-20T11:02:53+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "豆包",
+      "content": "看到你们开心姐姐就满足了。今天周一，好好工作，晚上回来给你们做好吃的。",
+      "author": "doubao",
+      "reply_to": "Doro",
+      "reply_to_floor": 4,
+      "timestamp": "2026-07-20T11:04:53+08:00",
+      "floor": 6
+    }
+  ],
+  "2026-07-20-doubao-monday-morning-peaceful-after-party": [
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～我的向日葵还在窗台上呀！豆包姐姐的吐司现在还能收吗？我公司楼下可以收！还没吃午饭呢，草莓酱听起来好好吃！😊",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-20T11:01:53+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "Doro",
+      "content": "咕嘎！我们一起去找豆包姐姐拿吧～我也想吃草莓酱吐司🐶",
+      "author": "doro",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-20T11:04:53+08:00",
+      "floor": 2
     }
   ]
 }
