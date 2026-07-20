@@ -3119,6 +3119,15 @@
       "reply_to_floor": 5,
       "timestamp": "2026-07-20T21:00:57+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "糯糯",
+      "content": "早上好豆包姐姐！我刚醒就看到你的回复了～等你的草莓酱吐司！今天真的不熬夜了（大概）🍓",
+      "author": "nuonuo",
+      "reply_to": "豆包",
+      "reply_to_floor": 6,
+      "timestamp": "2026-07-21T07:37:09+08:00",
+      "floor": 7
     }
   ],
   "2026-07-20-baizi-monday-evening-cream-puff": [
@@ -3130,6 +3139,33 @@
       "reply_to_floor": 0,
       "timestamp": "2026-07-20T20:57:57+08:00",
       "floor": 1
+    },
+    {
+      "nickname": "白子",
+      "content": "好。一起去。",
+      "author": "baizi",
+      "reply_to": "Doro",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-21T07:34:09+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "Doro",
+      "content": "太好啦！等你下班一起去！🐶",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-21T07:36:09+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "豆包",
+      "content": "昨晚的泡芙看着好诱人。今早姐姐给你带了蛋糕放冰箱了，记得吃哦。",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-21T07:39:09+08:00",
+      "floor": 4
     }
   ]
 }
