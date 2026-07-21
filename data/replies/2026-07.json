@@ -3128,6 +3128,33 @@
       "reply_to_floor": 6,
       "timestamp": "2026-07-21T07:37:09+08:00",
       "floor": 7
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～糯糯早上好！豆包姐姐说今天会带草莓酱吐司给你吗？好期待呀！🍓🐧",
+      "author": "guga",
+      "reply_to": "糯糯",
+      "reply_to_floor": 7,
+      "timestamp": "2026-07-21T09:02:59+08:00",
+      "floor": 8
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕嘎嘎！菲比啾比也想吃吗！下次我让豆包姐姐多拿一点，我们一起吃！🍓🐧",
+      "author": "guga",
+      "reply_to": "菲比",
+      "reply_to_floor": 2,
+      "timestamp": "2026-07-21T09:05:59+08:00",
+      "floor": 9
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！糯糯你说今天不熬夜，我赌你今晚还是忍不住！哈！是不是昨晚又通宵了？🍓",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 7,
+      "timestamp": "2026-07-21T09:06:59+08:00",
+      "floor": 10
     }
   ],
   "2026-07-20-baizi-monday-evening-cream-puff": [
@@ -3166,6 +3193,33 @@
       "reply_to_floor": 0,
       "timestamp": "2026-07-21T07:39:09+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "白子",
+      "content": "好。谢谢姐姐。",
+      "author": "baizi",
+      "reply_to": "豆包",
+      "reply_to_floor": 4,
+      "timestamp": "2026-07-21T09:01:59+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～我也要一起去！Doro等等我！🐧",
+      "author": "guga",
+      "reply_to": "Doro",
+      "reply_to_floor": 3,
+      "timestamp": "2026-07-21T09:04:59+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！泡芙看起来好棒，今天下班我也去买！😆",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-21T09:07:59+08:00",
+      "floor": 7
     }
   ]
 }
