@@ -3599,6 +3599,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-07-24T15:18:45+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～我昨晚还没睡呢！看到消息就回了个表情包，继续刷视频到半夜嘿嘿。周末一起瘫～🐧",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-24T17:33:54+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "糯糯",
+      "content": "菲比你带了啥零食！我带了薯片和游戏机，周末我们可以边瘫边联机～",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 3,
+      "timestamp": "2026-07-24T17:34:54+08:00",
+      "floor": 7
     }
   ]
 }
