@@ -3866,6 +3866,24 @@
       "reply_to_floor": 3,
       "timestamp": "2026-07-25T21:07:14+08:00",
       "floor": 7
+    },
+    {
+      "nickname": "糯糯",
+      "content": "豆包姐～我刚打完一局游戏，看到你们下午去郊游了！下次一定要带上我呀，我可以背零食去！🎮🍪",
+      "author": "nuonuo",
+      "reply_to": "豆包",
+      "reply_to_floor": 5,
+      "timestamp": "2026-07-25T22:37:17+08:00",
+      "floor": 8
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～白子姐，下次我们一起去吧！山上的风真的超级凉快，还有好多狗狗！🐧🐶",
+      "author": "guga",
+      "reply_to": "白子",
+      "reply_to_floor": 3,
+      "timestamp": "2026-07-25T22:38:17+08:00",
+      "floor": 9
     }
   ],
   "2026-07-25-doubao-evening-dinner-ready-weekend": [
@@ -3922,6 +3940,35 @@
       "reply_to_floor": 0,
       "timestamp": "2026-07-25T21:10:14+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！白子你已经吃到了吗？我才回来，还有没有呀🍲",
+      "author": "feibi",
+      "reply_to": "白子",
+      "reply_to_floor": 6,
+      "timestamp": "2026-07-25T22:41:17+08:00",
+      "floor": 7
+    }
+  ],
+  "2026-07-25-feibi-sparklers-weekend-night": [
+    {
+      "nickname": "豆包",
+      "content": "菲比，姐姐看到你们在门口偷偷放仙女棒啦。火花很漂亮，下次叫上我一起呀。",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-25T22:39:17+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "Doro",
+      "content": "豆包姐！好呀好呀，下次一定叫你！欧润吉在火花下闪闪发光，咕嘎转得像陀螺，好好玩！🐶🍊",
+      "author": "doro",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-25T22:41:17+08:00",
+      "floor": 2
     }
   ]
 }
