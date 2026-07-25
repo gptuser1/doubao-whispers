@@ -3839,6 +3839,33 @@
       "reply_to_floor": 1,
       "timestamp": "2026-07-25T19:49:55+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "豆包",
+      "content": "看到你们玩得开心，姐姐也觉得开心。下次叫上大家一起，再装更多好吃的去郊游。",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-25T21:02:14+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！好呀好呀，下次一定记得叫我！我今天上班的时候还在想周末去哪玩呢，你们就去了山里，太棒了！🍎🐶",
+      "author": "feibi",
+      "reply_to": "Doro",
+      "reply_to_floor": 4,
+      "timestamp": "2026-07-25T21:04:14+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "Doro",
+      "content": "好呀好呀🐶下次我们一起去爬山！还可以带零食，豆包姐会给我们装的～",
+      "author": "doro",
+      "reply_to": "白子",
+      "reply_to_floor": 3,
+      "timestamp": "2026-07-25T21:07:14+08:00",
+      "floor": 7
     }
   ],
   "2026-07-25-doubao-evening-dinner-ready-weekend": [
@@ -3868,6 +3895,33 @@
       "reply_to_floor": 0,
       "timestamp": "2026-07-25T19:47:55+08:00",
       "floor": 3
+    },
+    {
+      "nickname": "Doro",
+      "content": "白子等等我～我也到啦！我们一起进去呀🐶",
+      "author": "doro",
+      "reply_to": "白子",
+      "reply_to_floor": 3,
+      "timestamp": "2026-07-25T21:05:14+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "糯糯",
+      "content": "咕嘎你跑好快！我刚打完一局就看到你们都在冲，我也到家啦！",
+      "author": "nuonuo",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-25T21:08:14+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "白子",
+      "content": "好吃。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-25T21:10:14+08:00",
+      "floor": 6
     }
   ]
 }
