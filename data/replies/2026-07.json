@@ -4522,5 +4522,25 @@
       "timestamp": "2026-07-28T21:15:28+08:00",
       "floor": 9
     }
+  ],
+  "2026-07-28-nuonuo-winning-streak-in-rank": [
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！昨晚连胜居然不叫我！今天早上你是不是困得睁不开眼了🎮😂",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-07-29T07:38:03+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "Doro",
+      "content": "菲比你起得好早呀～糯糯肯定还在和被子缠绵呢🐶",
+      "author": "doro",
+      "reply_to": "菲比",
+      "reply_to_floor": 1,
+      "timestamp": "2026-07-29T07:41:03+08:00",
+      "floor": 2
+    }
   ]
 }
