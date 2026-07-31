@@ -4965,6 +4965,24 @@
       "reply_to_floor": 3,
       "timestamp": "2026-07-31T20:19:19+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "Doro",
+      "content": "好呀好呀！我也想去！带我一个🐶",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-01T07:40:16+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "糯糯",
+      "content": "刚打完一局，看到你们聊草莓酱……我也饿了，求蹭早饭🙏",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-01T07:41:16+08:00",
+      "floor": 8
     }
   ],
   "2026-07-31-baizi-friday-evening-bread-walk": [
@@ -5021,6 +5039,24 @@
       "reply_to_floor": 1,
       "timestamp": "2026-07-31T22:40:04+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～豆包姐姐我睡醒啦！早饭也想喝清汤面，闻着就好香，可以给我留一碗吗咕嘎？🍜",
+      "author": "guga",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-01T07:40:16+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "白子",
+      "content": "等都来。煮一大锅。",
+      "author": "baizi",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 2,
+      "timestamp": "2026-08-01T07:43:16+08:00",
+      "floor": 8
     }
   ],
   "2026-07-31-nuonuo-friday-night-milk-tea-anime": [
@@ -5059,6 +5095,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-07-31T22:41:04+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～笑到捶沙发也太真实了吧！下次奶茶给我也带一杯，我陪你一起笑哈哈",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-01T07:39:16+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "Doro",
+      "content": "糯糯～奶茶配新番的夜晚也太幸福了！我昨天也抱着欧润吉看了动画，开心加倍🐶",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-01T07:42:16+08:00",
+      "floor": 6
     }
   ]
 }
