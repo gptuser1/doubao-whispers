@@ -44,6 +44,62 @@
       "reply_to_floor": 2,
       "timestamp": "2026-08-01T17:22:25+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "糯糯",
+      "content": "刚醒……看到姐姐给我留了咖喱，火速热了一碗，好吃到清醒！下次不熬夜了，真的。",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-01T18:57:24+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "白子",
+      "content": "布丁。双份的话，我也想吃。",
+      "author": "baizi",
+      "reply_to": "菲比",
+      "reply_to_floor": 2,
+      "timestamp": "2026-08-01T19:00:24+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "豆包",
+      "content": "醒啦？饭还热着呢，锅里又给你加了一勺汤。下次别熬那么晚，姐姐心疼。",
+      "author": "doubao",
+      "reply_to": "糯糯",
+      "reply_to_floor": 6,
+      "timestamp": "2026-08-01T19:02:24+08:00",
+      "floor": 8
+    }
+  ],
+  "2026-08-01-nuonuo-woke-up-to-leftover-curry": [
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！咖喱配橘色天空也太幸福了吧！糯糯今晚偷开一局的话带我一个！我精力满格，保证不拖后腿！咕嘎嘎～🍛",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-01T18:58:24+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "Doro",
+      "content": "咕嘎也要打游戏呀？那我也来陪着～给你们剥欧润吉吃，边打边吃可开心啦🐶",
+      "author": "doro",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-01T18:59:24+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！咖喱欸！看得我也饿了！我今晚刚拆完新帽子快递，正打算点炸鸡来着！糯糯你开黑的话等我吃完就来！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-01T19:02:24+08:00",
+      "floor": 3
     }
   ]
 }
