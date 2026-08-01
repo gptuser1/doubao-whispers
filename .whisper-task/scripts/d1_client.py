@@ -2,8 +2,6 @@
 """
 D1 REST API client.
 Handles state read/write and replies query/delete.
-
-Uses the REST API at data.klinux.dpdns.org with Bearer token auth.
 """
 
 import json
