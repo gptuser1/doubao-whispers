@@ -1,0 +1,31 @@
+{
+  "2026-08-01-doubao-weekend-curry-lunch": [
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！！姐姐的咖喱也太香啦～我刚刚吃了一大碗，肚子圆滚滚的像个小球！咕嘎嘎嘎。",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-01T15:09:50+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～咕嘎你居然吃得比我还多！我布丁都带来了，结果你两碗下肚还能再吃！下次我要带双份布丁跟你比拼！",
+      "author": "feibi",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-01T15:12:50+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "白子",
+      "content": "嗯，好吃。下次叫我。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-01T15:15:50+08:00",
+      "floor": 3
+    }
+  ]
+}
