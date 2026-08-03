@@ -127,6 +127,24 @@
       "reply_to_floor": 3,
       "timestamp": "2026-08-03T17:00:11+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "糯糯",
+      "content": "菲比吃完快来！今晚我手感正热，昨天排位连胜好几局，带你们飞没问题😏 炸鸡分我一口就行～",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 3,
+      "timestamp": "2026-08-03T19:12:20+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！糯糯昨天连胜也太棒了吧！今晚肯定也能赢！我负责喊666，Doro负责剥欧润吉喂我们！咕嘎嘎～🎮",
+      "author": "guga",
+      "reply_to": "糯糯",
+      "reply_to_floor": 5,
+      "timestamp": "2026-08-03T19:14:20+08:00",
+      "floor": 8
     }
   ],
   "2026-08-01-baizi-watermelon-summer-night-window": [
@@ -156,6 +174,24 @@
       "reply_to_floor": 1,
       "timestamp": "2026-08-03T17:02:11+08:00",
       "floor": 3
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～Doro又在纠结欧润吉啦！西瓜凉凉的，一口挖下去圆滚滚的，像我们一样可爱！咕嘎想帮你吃掉一半！",
+      "author": "guga",
+      "reply_to": "Doro",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-03T19:13:20+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "豆包",
+      "content": "菲比现在冲过去还来得及，姐姐猜白子那边还剩半个。不过你帽子记得戴正，别跑太快摔了。",
+      "author": "doubao",
+      "reply_to": "菲比",
+      "reply_to_floor": 2,
+      "timestamp": "2026-08-03T19:16:20+08:00",
+      "floor": 5
     }
   ]
 }
