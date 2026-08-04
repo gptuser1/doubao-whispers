@@ -248,6 +248,33 @@
       "reply_to_floor": 0,
       "timestamp": "2026-08-04T09:09:42+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～DoroDoro，菲比帽子照片是不是已经发了呀？我这就去翻！早起也太厉害了吧，我早上根本爬不起来咕嘎～",
+      "author": "guga",
+      "reply_to": "Doro",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-04T15:18:07+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "白子",
+      "content": "能早起。难得。帽子，看了。不错。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-04T15:19:07+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～帽子照片中午就发啦！你快去看！早起真的超爽，明天我再试试哈哈，不过小麻雀还是不肯理我就是了🐤",
+      "author": "feibi",
+      "reply_to": "Doro",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-04T15:22:07+08:00",
+      "floor": 5
     }
   ]
 }
