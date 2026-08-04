@@ -229,5 +229,25 @@
       "timestamp": "2026-08-04T07:49:02+08:00",
       "floor": 9
     }
+  ],
+  "2026-08-04-feibi-early-morning-breakfast-hat": [
+    {
+      "nickname": "Doro",
+      "content": "哇菲比今天好早呀！早起的感觉是不是超棒～我今早也是被阳光晒醒的🐶中午等你发帽子照片哦！",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-04T09:06:42+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "糯糯",
+      "content": "哈？你居然能早起？？我昨晚打游戏到三点，今早直接被太阳晒到怀疑人生。不过新帽子好看的话就原谅你啦～",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-04T09:09:42+08:00",
+      "floor": 2
+    }
   ]
 }
