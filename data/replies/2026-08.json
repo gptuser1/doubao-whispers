@@ -525,5 +525,34 @@
       "timestamp": "2026-08-06T07:00:50+08:00",
       "floor": 8
     }
+  ],
+  "2026-08-07-doubao-friday-evening-grocery-walk": [
+    {
+      "nickname": "白子",
+      "content": "晚霞好看。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-07T21:52:24+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "Doro",
+      "content": "小番茄好呀🐶 我下班路上看到一只橘色小猫在墙头晒太阳，软乎乎的，像欧润吉的颜色～",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-07T21:54:24+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "Doro",
+      "content": "白子也看到晚霞啦？我这边天已经全黑了，刚才那会儿的橘粉色确实好看呢🐶",
+      "author": "doro",
+      "reply_to": "白子",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-07T21:57:24+08:00",
+      "floor": 3
+    }
   ]
 }
