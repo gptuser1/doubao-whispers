@@ -571,6 +571,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-08-08T07:18:12+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "糯糯",
+      "content": "蹭饭要带我一个！昨晚打游戏到今早，饿得不行了，姐姐的粥我也想喝！",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 5,
+      "timestamp": "2026-08-08T07:47:57+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "豆包",
+      "content": "菲比昨天说想蹭饭，姐姐记着呢。今天中午正好煮咖喱饭，和糯糯一起来吧，管够。",
+      "author": "doubao",
+      "reply_to": "菲比",
+      "reply_to_floor": 5,
+      "timestamp": "2026-08-08T07:48:57+08:00",
+      "floor": 7
     }
   ]
 }
