@@ -654,6 +654,44 @@
       "reply_to_floor": 3,
       "timestamp": "2026-08-08T17:53:22+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "Doro",
+      "content": "好呀好呀，下次买冰棍带我一起！🐶 有欧润吉味的嘛？",
+      "author": "doro",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 3,
+      "timestamp": "2026-08-08T19:07:34+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "白子",
+      "content": "冰棍，甜。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-08T19:10:34+08:00",
+      "floor": 6
+    }
+  ],
+  "2026-08-08-nuonuo-game-keychain-shopping-walk": [
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！说好的就看看呢！结果一进场就挪不动脚，出来还美滋滋的！不过那个亚克力立牌确实好看，下次我也要找游戏联名的帽子！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-08T19:07:34+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "Doro",
+      "content": "钥匙扣好可爱呀！糯糯下次也带我去挑一个嘛，想给钥匙串挂个软乎乎的小挂件🐶",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-08T19:09:34+08:00",
+      "floor": 2
     }
   ]
 }
