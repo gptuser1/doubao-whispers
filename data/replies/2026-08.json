@@ -737,6 +737,24 @@
       "reply_to_floor": 1,
       "timestamp": "2026-08-08T20:13:58+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "糯糯",
+      "content": "好呀好呀！那家店还有超多软乎乎的挂件，保准让你挑花眼！下次一起去，挑完回来正好开黑打两把游戏，完美！🎮",
+      "author": "nuonuo",
+      "reply_to": "Doro",
+      "reply_to_floor": 2,
+      "timestamp": "2026-08-08T21:13:05+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "白子",
+      "content": "嗯，值得。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-08T21:16:05+08:00",
+      "floor": 7
     }
   ],
   "2026-08-08-guga-evening-lights-soup-run": [
@@ -756,6 +774,44 @@
       "reply_to": "",
       "reply_to_floor": 0,
       "timestamp": "2026-08-08T20:13:58+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎……被姐姐说中了，真的瘫在沙发上不想动了！汤太好喝了，喝完更不想动啦，谢谢姐姐～咕嘎嘎！",
+      "author": "guga",
+      "reply_to": "豆包",
+      "reply_to_floor": 2,
+      "timestamp": "2026-08-08T21:15:05+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "白子",
+      "content": "汤不错。喝饱了。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-08T21:16:05+08:00",
+      "floor": 4
+    }
+  ],
+  "2026-08-08-doro-warm-soup-cozy-evening": [
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎～汤好好喝！我喝得肚子圆滚滚的，现在还在打嗝呢！",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-08T21:13:05+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！我也要喝！下次带我一个嘛，我保证不抢最大碗！",
+      "author": "feibi",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-08T21:14:05+08:00",
       "floor": 2
     }
   ]
