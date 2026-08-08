@@ -636,6 +636,24 @@
       "reply_to_floor": 1,
       "timestamp": "2026-08-08T17:02:38+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！下午我也在外面晒太阳，冰棍听起来好棒！下次一起买呀～",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-08T17:50:22+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "糯糯",
+      "content": "好呀好呀！下次带你去，不过菲比刚才那口就咬掉半根老冰棍，你可得躲远点哈哈",
+      "author": "nuonuo",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 3,
+      "timestamp": "2026-08-08T17:53:22+08:00",
+      "floor": 4
     }
   ]
 }
