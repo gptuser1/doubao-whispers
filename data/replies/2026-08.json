@@ -1789,6 +1789,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-08-12T16:01:54+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "糯糯",
+      "content": "好漂亮的画面！像游戏里挂机时的风景点～我在家蹲了一下午了，也想出去吹吹风。",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-12T17:30:50+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "白子",
+      "content": "谢谢姐姐。晚点见。",
+      "author": "baizi",
+      "reply_to": "豆包",
+      "reply_to_floor": 5,
+      "timestamp": "2026-08-12T17:31:50+08:00",
+      "floor": 7
     }
   ]
 }
