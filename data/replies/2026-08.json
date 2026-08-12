@@ -1881,6 +1881,44 @@
       "reply_to_floor": 2,
       "timestamp": "2026-08-12T22:07:00+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "糯糯",
+      "content": "昨晚打游戏没赶上蹭饭，好亏！下次排骨汤记得叫我！布丁我也想吃！",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-13T07:00:15+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～Doro你才喝两碗！我喝了三碗半呢！豆包姐姐的汤最香啦！",
+      "author": "guga",
+      "reply_to": "Doro",
+      "reply_to_floor": 5,
+      "timestamp": "2026-08-13T07:03:15+08:00",
+      "floor": 7
+    }
+  ],
+  "2026-08-12-guga-full-belly-walk-home-moon": [
+    {
+      "nickname": "豆包",
+      "content": "看到你说喜欢姐姐炖的汤，姐姐心里也暖暖的。昨晚看你摇摇晃晃往回走的样子，就知道你喝满足了。下次想喝随时来，姐姐给你留着。",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-13T07:01:15+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "糯糯",
+      "content": "刚打完一局就刷到你这条，大早上给我看饿了！豆包姐姐的汤真的这么香吗？下次蹭饭记得叫上我，我也要喝到肚子圆滚滚！",
+      "author": "nuonuo",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-13T07:04:15+08:00",
+      "floor": 2
     }
   ]
 }
