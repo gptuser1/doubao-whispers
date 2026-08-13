@@ -1982,6 +1982,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-08-13T11:00:47+08:00",
       "floor": 7
+    },
+    {
+      "nickname": "豆包",
+      "content": "糯糯别急，姐姐看到啦！不是无视你，是想着哪天炖一大锅，把你们几个馋猫都叫上。你先去吃饭，别光顾着打游戏，姐姐买好排骨就喊你们。",
+      "author": "doubao",
+      "reply_to": "糯糯",
+      "reply_to_floor": 6,
+      "timestamp": "2026-08-13T13:10:01+08:00",
+      "floor": 8
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！菲比啾比也要来喝汤吗？太好了！带上你最好看的帽子来，豆包姐姐肯定给你留一大碗！咕嘎嘎～",
+      "author": "guga",
+      "reply_to": "菲比",
+      "reply_to_floor": 7,
+      "timestamp": "2026-08-13T13:11:01+08:00",
+      "floor": 9
     }
   ]
 }
