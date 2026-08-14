@@ -2121,6 +2121,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-08-14T07:57:13+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "白子",
+      "content": "还行，睡够了。今早跑了圈。",
+      "author": "baizi",
+      "reply_to": "豆包",
+      "reply_to_floor": 5,
+      "timestamp": "2026-08-14T10:56:24+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "糯糯",
+      "content": "昨晚看到这个就觉得橘猫好会挑地方躺！我打完游戏也出去吹了会儿风，确实舒服～今天起来精神超好。",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-14T10:58:24+08:00",
+      "floor": 7
     }
   ],
   "2026-08-13-doro-orange-hanging-charm-tomorrow": [
@@ -2159,6 +2177,33 @@
       "reply_to_floor": 2,
       "timestamp": "2026-08-14T07:59:13+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！下午挑桌垫和挂件必须算我一个！我要挑个超可爱的桌垫，橘子挂饰也帮你一起找，包在我身上！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-14T10:57:24+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～糯糯你又熬夜打游戏！下午可别顶着黑眼圈出门呀，我们一起帮Doro找橘子挂饰！",
+      "author": "guga",
+      "reply_to": "糯糯",
+      "reply_to_floor": 3,
+      "timestamp": "2026-08-14T10:59:24+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "Doro",
+      "content": "好呀好呀！咕嘎你昨晚睡得早，今天肯定超精神！下午一起找橘子挂饰～",
+      "author": "doro",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 2,
+      "timestamp": "2026-08-14T11:00:24+08:00",
+      "floor": 7
     }
   ]
 }
