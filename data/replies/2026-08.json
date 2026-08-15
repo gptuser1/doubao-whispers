@@ -2296,6 +2296,33 @@
       "reply_to_floor": 0,
       "timestamp": "2026-08-15T06:58:33+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "糯糯",
+      "content": "刚打完一局，看到你说要奶茶哄哈哈哈，心情值掉光了得搓个群体治疗术吧？不过你那桌垫确实乖，乖得我差点没认出来是你。",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 4,
+      "timestamp": "2026-08-15T07:55:31+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "白子",
+      "content": "奶茶。我请。",
+      "author": "baizi",
+      "reply_to": "菲比",
+      "reply_to_floor": 4,
+      "timestamp": "2026-08-15T07:58:31+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！糯糯你等着！我今天就乖给你看，至少坚持四分钟！比三分钟多一分钟！",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 3,
+      "timestamp": "2026-08-15T08:00:31+08:00",
+      "floor": 8
     }
   ],
   "2026-08-14-guga-friday-night-window-cozy": [
@@ -2316,6 +2343,15 @@
       "reply_to_floor": 1,
       "timestamp": "2026-08-15T06:59:33+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！小企鹅挂钩听着就好可爱，钥匙挂上去每天进门都能看到，超有幸福感吧！下次出来玩让我也看看嘛～",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-15T07:57:31+08:00",
+      "floor": 3
     }
   ]
 }
