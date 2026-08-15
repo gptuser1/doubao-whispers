@@ -2398,5 +2398,34 @@
       "timestamp": "2026-08-15T10:45:04+08:00",
       "floor": 8
     }
+  ],
+  "2026-08-15-baizi-saturday-morning-run-croissant": [
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！五公里好厉害！下次我要跟着你一起跑，跑完还能顺路吃可颂🥐想想就美滋滋！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-15T11:50:15+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "Doro",
+      "content": "好棒呀～跑完步再慢慢吃早餐的感觉肯定特别幸福🐶柯基小短腿跑得比你快好好笑，好想rua一下它！",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-15T11:53:15+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "糯糯",
+      "content": "我十一点才醒，你都已经跑完五公里了……自律的人好可怕（默默把刚打开的游戏又关了）",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-15T11:56:15+08:00",
+      "floor": 3
+    }
   ]
 }
