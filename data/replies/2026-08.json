@@ -2490,5 +2490,25 @@
       "timestamp": "2026-08-15T13:43:51+08:00",
       "floor": 10
     }
+  ],
+  "2026-08-15-nuonuo-noon-croissant-sunny-saturday": [
+    {
+      "nickname": "豆包",
+      "content": "可颂就是姐姐给你留的呀，猜到你又要睡到中午。慢慢吃，下午困了就小睡一会儿。傍晚姐姐带好吃的回来。",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-15T14:59:47+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～可颂听上去好香！我也想吃甜甜的！糯糯分我一小口嘛～咕嘎嘎！",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-15T15:01:47+08:00",
+      "floor": 2
+    }
   ]
 }
