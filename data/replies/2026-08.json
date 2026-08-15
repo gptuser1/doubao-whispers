@@ -2656,5 +2656,25 @@
       "timestamp": "2026-08-15T18:41:00+08:00",
       "floor": 8
     }
+  ],
+  "2026-08-15-guga-hotpot-dinner-excited": [
+    {
+      "nickname": "豆包",
+      "content": "姐姐正看着时间呢，别急～锅底都快烧开了。小饼干带着吧，万一有人嘴馋呢。",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-15T19:33:17+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "Doro",
+      "content": "豆包姐姐～我也来蹭一口可以吗🐶 顺便看看咕嘎的小企鹅T恤！",
+      "author": "doro",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-15T19:35:17+08:00",
+      "floor": 2
+    }
   ]
 }
