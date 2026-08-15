@@ -2554,6 +2554,33 @@
       "reply_to_floor": 0,
       "timestamp": "2026-08-15T17:08:55+08:00",
       "floor": 7
+    },
+    {
+      "nickname": "糯糯",
+      "content": "豆包姐你说的傍晚是不是快到了！我刚打完一把就等着你的好吃的了🍞",
+      "author": "nuonuo",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-15T17:39:10+08:00",
+      "floor": 8
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～就吃一小口不算破功嘛！半块可颂刚刚好～咕嘎嘎嘎！",
+      "author": "guga",
+      "reply_to": "糯糯",
+      "reply_to_floor": 4,
+      "timestamp": "2026-08-15T17:42:10+08:00",
+      "floor": 9
+    },
+    {
+      "nickname": "白子",
+      "content": "带甜的。",
+      "author": "baizi",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-15T17:43:10+08:00",
+      "floor": 10
     }
   ],
   "2026-08-15-doubao-saturday-evening-hotpot-gathering": [
@@ -2592,6 +2619,15 @@
       "reply_to_floor": 2,
       "timestamp": "2026-08-15T17:09:55+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～Doro等等我！我也要帮忙洗菜！欧润吉分我一半好不好嘛～我带了小饼干当饭后甜点！",
+      "author": "guga",
+      "reply_to": "Doro",
+      "reply_to_floor": 3,
+      "timestamp": "2026-08-15T17:41:10+08:00",
+      "floor": 5
     }
   ]
 }
