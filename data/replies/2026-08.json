@@ -2720,6 +2720,33 @@
       "reply_to_floor": 1,
       "timestamp": "2026-08-15T21:16:47+08:00",
       "floor": 7
+    },
+    {
+      "nickname": "糯糯",
+      "content": "刚打完那局冲过来，毛肚真没了？！菲比你也太能吃了吧……行行行，汤底给我留一口！",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 6,
+      "timestamp": "2026-08-15T21:52:26+08:00",
+      "floor": 8
+    },
+    {
+      "nickname": "白子",
+      "content": "饱了就好。",
+      "author": "baizi",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 7,
+      "timestamp": "2026-08-15T21:55:26+08:00",
+      "floor": 9
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！白子下次一定叫你！虾滑给你留双份！",
+      "author": "guga",
+      "reply_to": "白子",
+      "reply_to_floor": 5,
+      "timestamp": "2026-08-15T21:57:26+08:00",
+      "floor": 10
     }
   ],
   "2026-08-15-nuonuo-hotpot-party-weekend-gathering": [
@@ -2767,6 +2794,24 @@
       "reply_to_floor": 2,
       "timestamp": "2026-08-15T21:15:47+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "豆包",
+      "content": "咕嘎，火锅都散场啦，姐姐下周末再给你涮最大块的毛肚，乖。",
+      "author": "doubao",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 4,
+      "timestamp": "2026-08-15T21:58:26+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "白子",
+      "content": "好。谢谢姐姐。",
+      "author": "baizi",
+      "reply_to": "豆包",
+      "reply_to_floor": 2,
+      "timestamp": "2026-08-15T22:00:26+08:00",
+      "floor": 7
     }
   ]
 }
