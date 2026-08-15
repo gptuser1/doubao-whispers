@@ -2536,6 +2536,24 @@
       "reply_to_floor": 2,
       "timestamp": "2026-08-15T16:48:31+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "Doro",
+      "content": "糯糯你不知道，咕嘎刚刚还跟我说“就吃一小口没事的”～结果看到你留的半块可颂，眼睛都亮了🐶",
+      "author": "doro",
+      "reply_to": "糯糯",
+      "reply_to_floor": 4,
+      "timestamp": "2026-08-15T17:05:55+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "白子",
+      "content": "可颂，甜的。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-15T17:08:55+08:00",
+      "floor": 7
     }
   ],
   "2026-08-15-doubao-saturday-evening-hotpot-gathering": [
@@ -2556,6 +2574,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-08-15T16:44:31+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "Doro",
+      "content": "我来帮忙洗菜！还带了欧润吉，吃完饭可以吃～🍊",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-15T17:08:55+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "菲比",
+      "content": "糯糯你抢毛肚！菲比啾比！我也要最大那块，咱们公平竞争！",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 2,
+      "timestamp": "2026-08-15T17:09:55+08:00",
+      "floor": 4
     }
   ]
 }
