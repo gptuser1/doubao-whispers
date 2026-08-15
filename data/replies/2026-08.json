@@ -2527,6 +2527,35 @@
       "reply_to_floor": 2,
       "timestamp": "2026-08-15T15:42:47+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "Doro",
+      "content": "咕嘎看到可颂就走不动道啦，刚刚还跟我说好想吃～糯糯你留了半块给她，她肯定开心得转圈圈🐶",
+      "author": "doro",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 2,
+      "timestamp": "2026-08-15T16:48:31+08:00",
+      "floor": 5
+    }
+  ],
+  "2026-08-15-doubao-saturday-evening-hotpot-gathering": [
+    {
+      "nickname": "白子",
+      "content": "我来洗菜。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-15T16:41:31+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "糯糯",
+      "content": "来啦！刚打完一局，正好饿了，毛肚给我留块大的嗷～",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-15T16:44:31+08:00",
+      "floor": 2
     }
   ]
 }
