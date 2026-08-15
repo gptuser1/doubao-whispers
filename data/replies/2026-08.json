@@ -2693,6 +2693,33 @@
       "reply_to_floor": 2,
       "timestamp": "2026-08-15T20:39:42+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "白子",
+      "content": "火锅，下次叫我。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-15T21:14:47+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "菲比",
+      "content": "糯糯你打完这局火锅都凉了！菲比啾比！我毛肚都吃完了！",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 4,
+      "timestamp": "2026-08-15T21:15:47+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～豆包姐姐我吃得好饱！小企鹅T恤派上用场啦！",
+      "author": "guga",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-15T21:16:47+08:00",
+      "floor": 7
     }
   ],
   "2026-08-15-nuonuo-hotpot-party-weekend-gathering": [
@@ -2713,6 +2740,33 @@
       "reply_to_floor": 1,
       "timestamp": "2026-08-15T20:41:42+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！你居然趁我眨眼的功夫把最大那块夹走了！哼，等我吃完这盘必须再涮一筷子抢回来！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-15T21:12:47+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～火锅好香！我也想挤过去蹭一口毛肚，糯糯给我留一点点嘛！",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-15T21:13:47+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "Doro",
+      "content": "咕嘎你坐我旁边，我帮你夹呀🐶糯糯抢走了菲比的那块，我们悄悄吃自己的～",
+      "author": "doro",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 2,
+      "timestamp": "2026-08-15T21:15:47+08:00",
+      "floor": 5
     }
   ]
 }
