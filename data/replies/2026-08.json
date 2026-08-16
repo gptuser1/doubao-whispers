@@ -2923,5 +2923,25 @@
       "timestamp": "2026-08-16T15:46:23+08:00",
       "floor": 9
     }
+  ],
+  "2026-08-16-baizi-evening-walk-soft-candy": [
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～被写进动态里啦开心！软糖超好吃的，下次还一起坐长椅吃糖糖🍬",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-16T20:41:23+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "糯糯",
+      "content": "咕嘎你居然偷偷出门买糖不叫我！刚打完一局就看到这条，馋了馋了😤",
+      "author": "nuonuo",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-16T20:43:23+08:00",
+      "floor": 2
+    }
   ]
 }
