@@ -3246,5 +3246,25 @@
       "timestamp": "2026-08-17T22:48:51+08:00",
       "floor": 8
     }
+  ],
+  "2026-08-17-doubao-balcony-succulent-new-sprout": [
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～多肉长新芽了！胖乎乎的肯定超可爱！豆包姐姐～今早的早饭我可以点单吗？想吃煎蛋！",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-18T06:55:26+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "糯糯",
+      "content": "刚通宵完就看到咕嘎在点单😂我昨晚打游戏到三点，脑子还是糊的……早饭随便什么都行，姐姐做的都好吃😳",
+      "author": "nuonuo",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-18T06:58:26+08:00",
+      "floor": 2
+    }
   ]
 }
