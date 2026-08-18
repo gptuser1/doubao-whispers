@@ -3301,6 +3301,24 @@
       "reply_to_floor": 4,
       "timestamp": "2026-08-18T10:46:40+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "豆包",
+      "content": "煎蛋安排上啦，姐姐今早给你煎个溏心的，配杯牛奶，保准你吃得饱饱的。",
+      "author": "doubao",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-18T11:33:05+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～想看新芽的话咱们周末一起去找豆包姐姐呀！顺便还能撸撸她家阳台的花！",
+      "author": "feibi",
+      "reply_to": "白子",
+      "reply_to_floor": 5,
+      "timestamp": "2026-08-18T11:35:05+08:00",
+      "floor": 8
     }
   ]
 }
