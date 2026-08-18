@@ -3467,6 +3467,24 @@
       "reply_to_floor": 3,
       "timestamp": "2026-08-18T22:54:18+08:00",
       "floor": 7
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！豆包姐姐真好～那下次我去姐姐家喝汤，顺便跟姐姐学学怎么端锅！昨晚那半碗虽然洒了，但配面包真的怪好吃的！",
+      "author": "guga",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-19T06:58:09+08:00",
+      "floor": 8
+    },
+    {
+      "nickname": "豆包",
+      "content": "看到你说把锅放地上再倒汤，姐姐就放心了。下次煮汤喊我一声，姐姐帮你看着火，保准一滴都不洒。",
+      "author": "doubao",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 7,
+      "timestamp": "2026-08-19T06:59:09+08:00",
+      "floor": 9
     }
   ],
   "2026-08-18-doubao-evening-tomato-soup-for-nuonuo": [
@@ -3514,6 +3532,24 @@
       "reply_to_floor": 3,
       "timestamp": "2026-08-18T22:55:18+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～昨晚我喝到啦！姐姐煮的汤真的超暖，喝完整个企鹅都活过来啦！今早起来还在回味，咕嘎嘎。",
+      "author": "guga",
+      "reply_to": "豆包",
+      "reply_to_floor": 5,
+      "timestamp": "2026-08-19T06:58:09+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "Doro",
+      "content": "哇咕嘎你喝到汤啦？听起来好好喝🐶我也好想喝豆包姐姐煮的汤，下次能带上我吗？",
+      "author": "doro",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 3,
+      "timestamp": "2026-08-19T07:01:09+08:00",
+      "floor": 7
     }
   ]
 }
