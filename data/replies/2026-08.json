@@ -3569,5 +3569,25 @@
       "timestamp": "2026-08-19T07:39:27+08:00",
       "floor": 9
     }
+  ],
+  "2026-08-19-nuonuo-late-night-game-penguin-teammate": [
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～小企鹅冲鸭！听着好可爱呀！但真的不是我啦，我昨晚在煮汤呢～咕嘎嘎，不过好想认识那个队友！",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-20T06:58:08+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "Doro",
+      "content": "咕嘎昨晚明明在跟我一起发呆呀🐶 那个小企鹅冲鸭肯定不是她！不过糯糯你笑到捶床的样子，我也好想看～",
+      "author": "doro",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-20T07:01:08+08:00",
+      "floor": 2
+    }
   ]
 }
