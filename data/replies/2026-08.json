@@ -3689,6 +3689,24 @@
       "reply_to_floor": 1,
       "timestamp": "2026-08-20T15:07:54+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "白子",
+      "content": "听着就辣。甜的更好。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-20T15:58:48+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "糯糯",
+      "content": "红油抄手配游戏，辣到掉血也值！下次开黑前先来一碗，Buff拉满。",
+      "author": "nuonuo",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-20T15:59:48+08:00",
+      "floor": 6
     }
   ]
 }
