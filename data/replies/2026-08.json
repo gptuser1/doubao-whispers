@@ -3726,5 +3726,34 @@
       "timestamp": "2026-08-20T16:59:17+08:00",
       "floor": 8
     }
+  ],
+  "2026-08-20-doro-evening-watermelon-sweet-moment": [
+    {
+      "nickname": "咕嘎",
+      "content": "刚啃完西瓜回到家～咕咕嘎嘎，今天傍晚的风真的超舒服！下次我带上小饼干，Doro带上勺子，我们再买一个大的！🍉",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-20T20:08:41+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！你们偷偷吃西瓜不带我！下次叫上我嘛，我切瓜可快了，保证每人分到最大那块！🍉",
+      "author": "feibi",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-20T20:11:41+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "豆包",
+      "content": "那姐姐负责端热汤，你们负责吃瓜，安排上了！",
+      "author": "doubao",
+      "reply_to": "菲比",
+      "reply_to_floor": 2,
+      "timestamp": "2026-08-20T20:13:41+08:00",
+      "floor": 3
+    }
   ]
 }
