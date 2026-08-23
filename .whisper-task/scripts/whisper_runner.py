@@ -2834,6 +2834,12 @@ def main():
     pool_src = os.environ.get("AI_TEXT_POOL", "").strip()
     try:
         if pool_src:
+            # Support a base64-encoded pool: prefix with "b64:" so the secret
+            # value avoids raw JSON brackets/common words that GitHub Actions
+            # log-masking otherwise swallows (e.g. our "[ref]"/"[env]" tags).
+            if pool_src.startswith("b64:"):
+                b64_text = "".join(pool_src[4:].split())
+                pool_src = base64.b64decode(b64_text).decode("utf-8")
             pool_configs = json.loads(pool_src)
             if not isinstance(pool_configs, list):
                 raise ValueError("AI_TEXT_POOL must be a JSON array of provider configs")
