@@ -157,6 +157,11 @@ class OpenAIText(TextProvider):
         self.last_usage = None
         self.usage_total = {"prompt": 0, "completion": 0, "total": 0, "cache_hit": 0}
 
+    @property
+    def _err_ctx(self):
+        """Short provider identity to prepend to error messages."""
+        return f"OpenAI[{self.model}@{self.base_url}]"
+
     def generate(self, messages, max_tokens=1024, temperature=0.8, enable_thinking=False):
         url = f"{self.base_url}/chat/completions"
 
@@ -184,14 +189,14 @@ class OpenAIText(TextProvider):
                 if attempt < max_retries:
                     _retry_sleep(attempt, f"URL error: {e}")
                     continue
-                raise RuntimeError(f"OpenAI request failed: {e}")
+                raise RuntimeError(f"{self._err_ctx} request failed: {e}")
 
             if resp.status_code >= 400:
                 err_body = resp.text
                 if _should_retry(status_code=resp.status_code, body=err_body) and attempt < max_retries:
                     _retry_sleep(attempt, f"HTTP {resp.status_code}")
                     continue
-                raise RuntimeError(f"OpenAI request failed: HTTP {resp.status_code} {err_body[:200]}")
+                raise RuntimeError(f"{self._err_ctx} request failed: HTTP {resp.status_code} {err_body[:200]}")
 
             result = resp.json()
 
@@ -201,7 +206,7 @@ class OpenAIText(TextProvider):
                 if _should_retry(body=err_str) and attempt < max_retries:
                     _retry_sleep(attempt, f"Rate limited: {err_str[:80]}")
                     continue
-                raise RuntimeError(f"OpenAI error: {result['error']}")
+                raise RuntimeError(f"{self._err_ctx} error: {result['error']}")
 
             # Log token usage from API response (DeepSeek/SiliconFlow return cache stats too)
             usage = result.get("usage") or {}

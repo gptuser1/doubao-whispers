@@ -2284,6 +2284,10 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
 
 # ==================== Main Tasks ====================
 
+class PublishError(Exception):
+    """Raised when the core publish task fails after all fallbacks. Aborts the
+    run with a non-zero exit instead of silently degrading so CI is visible."""
+
 def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
                        image_provider=None, prompt_provider=None):
     """Execute the publish whisper task."""
@@ -2343,8 +2347,10 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
         content_data = _fallback_generate(text_provider, character_id, character_name,
                                           characters_md, timeline_text, day_info, now_dt)
         if not content_data:
-            print("Fallback generation also failed, skipping")
-            return False
+            msg = ("publish generation failed (main + fallback) at "
+                   f"{now_dt.strftime('%Y-%m-%d %H:%M:%S')} Beijing time")
+            print(f"ERROR: {msg}", file=sys.stderr)
+            raise PublishError(msg)
 
     character_id = content_data["character"]
     character_name = get_author_nickname(character_id, authors_data)
@@ -2876,10 +2882,16 @@ def main():
         state["last_run"]["whispers_publish"] = "2026-06-01T00:00:00+08:00"
         d1_client.save_state(state)
 
-    published = do_publish_whisper(
-        config, d1_client, get_provider("publish_whisper"), now, args.dry_run,
-        image_provider=image_provider, prompt_provider=prompt_provider
-    )
+    try:
+        published = do_publish_whisper(
+            config, d1_client, get_provider("publish_whisper"), now, args.dry_run,
+            image_provider=image_provider, prompt_provider=prompt_provider
+        )
+    except PublishError as e:
+        # Core task failed after all fallbacks — do not continue with the
+        # remaining tasks or commit; surface the failure to CI.
+        print(f"ERROR: publish aborted ({e})", file=sys.stderr)
+        return 1
     if published:
         changes_made = True
 
