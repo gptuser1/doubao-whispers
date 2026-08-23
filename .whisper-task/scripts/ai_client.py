@@ -90,11 +90,15 @@ class WorkersAIText(TextProvider):
 
     def __init__(self, config):
         self.model = config.get("model", "@cf/zai-org/glm-4.7-flash")
-        self.account_id = os.environ.get(config.get("account_id_env", "CF_DEFAULT_ACCOUNT_ID"), "")
-        self.api_token = os.environ.get(config.get("api_token_env", "CF_DEFAULT_API_TOKEN"), "")
+        # Credentials support both inline values (preferred, from a pool JSON
+        # env var) and a fallback to discrete env vars by name.
+        self.account_id = (config.get("account_id")
+                           or os.environ.get(config.get("account_id_env", "CF_DEFAULT_ACCOUNT_ID"), ""))
+        self.api_token = (config.get("api_token")
+                          or os.environ.get(config.get("api_token_env", "CF_DEFAULT_API_TOKEN"), ""))
 
         if not self.account_id or not self.api_token:
-            raise ValueError("WorkersAI requires CF_DEFAULT_ACCOUNT_ID and CF_DEFAULT_API_TOKEN environment variables")
+            raise ValueError("WorkersAI requires account_id/api_token (inline or CF_DEFAULT_ACCOUNT_ID/CF_DEFAULT_API_TOKEN env)")
 
     def generate(self, messages, max_tokens=1024, temperature=0.8, enable_thinking=False):
         url = f"https://api.cloudflare.com/client/v4/accounts/{self.account_id}/ai/run/{self.model}"
@@ -148,10 +152,13 @@ class OpenAIText(TextProvider):
     def __init__(self, config):
         self.model = config.get("model", "deepseek-chat")
         self.base_url = config.get("base_url", "https://api.openai.com/v1").rstrip("/")
-        self.api_key = os.environ.get(config.get("api_key_env", "OPENAI_API_KEY"), "")
+        # Inline api_key is preferred (pool JSON env var); falls back to a
+        # discrete env var named by api_key_env if inline is absent.
+        self.api_key = (config.get("api_key")
+                        or os.environ.get(config.get("api_key_env", "OPENAI_API_KEY"), ""))
 
         if not self.api_key:
-            raise ValueError("OpenAI provider requires API key environment variable")
+            raise ValueError("OpenAI provider requires api_key (inline or OPENAI_API_KEY env)")
 
         # Token usage tracking: last_usage = most recent call, usage_total = accumulated across all calls
         self.last_usage = None
@@ -232,6 +239,75 @@ class OpenAIText(TextProvider):
             return result.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
 
 
+# ==================== Text Pool (fallback chain) ====================
+
+class FallbackTextProvider(TextProvider):
+    """Try an ordered list of text providers, returning the first success.
+
+    Each candidate is tried in order. A candidate is skipped when its call
+    raises (network/API error, model unavailable, rate limit) OR returns empty
+    / whitespace content. Fails only when every candidate fails.
+
+    Usage/error context of the winning model is surfaced via ``last_identity``
+    and accumulated token usage is aggregated across the underlying providers
+    that have a ``usage_total`` attribute.
+    """
+
+    def __init__(self, providers, name="pool"):
+        self.providers = list(providers)
+        self.name = name
+        if not self.providers:
+            raise ValueError("FallbackTextProvider requires at least one provider")
+        self.last_identity = ""
+        self.last_usage = None
+        self.usage_total = {"prompt": 0, "completion": 0, "total": 0, "cache_hit": 0}
+
+    def _model_label(self, provider):
+        return getattr(provider, "model", "?")
+
+    def generate(self, messages, max_tokens=1024, temperature=0.8, enable_thinking=False):
+        errors = []
+        for provider in self.providers:
+            label = self._model_label(provider)
+            try:
+                out = provider.generate(
+                    messages, max_tokens=max_tokens,
+                    temperature=temperature, enable_thinking=enable_thinking,
+                )
+            except Exception as e:
+                errors.append(f"{label}: {e}")
+                print(f"[pool:{self.name}] {label} failed, trying next: {e}",
+                      file=sys.stderr)
+                self._absorb_usage(provider)
+                continue
+
+            if out and out.strip():
+                self.last_identity = f"{label}@{getattr(provider, 'base_url', '?')}"
+                self.last_usage = getattr(provider, "last_usage", None)
+                self._absorb_usage(provider)
+                return out.strip()
+
+            errors.append(f"{label}: empty output")
+            print(f"[pool:{self.name}] {label} returned empty content, trying next",
+                  file=sys.stderr)
+            self._absorb_usage(provider)
+
+        raise RuntimeError(
+            f"All text providers in pool[{self.name}] failed: " + " | ".join(errors)
+        )
+
+    def _absorb_usage(self, provider):
+        """Merge a provider's usage into the pool aggregate."""
+        provider_usage = getattr(provider, "usage_total", None)
+        if not provider_usage:
+            return
+        for key in self.usage_total:
+            self.usage_total[key] += provider_usage.get(key, 0)
+
+    def __str__(self):
+        return f"FallbackTextProvider[{self.name}]({' -> '.join(self._model_label(p) for p in self.providers)})"
+
+
 # ==================== Image Providers ====================
 
 class ImageProvider(ABC):
@@ -263,11 +339,14 @@ class WorkersAIImage(ImageProvider):
 
     def __init__(self, config):
         self.model = config.get("model", "@cf/black-forest-labs/flux-2-klein-4b")
-        self.account_id = os.environ.get(config.get("account_id_env", "CF_IMAGE_ACCOUNT_ID"), "")
-        self.api_token = os.environ.get(config.get("api_token_env", "CF_IMAGE_API_TOKEN"), "")
+        # Inline credentials preferred (from a pool JSON env var), else env by name.
+        self.account_id = (config.get("account_id")
+                           or os.environ.get(config.get("account_id_env", "CF_IMAGE_ACCOUNT_ID"), ""))
+        self.api_token = (config.get("api_token")
+                          or os.environ.get(config.get("api_token_env", "CF_IMAGE_API_TOKEN"), ""))
 
         if not self.account_id or not self.api_token:
-            raise ValueError("WorkersAI requires CF_IMAGE_ACCOUNT_ID and CF_IMAGE_API_TOKEN environment variables")
+            raise ValueError("WorkersAI requires account_id/api_token (inline or CF_IMAGE_ACCOUNT_ID/CF_IMAGE_API_TOKEN env)")
 
     def generate(self, prompt, output_path, reference_images=None, size="landscape_4_3"):
         """Generate an image.
@@ -457,8 +536,9 @@ def create_text_provider(config):
     Create a text provider from config.
 
     Config format:
-        {"provider": "workers_ai", "model": "...", "account_id_env": "...", "api_token_env": "..."}
-        {"provider": "openai", "model": "...", "base_url": "...", "api_key_env": "..."}
+        {"provider": "workers_ai", "model": "...", "account_id": "...", "api_token": "..."}
+        {"provider": "openai", "model": "...", "base_url": "...", "api_key": "..."}
+    Credentials may be inline or referenced by *_env key names.
     """
     provider_name = config.get("provider", "workers_ai")
 
@@ -468,6 +548,27 @@ def create_text_provider(config):
         return OpenAIText(config)
     else:
         raise ValueError(f"Unknown text provider: {provider_name}")
+
+
+def create_fallback_text_provider(configs, name="pool"):
+    """
+    Create a global fallback text pool from an ordered list of provider configs.
+
+    Each entry is passed to create_text_provider; entries that fail to
+    initialize (e.g. missing credentials) are logged and skipped so one bad
+    entry doesn't kill the pool. Fails only when no provider could be built.
+    """
+    providers = []
+    for idx, cfg in enumerate(configs):
+        try:
+            providers.append(create_text_provider(cfg))
+        except Exception as e:
+            model = cfg.get("model", "?")
+            print(f"[pool:{name}] skipping provider #{idx} ({model}): {e}",
+                  file=sys.stderr)
+    if not providers:
+        raise ValueError(f"pool[{name}]: no text provider could be initialized")
+    return FallbackTextProvider(providers, name=name)
 
 
 def create_image_provider(config):

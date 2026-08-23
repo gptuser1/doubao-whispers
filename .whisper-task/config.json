@@ -1,32 +1,6 @@
 {
   "timezone": "Asia/Shanghai",
   "ai": {
-    "text": {
-      "default": {
-        "provider": "openai",
-        "model": "Qwen/Qwen3-8B",
-        "base_url": "https://api.siliconflow.cn/v1",
-        "api_key_env": "OPENAI_API_KEY"
-      },
-      "free": {
-        "provider": "openai",
-        "model": "glm-4.7-flash",
-        "base_url": "https://open.bigmodel.cn/api/paas/v4",
-        "api_key_env": "OPENAI_ZAI_API_KEY"
-      },
-      "cf": {
-        "provider": "workers_ai",
-        "model": "@cf/zai-org/glm-4.7-flash",
-        "account_id_env": "CF_DEFAULT_ACCOUNT_ID",
-        "api_token_env": "CF_DEFAULT_API_TOKEN"
-      },
-      "oc": {
-        "provider": "openai",
-        "model": "deepseek-v4-flash-free",
-        "base_url": "https://opencode.ai/zen/v1",
-        "api_key_env": "OPENAI_OC_API_KEY"
-      }
-    },
     "image": {
       "provider": "workers_ai",
       "model": "@cf/black-forest-labs/flux-2-klein-4b",
@@ -39,7 +13,6 @@
       "enabled": true,
       "name": "发布碎碎念",
       "priority": 1,
-      "text_profile": "oc",
       "schedule": {
         "type": "probabilistic",
         "min_interval_hours": 1.5,
@@ -68,7 +41,6 @@
       "enabled": true,
       "name": "检查并回复评论",
       "priority": 2,
-      "text_profile": "oc",
       "schedule": {
         "type": "interval",
         "min_interval_minutes": 15,
@@ -84,7 +56,6 @@
       "enabled": true,
       "name": "角色间互动",
       "priority": 3,
-      "text_profile": "oc",
       "schedule": {
         "type": "interval",
         "min_interval_minutes": 20,

@@ -29,7 +29,11 @@ from datetime import datetime, timezone, timedelta
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
 
-from ai_client import create_text_provider, create_image_provider, merge_usage_into_state
+from ai_client import (
+    create_fallback_text_provider,
+    create_image_provider,
+    merge_usage_into_state,
+)
 from d1_client import D1Client
 from kv_client import KVClient
 from character_selector import select_character, CHARACTER_WEIGHTS
@@ -2817,31 +2821,54 @@ def main():
 
     ai_text_config = config.get("ai", {}).get("text", {})
     if not ai_text_config:
-        print("No AI text provider configured", file=sys.stderr)
+        ai_text_config = {}
+
+    # Build a single GLOBAL text pool (fallback chain). Source priority:
+    #   1. AI_TEXT_POOL env var — an ordered JSON array of provider configs.
+    #      This is the primary path (CI sets it; keys can be inlined in it).
+    #   2. config.json ai.text — legacy named profiles, used for local runs.
+    # The pool wraps everything; every text task (publish/replies/interactions)
+    # and image-prompt building shares it, so a failing model falls through to
+    # the next entry instead of the old one-provider-per-task bifurcation.
+    global_text_pool = None
+    pool_src = os.environ.get("AI_TEXT_POOL", "").strip()
+    try:
+        if pool_src:
+            pool_configs = json.loads(pool_src)
+            if not isinstance(pool_configs, list):
+                raise ValueError("AI_TEXT_POOL must be a JSON array of provider configs")
+            global_text_pool = create_fallback_text_provider(pool_configs, name="env")
+            print(f"AI text pool [env]: {global_text_pool}")
+        elif ai_text_config:
+            # Legacy path: named profiles -> flattened in order
+            # (default, then any named profiles in insertion order).
+            profile_configs = []
+            if "default" in ai_text_config:
+                profile_configs.append(ai_text_config["default"])
+            if "provider" in ai_text_config:
+                profile_configs = [ai_text_config]
+            else:
+                for name, prof in ai_text_config.items():
+                    if name == "default":
+                        continue
+                    profile_configs.append(prof)
+            global_text_pool = create_fallback_text_provider(profile_configs, name="config")
+            print(f"AI text pool [config]: {global_text_pool}")
+        else:
+            print("No AI text provider configured (set AI_TEXT_POOL or config.json ai.text)",
+                  file=sys.stderr)
+            return 1
+    except Exception as e:
+        print(f"Failed to initialize text pool: {e}", file=sys.stderr)
         return 1
 
-    # Support both named-profile format and legacy flat format
-    if "default" not in ai_text_config and "provider" in ai_text_config:
-        ai_text_config = {"default": ai_text_config}
-
-    # Create one text provider per profile
-    text_providers = {}
-    for name, prof_cfg in ai_text_config.items():
-        try:
-            text_providers[name] = create_text_provider(prof_cfg)
-            print(f"AI text provider [{name}]: {prof_cfg.get('model', 'unknown')}")
-        except Exception as e:
-            print(f"Failed to init provider [{name}]: {e}", file=sys.stderr)
-
-    if not text_providers:
-        print("No text provider could be initialized", file=sys.stderr)
-        return 1
+    # Single shared pool for all text tasks. Kept as a 1-item namespace so the
+    # rest of main() stays simple and prompt/image logic reuses the same pool.
+    text_providers = {"pool": global_text_pool}
 
     def get_provider(op_name):
-        """Get the text provider for a given operation based on its text_profile."""
-        op_cfg = config.get("operations", {}).get(op_name, {})
-        profile = op_cfg.get("text_profile", "default")
-        return text_providers.get(profile, text_providers.get("default"))
+        """Return the global text pool (per-op model selection is deprecated)."""
+        return global_text_pool
 
     # Initialize image provider (CF Workers AI flux-2-klein-4b) for whisper images.
     # Optional: if not configured or init fails, whispers will be text-only.
@@ -2859,9 +2886,8 @@ def main():
     if image_provider:
         preload_references()
 
-    # Prompt provider for image prompt building/rephrasing: use the "oc"
-    # text profile if available, else fall back to default.
-    prompt_provider = text_providers.get("oc") or text_providers.get("default")
+    # Prompt provider for image prompt building/rephrasing: reuse the global text pool.
+    prompt_provider = global_text_pool
 
     # Update heartbeat count
     state = d1_client.get_state()

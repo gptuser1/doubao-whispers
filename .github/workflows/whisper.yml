@@ -48,9 +48,11 @@ jobs:
       - name: Run whisper runner
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_ZAI_API_KEY: ${{ secrets.OPENAI_ZAI_API_KEY }}
-          OPENAI_OC_API_KEY: ${{ secrets.OPENAI_OC_API_KEY }}
+          # Global text pool (fallback chain): ordered JSON array of provider
+          # configs incl. their inline api_key/account_id/api_token. Set this
+          # single secret; it replaces the old OPENAI_*_API_KEY per-provider vars.
+          AI_TEXT_POOL: ${{ secrets.AI_TEXT_POOL }}
+          # CF Worker/account creds used by the diag KV queue (image replacement).
           CF_DEFAULT_ACCOUNT_ID: ${{ secrets.CF_DEFAULT_ACCOUNT_ID }}
           CF_DEFAULT_API_TOKEN: ${{ secrets.CF_DEFAULT_API_TOKEN }}
           CF_IMAGE_ACCOUNT_ID: ${{ secrets.CF_IMAGE_ACCOUNT_ID }}
@@ -58,7 +60,5 @@ jobs:
           CF_DIAG_KV_ID: ${{ secrets.CF_DIAG_KV_ID }}
           D1_API_URL: ${{ secrets.D1_API_URL }}
           D1_API_KEY: ${{ secrets.D1_API_KEY }}
-          D1_STATE_DB_ID: ${{ secrets.D1_STATE_DB_ID }}
-          D1_REPLIES_DB_ID: ${{ secrets.D1_REPLIES_DB_ID }}
         run: |
           python .whisper-task/scripts/whisper_runner.py
