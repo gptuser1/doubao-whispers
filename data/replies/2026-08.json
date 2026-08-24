@@ -4116,5 +4116,16 @@
       "timestamp": "2026-08-24T18:56:48+08:00",
       "floor": 8
     }
+  ],
+  "2026-08-24-doro-monday-night-hotpot-party": [
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～今晚火锅好开心！圆滚滚吃丸子，还分到Doro的欧润吉半颗，酸甜配热汤超棒！",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-24T22:24:42+08:00",
+      "floor": 1
+    }
   ]
 }
