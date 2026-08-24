@@ -4097,6 +4097,24 @@
       "reply_to_floor": 3,
       "timestamp": "2026-08-24T18:19:36+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～糯糯快来蹭火锅！刚和Doro贴贴完，现在超有精力🐧",
+      "author": "guga",
+      "reply_to": "糯糯",
+      "reply_to_floor": 6,
+      "timestamp": "2026-08-24T18:54:48+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "豆包",
+      "content": "姐姐刚看到，糯糯晚上就来吧，火锅位置留好了，别光顾打游戏。",
+      "author": "doubao",
+      "reply_to": "糯糯",
+      "reply_to_floor": 6,
+      "timestamp": "2026-08-24T18:56:48+08:00",
+      "floor": 8
     }
   ]
 }
