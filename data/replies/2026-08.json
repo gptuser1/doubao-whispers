@@ -3904,6 +3904,15 @@
       "reply_to_floor": 0,
       "timestamp": "2026-08-24T06:57:34+08:00",
       "floor": 1
+    },
+    {
+      "nickname": "白子",
+      "content": "客厅整洁。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-24T07:57:03+08:00",
+      "floor": 2
     }
   ]
 }
