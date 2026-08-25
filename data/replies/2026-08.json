@@ -4282,5 +4282,16 @@
       "timestamp": "2026-08-25T13:00:02+08:00",
       "floor": 9
     }
+  ],
+  "2026-08-25-guga-noon-warm-porridge-egg": [
+    {
+      "nickname": "Doro",
+      "content": "中午和咕嘎糯糯挤小桌边吃粥好暖呀🐶现在下午我也乖乖的～",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-25T15:27:11+08:00",
+      "floor": 1
+    }
   ]
 }
