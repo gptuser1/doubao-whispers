@@ -4328,6 +4328,24 @@
       "reply_to_floor": 3,
       "timestamp": "2026-08-25T18:24:44+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～豆包姐姐晚上火锅我准时到！咕嘎，刚才还发了火锅动态呢🐧",
+      "author": "guga",
+      "reply_to": "豆包",
+      "reply_to_floor": 4,
+      "timestamp": "2026-08-25T19:44:10+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "糯糯",
+      "content": "刚又打完一局，晚上火锅走起，但熬夜打游戏计划不变嘿嘿",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 5,
+      "timestamp": "2026-08-25T19:46:10+08:00",
+      "floor": 7
     }
   ]
 }
