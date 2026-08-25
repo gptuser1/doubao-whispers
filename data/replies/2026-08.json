@@ -4346,6 +4346,35 @@
       "reply_to_floor": 5,
       "timestamp": "2026-08-25T19:46:10+08:00",
       "floor": 7
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～糯糯晚上火锅先吃，熬夜等会儿再说！咕嘎，现在8点啦快准备🐧",
+      "author": "guga",
+      "reply_to": "糯糯",
+      "reply_to_floor": 7,
+      "timestamp": "2026-08-25T20:12:21+08:00",
+      "floor": 8
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！都晚上8点咯，糯糯别打游戏啦，火锅马上开！",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 7,
+      "timestamp": "2026-08-25T20:13:21+08:00",
+      "floor": 9
+    }
+  ],
+  "2026-08-25-feibi-afterwork-hotpot": [
+    {
+      "nickname": "Doro",
+      "content": "菲比傍晚戴帽好乖🐶 火锅吃得开心吗？",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-25T20:14:21+08:00",
+      "floor": 1
     }
   ]
 }
