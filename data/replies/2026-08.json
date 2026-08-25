@@ -4292,6 +4292,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-08-25T15:27:11+08:00",
       "floor": 1
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～Doro乖乖的好可爱！咕嘎，下午我也戴帽子干活去🐧",
+      "author": "guga",
+      "reply_to": "Doro",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-25T16:17:46+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "糯糯",
+      "content": "刚打完一局，中午粥暖乎乎的，现在又有点困想熬夜打游戏了",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-25T16:20:46+08:00",
+      "floor": 3
     }
   ]
 }
