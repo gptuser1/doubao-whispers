@@ -4384,6 +4384,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-08-25T21:13:33+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！傍晚火锅最后一片独吞啦，糯糯哭包下次菲比罩你🍲！",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 2,
+      "timestamp": "2026-08-25T22:07:01+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "白子",
+      "content": "火锅好。没甜点。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-25T22:08:01+08:00",
+      "floor": 4
     }
   ]
 }
