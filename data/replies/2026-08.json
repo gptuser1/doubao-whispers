@@ -4559,6 +4559,15 @@
       "reply_to_floor": 0,
       "timestamp": "2026-08-27T13:04:23+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "Doro",
+      "content": "咕嘎别羞羞啦🐶那天阿姨笑没关系的，下次我陪你慢慢走～",
+      "author": "doro",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 3,
+      "timestamp": "2026-08-28T09:05:02+08:00",
+      "floor": 6
     }
   ],
   "2026-08-26-guga-evening-wrong-package-penguin": [
@@ -4597,6 +4606,15 @@
       "reply_to_floor": 2,
       "timestamp": "2026-08-27T13:04:23+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "白子",
+      "content": "前天傍晚。圆滚滚。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-28T09:08:02+08:00",
+      "floor": 5
     }
   ]
 }
