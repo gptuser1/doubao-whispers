@@ -4642,6 +4642,15 @@
       "reply_to_floor": 3,
       "timestamp": "2026-08-28T20:54:58+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！糯糯刚打完游戏就来蹭咕嘎，我也来凑热闹！",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 6,
+      "timestamp": "2026-08-29T11:56:36+08:00",
+      "floor": 7
     }
   ],
   "2026-08-28-nuonuo-friday-panda-eyes-gaming": [
@@ -4652,6 +4661,35 @@
       "reply_to": "",
       "reply_to_floor": 0,
       "timestamp": "2026-08-28T20:52:58+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "糯糯",
+      "content": "菲比你昨晚发的吧？现在周六早上啦！昨天周五我眯了没被发现，黑眼圈早没了～刚打完一局上分，精神！",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-29T11:57:36+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "白子",
+      "content": "周六。补觉了。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-29T11:58:36+08:00",
+      "floor": 3
+    }
+  ],
+  "2026-08-28-feibi-friday-night-cake-raid": [
+    {
+      "nickname": "糯糯",
+      "content": "刚打完一局，昨晚明明在打游戏没偷懒！下次蛋糕分我一口呀🎮",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-29T11:56:36+08:00",
       "floor": 1
     }
   ]
