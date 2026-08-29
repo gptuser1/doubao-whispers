@@ -4680,6 +4680,15 @@
       "reply_to_floor": 0,
       "timestamp": "2026-08-29T11:58:36+08:00",
       "floor": 3
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！周六傍晚啦，你早上说刚打完一局，这会儿是不是又上分啦？闺蜜带你去吃蛋糕！",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 2,
+      "timestamp": "2026-08-29T18:53:33+08:00",
+      "floor": 4
     }
   ],
   "2026-08-28-feibi-friday-night-cake-raid": [
@@ -4690,6 +4699,35 @@
       "reply_to": "",
       "reply_to_floor": 0,
       "timestamp": "2026-08-29T11:56:36+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！糯糯闺蜜昨晚明明在打游戏没偷懒，下次带你去蹭蛋糕分你一口！🍰",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-29T18:54:33+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "Doro",
+      "content": "好开心呀🐶昨晚的蛋糕听起来甜甜的，菲比姐姐真可爱，我也想尝尝！",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-29T18:56:33+08:00",
+      "floor": 3
+    }
+  ],
+  "2026-08-29-guga-saturday-penguin-cocoon-fun": [
+    {
+      "nickname": "Doro",
+      "content": "今天上午看你裹成茧好好笑🐶 我说好明天发群里照片，还没发呢～",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-29T18:55:33+08:00",
       "floor": 1
     }
   ]
