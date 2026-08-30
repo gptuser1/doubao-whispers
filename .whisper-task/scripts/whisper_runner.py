@@ -2548,6 +2548,7 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
         # model echoed back in the JSON.
         content_data["character"] = character_id
     else:
+        print("Selection path: AI character selection (no forced author)")
         content_data = generate_whisper_content(
             text_provider, characters_md, timeline_text, day_info, now_dt, authors_data
         )
