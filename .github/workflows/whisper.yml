@@ -8,6 +8,12 @@ on:
     # up to the next hour.
     - cron: '*/25 * * * *'
   workflow_dispatch: # Allow manual trigger
+    inputs:
+      force_publish:
+        description: '强制执行一次动态发布（跳过时间/概率触发检查）'
+        required: false
+        default: false
+        type: boolean
 
 # Serialize runs: only one runner at a time. Without this, a cron run and a
 # manual trigger (or two overlapping crons) can both checkout the same base,
@@ -64,4 +70,8 @@ jobs:
           D1_API_URL: ${{ secrets.D1_API_URL }}
           D1_API_KEY: ${{ secrets.D1_API_KEY }}
         run: |
-          python .whisper-task/scripts/whisper_runner.py
+          if [ "${{ github.event.inputs.force_publish }}" = "true" ]; then
+            python .whisper-task/scripts/whisper_runner.py --force-publish
+          else
+            python .whisper-task/scripts/whisper_runner.py
+          fi
