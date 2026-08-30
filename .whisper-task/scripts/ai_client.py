@@ -603,9 +603,10 @@ BASEURL_KEY_ENV = {
 
 
 def model_pool_path():
-    """Repo-root model-pool.json, produced by refresh_model_pool.py."""
+    """.whisper-task/model-pool.json (next to config.json), produced by
+    refresh_model_pool.py."""
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.abspath(os.path.join(script_dir, "..", "..", "model-pool.json"))
+    return os.path.abspath(os.path.join(script_dir, "..", "model-pool.json"))
 
 
 def fetch_model_pool(timeout=20):

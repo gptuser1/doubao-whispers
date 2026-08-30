@@ -2848,7 +2848,7 @@ def main():
     # and image-prompt building shares it, so a failing model falls through to
     # the next entry instead of the old one-provider-per-task bifurcation.
     global_text_pool = None
-    if os.path.exists(model_pool_path := os.path.join(PROJECT_ROOT, "model-pool.json")):
+    if os.path.exists(model_pool_path := os.path.join(PROJECT_ROOT, ".whisper-task", "model-pool.json")):
         try:
             global_text_pool = create_pool_text_provider()
             print(f"AI text pool [model-pool]: {global_text_pool}")

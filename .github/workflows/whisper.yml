@@ -54,9 +54,10 @@ jobs:
       - name: Run whisper runner
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          # Local free-model pool: whisper_runner refreshes model-pool.json at
-          # repo root when stale (>=12h), using the AA API key for quality
-          # ranking. The refreshed file is then committed alongside whisper data.
+          # Local free-model pool: whisper_runner refreshes
+          # .whisper-task/model-pool.json when stale (>=12h), using the AA API
+          # key for quality ranking. The refreshed file is then committed
+          # alongside whisper data.
           AA_API_KEY: ${{ secrets.AA_API_KEY }}
           # Provider API keys, matched by baseurl host in ai_client.BASEURL_KEY_ENV.
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}

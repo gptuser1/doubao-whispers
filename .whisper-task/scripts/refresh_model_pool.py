@@ -16,15 +16,16 @@ import json
 import os
 import re
 import sys
+import time
 from datetime import datetime, timezone
 
 # Import requests lazily so unit tests that don't need network still load.
 import requests
 
-# Paths
+# Paths. model-pool.json lives next to config.json (both under .whisper-task/).
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
-POOL_PATH = os.path.join(PROJECT_ROOT, "model-pool.json")
+POOL_PATH = os.path.join(PROJECT_ROOT, ".whisper-task", "model-pool.json")
 
 # How often (seconds) before the pool is considered stale and refreshed.
 REFRESH_INTERVAL = 12 * 3600  # 12h
@@ -117,25 +118,37 @@ def aa_score(model_id, aa_index):
 
     Tries exact normalized match, then strips trailing variant/free tokens one
     at a time (max 3 layers) before giving up. Works on the raw id split by
-    non-alphanumerics so token boundaries stay visible to normalize()."""
-    key = normalize(model_id)
-    if key in aa_index:
-        return aa_index[key]
-    # Split raw lowercased id into tokens; try dropping trailing tokens that
-    # are free-suffix or a known variant word.
-    tokens = re.split(r"[^a-z0-9]+", (model_id or "").lower())
-    tokens = [t for t in tokens if t]
-    for _ in range(3):
-        if not tokens:
-            break
-        last = tokens[-1]
-        if last == "free" or last in _VARIANT_WORDS:
+    non-alphanumerics so token boundaries stay visible to normalize().
+    Provider prefixes ("inclusionai/") are tried both included and dropped, so
+    strip matching is done on the "/"-suffix too."""
+    def try_key(key):
+        if key in aa_index:
+            return aa_index[key]
+        return None
+
+    v = try_key(normalize(model_id))
+    if v is not None:
+        return v
+
+    # Token-strip candidates: the whole id, and (if it has a provider prefix)
+    # just the part after the last "/".
+    id_lower = (model_id or "").lower()
+    candidates = [id_lower]
+    if "/" in id_lower:
+        candidates.append(id_lower.split("/")[-1])
+
+    for base in candidates:
+        tokens = [t for t in re.split(r"[^a-z0-9]+", base) if t]
+        for _ in range(3):
+            if not tokens:
+                break
+            last = tokens[-1]
+            if not (last == "free" or last in _VARIANT_WORDS):
+                break
             tokens.pop()
-            k = normalize(" ".join(tokens))
-            if k in aa_index:
-                return aa_index[k]
-        else:
-            break
+            v = try_key(normalize(" ".join(tokens)))
+            if v is not None:
+                return v
     return None
 
 
@@ -174,8 +187,8 @@ def fetch_zen_free():
 
 
 def build_aa_index():
-    """Return slug/name -> AI index map. Requires AA_API_KEY; returns {} if
-    missing so callers can choose to skip scoring."""
+    """Return normalized slug -> AI index map (slug only). Requires AA_API_KEY;
+    raises if missing so callers can keep the old file."""
     api_key = os.environ.get("AA_API_KEY", "").strip()
     if not api_key:
         print("[model-pool] AA_API_KEY unset, cannot score models", file=sys.stderr)
@@ -189,9 +202,98 @@ def build_aa_index():
             continue
         if not isinstance(score, (int, float)):
             continue
-        name = m.get("name") or m.get("slug") or ""
-        index[normalize(name)] = float(score)
+        score = float(score)
+        # Index the SLUG only: AA slugs are clean, stable identifiers
+        # ("deepseek-v4-flash"), while names carry noisy suffixes like
+        # "DeepSeek V4 Flash 0731 (Reasoning, Max Effort)" that never match a
+        # short provider id. Slug-only matching is both accurate and enough
+        # once aa_score also strips variant/free tokens on a miss.
+        if m.get("slug"):
+            index.setdefault(normalize(m["slug"]), score)
     return index
+
+
+# --------------------------------------------------------------------------
+# Liveness probe (ack test)
+# --------------------------------------------------------------------------
+
+ACK_TIMEOUT = 15
+ACK_PROMPT = "Reply with exactly: ack"
+ACK_MAX_ATTEMPTS = 3
+ACK_BASE_DELAY = 8  # seconds; backoff = base * attempt (8s, 16s)
+
+
+def _extract_host(baseurl):
+    try:
+        from urllib.parse import urlparse
+        return urlparse(baseurl).netloc.lower()
+    except Exception:
+        return ""
+
+
+def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
+    """Send a minimal chat request and require a usable reply, with retry.
+
+    A model only passes if the endpoint eventually returns 200 with at least
+    one non-empty assistant content token. Retries only cover transient noise
+    (network error, 429, 5xx); a deterministic 4xx (auth 401/403, missing model
+    404) fails immediately without burning extra attempts. Missing provider key
+    and empty/final replies also fail so dead models never enter the pool.
+    Returns (ok, detail).
+    """
+    model = entry.get("model", "")
+    baseurl = (entry.get("baseurl") or "").rstrip("/")
+    key_env = BASEURL_KEY_ENV.get(_extract_host(entry.get("baseurl") or ""), "")
+    api_key = os.environ.get(key_env, "").strip() if key_env else ""
+    if not api_key:
+        return False, f"no {key_env or 'api key'} configured"
+    url = f"{baseurl}/chat/completions"
+    body = {
+        "model": model,
+        "messages": [{"role": "user", "content": ACK_PROMPT}],
+        "max_tokens": 4,
+        "temperature": 0,
+    }
+    headers = {"Authorization": f"Bearer {api_key}"}
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            resp = requests.post(url, json=body, headers=headers, timeout=timeout)
+        except Exception as e:
+            if attempt < max_attempts:
+                time.sleep(ACK_BASE_DELAY * attempt)
+                continue
+            return False, f"request error: {e}"
+
+        if resp.status_code == 200:
+            try:
+                content = _extract_ack_content(resp)
+            except Exception as e:
+                return False, f"bad json: {e}"
+            if not content:
+                return False, "empty reply"
+            return True, content[:24]
+
+        if resp.status_code == 429 or 500 <= resp.status_code < 600:
+            # Transient — retry with backoff before blaming the model.
+            if attempt < max_attempts:
+                time.sleep(ACK_BASE_DELAY * attempt)
+                continue
+            return False, f"http {resp.status_code}: {resp.text[:120]}"
+
+        # Deterministic 4xx (auth / missing model / bad request) — no retry.
+        return False, f"http {resp.status_code}: {resp.text[:120]}"
+
+    return False, "max attempts exhausted"
+
+
+def _extract_ack_content(resp):
+    data = resp.json()
+    choices = data.get("choices") or []
+    content = ""
+    if choices:
+        content = (choices[0].get("message", {}) or {}).get("content") or ""
+    return content.strip()
 
 
 # --------------------------------------------------------------------------
@@ -199,9 +301,10 @@ def build_aa_index():
 # --------------------------------------------------------------------------
 
 def compile_pool():
-    """Fetch free models from both sources, score with AA, keep score>=threshold
-    (drop unscored / low), sort descending by score. Raises on any source
-    failure so the caller can keep the old file."""
+    """Fetch free models from both sources, score with AA (slug match, keep
+    score>=threshold), then pass each surviving candidate a liveness ACK test
+    before it may enter the pool. Sort descending by score. Raises on any
+    source failure so the caller can keep the old file."""
     sources = []
     sources += fetch_openrouter_free()
     sources += fetch_zen_free()
@@ -217,10 +320,24 @@ def compile_pool():
             continue
         scored.append((score, entry))
 
-    scored.sort(key=lambda t: t[0], reverse=True)
-    entries = [e for _, e in scored]
+    # Liveness gate: every quality-passed candidate must answer an ACK probe.
+    # A dead endpoint, missing provider key, auth failure, or empty reply drops
+    # the model here. Fails fast individually; one bad model never blocks the rest.
+    alive = []
+    dropped = 0
+    for score, entry in scored:
+        ok, detail = ack_probe(entry)
+        if ok:
+            alive.append((score, entry))
+        else:
+            dropped += 1
+            print(f"[model-pool] ack failed, dropping {entry['model']}: {detail}",
+                  file=sys.stderr)
+
+    alive.sort(key=lambda t: t[0], reverse=True)
+    entries = [e for _, e in alive]
     if not entries:
-        raise ValueError("no models passed the AA quality threshold")
+        raise ValueError("no models passed AA threshold and ACK liveness probe")
 
     return {
         "updated_at": int(_now().timestamp() * 1000),
