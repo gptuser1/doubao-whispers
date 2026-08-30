@@ -2479,7 +2479,8 @@ class PublishError(Exception):
     run with a non-zero exit instead of silently degrading so CI is visible."""
 
 def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
-                       image_provider=None, prompt_provider=None, forced_character=None):
+                       image_provider=None, prompt_provider=None, forced_character=None,
+                       force=False):
     """Execute the publish whisper task."""
     print("\n--- Publish Whisper ---")
 
@@ -2494,11 +2495,14 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
 
     now_str = now_dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
 
-    # Check trigger
-    trigger_result = check_trigger("publish_whisper", last_run, now_str, random_offset)
-    print(f"Trigger check: {trigger_result.get('trigger', False)} - {trigger_result.get('reason', '')}")
+    # Check trigger (bypassed entirely when --force-publish is set)
+    if force:
+        print("Trigger check: True (forced)")
+    else:
+        trigger_result = check_trigger("publish_whisper", last_run, now_str, random_offset)
+        print(f"Trigger check: {trigger_result.get('trigger', False)} - {trigger_result.get('reason', '')}")
 
-    if not trigger_result.get("trigger", False):
+    if not force and not trigger_result.get("trigger", False):
         print("Publish whisper: not triggered, skipping")
         return False
 
@@ -3132,15 +3136,13 @@ def main():
     force_publish = args.force_publish or (bool(args.author) and args.author != "default")
     if force_publish:
         print("Force publish mode, bypassing trigger check")
-        # Temporarily set last_run to far past to force trigger
-        state["last_run"]["whispers_publish"] = "2026-06-01T00:00:00+08:00"
-        d1_client.save_state(state)
 
     try:
         published = do_publish_whisper(
             config, d1_client, get_provider("publish_whisper"), now, args.dry_run,
             image_provider=image_provider, prompt_provider=prompt_provider,
-            forced_character=None if args.author in (None, "", "default") else args.author
+            forced_character=None if args.author in (None, "", "default") else args.author,
+            force=force_publish
         )
     except PublishError as e:
         # Core task failed after all fallbacks — do not continue with the
