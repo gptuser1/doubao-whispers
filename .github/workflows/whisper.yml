@@ -10,7 +10,7 @@ on:
   workflow_dispatch: # Allow manual trigger
     inputs:
       force_publish:
-        description: '强制执行一次动态发布（跳过时间/概率触发检查）'
+        description: 'Force publish'
         required: false
         default: false
         type: boolean
