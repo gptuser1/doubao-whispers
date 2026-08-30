@@ -1264,6 +1264,11 @@ _DETECT_SYSTEM = """你是"悄悄话小站"的承诺/伏笔检测器。你的唯
 - 该承诺到现在【尚未兑现】（例如说"明天发"但照片还没发）
 - 且【保留了期待】——其他角色正在催或等（如"照片呢""怎么还不发""等你呢""说好的呢"），或承诺者自己仍处在"还没发"的语境里
 
+【判定倾向】
+- 宁可多报、不要漏报。只要看出"某个角色答应过要做某事、现在还没做"，就算可能有点模糊，也要报出来，把判定交给后续。
+- 角色自己亲口说"我答应/说好/回头发/明天发/还没发"+ 之后有人催"照片呢/怎么还不发/等你呢"——这是最强信号，直接判为 high 承诺，不要因为措辞委婉就忽略。
+- 角色明确自称"说好明天发群里照片，还没发呢"，且同一话题下多人追问时，核心承诺就是"发照片/发出来"，如实描述。
+
 【不算承诺——剔除】
 - 随口一提、无明确约定的闲聊
 - 玩笑、夸张、日常寒暄（如"哪天一起吃饭啊"若无约定）
@@ -1320,6 +1325,7 @@ def detect_pending_promises(text_provider, timeline_text, authors_data, now_dt):
         return []
 
     if not response or not response.strip():
+        print("[promise-detect] LLM returned empty response", file=sys.stderr)
         return []
 
     # Strip a possible markdown fence, then parse as JSON array.
@@ -1343,6 +1349,8 @@ def detect_pending_promises(text_provider, timeline_text, authors_data, now_dt):
     except json.JSONDecodeError as e:
         print(f"[promise-detect] JSON parse failed: {e}", file=sys.stderr)
         return []
+
+    print(f"[promise-detect] raw response: {text[:400]!r}", file=sys.stderr)
 
     out = []
     if isinstance(data, list):
@@ -1404,6 +1412,8 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
         if promises:
             pending_block = format_pending_block(promises, authors_data)
             print(f"[promise] {len(promises)} pending promise(s) fed to selection")
+        else:
+            print("[promise] detector returned no pending promises")
     except Exception as e:
         print(f"[promise] detection skipped (empty block): {e}", file=sys.stderr)
 
