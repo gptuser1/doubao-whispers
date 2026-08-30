@@ -1130,7 +1130,7 @@ def _build_time_context(now_dt, whisper_data=None):
 
 
 def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
-                         authors_data, recent_topics_summary):
+                         authors_data, recent_topics_summary, pending_block=""):
     """
     Build system and user prompts for whisper generation.
     AI selects the character AND generates content in one call.
@@ -1154,6 +1154,32 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
         char_list.append(f"- {info.get('name', char_id)}（ID: {char_id}）: {info.get('desc', '')}")
     char_list_text = "\n".join(char_list)
 
+    # Character-selection policy. When the promise detector found an unfulfilled
+    # promise, we give the promiser a boosted (but not forced) weight — explicit
+    # guard clauses keep every post from becoming debt-repayment. When nothing is
+    # pending, fall back to the plain routine rules.
+    if pending_block.strip():
+        choice_rules = (
+            "选择角色的原则（承诺只提供高权重候选，不必每条都为承诺）：\n"
+            "- 【高权重·未兑现承诺】综合下面的【未兑现承诺清单】，优先考虑承诺者角色："
+            "承诺被多人期待、拖得较久（urgency=high）时权重最高；urgency=medium 是次一档。\n"
+            "- 【重要·不要每条都为还承诺】承诺只是选角的加权因素，不是唯一目标。"
+            "若承诺者最近刚发过动态、当前时机或场景与其承诺明显不符、或连续让同一角色发布会造成刷屏，"
+            "可正常选择其他角色，把该承诺留到更合适的时刻。目标是剧情自然连贯，而不是刻意为还债而发。\n"
+            "- 根据角色性格和当前场景，谁最自然就选谁\n"
+            "- 避免和最近2条动态的作者重复\n"
+            "- 考虑角色之间的关系和互动，内容要和最近动态逻辑一致，不能前后矛盾\n"
+            "- 如果最近有人在聊某个话题，可以延续或回应，但不要复读"
+        )
+    else:
+        choice_rules = (
+            "选择角色的原则：\n"
+            "- 根据角色性格和当前场景，谁最自然就选谁\n"
+            "- 避免和最近2条动态的作者重复\n"
+            "- 考虑角色之间的关系和互动，内容要和最近动态逻辑一致，不能前后矛盾\n"
+            "- 如果最近有人在聊某个话题，可以延续或回应，但不要复读"
+        )
+
     system_prompt = f"""你是"豆包和朋友们的悄悄话"小站的调度AI。这个小站是几个虚拟角色发碎碎念动态的地方，就像QQ空间说说。
 
 角色设定：
@@ -1166,11 +1192,7 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
 1. 根据当前时间、场景、最近的动态上下文，选择一个最合适的角色来发新动态
 2. 以该角色的身份写一条碎碎念动态
 
-选择角色的原则：
-- 根据角色性格和当前场景，谁最自然就选谁
-- 避免和最近2条动态的作者重复
-- 考虑角色之间的关系和互动，内容要和最近动态逻辑一致，不能前后矛盾
-- 如果最近有人在聊某个话题，可以延续或回应，但不要复读
+{choice_rules}
 
 写动态的要求：
 1. 长度50-200字，短而精
@@ -1208,9 +1230,13 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
   "storyline_trigger": null
 }}"""
 
+    pending_section = ""
+    if pending_block.strip():
+        pending_section = f"{pending_block}\n\n"
+
     user_prompt = f"""{now_block_with_day}
 
-{recent_topics_summary}
+{pending_section}{recent_topics_summary}
 
 最近的动态（参考上下文，不要矛盾，不要原样复读）：
 {timeline_text}
@@ -1220,6 +1246,140 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
 只输出JSON。"""
 
     return system_prompt, user_prompt
+
+
+# ==================== Pending Promises ====================
+#
+# The promise detector is an LLM pass that reads the recent timeline (whisper
+# posts + their replies) and extracts "unfulfilled promises" — a character who
+# explicitly committed to something that hasn't happened yet and that others
+# are waiting on. Keyword rules can never cover the variety of spoken Chinese
+# promises, so this is intentionally delegated to the model. The result is fed
+# into the selection prompt as a high-weight, non-forced factor.
+
+_DETECT_SYSTEM = """你是"悄悄话小站"的承诺/伏笔检测器。你的唯一任务：阅读用户给出的"最近动态+回复"，找出【已经有角色明确承诺/答应过、但截至当前仍未兑现、且被别人期待】的约定，用于判断下一条动态该由谁发、发什么。
+
+【严格定义"承诺"——只认这些】
+- 角色自己说的话里，明确表达出意图或约定，例如："我说好明天发""答应带给你""说好一起""回头发你""回头给你看""等我""改天请你""我会……""到时候发……"
+- 该承诺到现在【尚未兑现】（例如说"明天发"但照片还没发）
+- 且【保留了期待】——其他角色正在催或等（如"照片呢""怎么还不发""等你呢""说好的呢"），或承诺者自己仍处在"还没发"的语境里
+
+【不算承诺——剔除】
+- 随口一提、无明确约定的闲聊
+- 玩笑、夸张、日常寒暄（如"哪天一起吃饭啊"若无约定）
+- 只是别人对你有什么期待、但你自己并没答应
+- 过度脑补、或"似乎像要约"的模糊猜测
+
+紧迫度（urgency）：
+- high：承诺被多人点名等待、或拖得较久、或承诺者自己仍提"还没发"
+- medium：有一句明确约定，但暂时无人催促、也不紧急
+- 只有先确认"这确实是承诺"，才谈得上 urgency；不满足承诺定义的直接不输出
+
+只输出一个 JSON 数组，不要任何其他文字，不要 markdown 代码块。
+
+合法角色ID（promiser 和 expectations 都必须严格来自这里，用 ID 不要用昵称）：
+<CHAR_LIST>
+
+当前时间：<NOW_BLOCK>"""
+
+_DETECT_USER = """请阅读下列最近的动态及其回复，识别"未兑现承诺"。综合判断，只保留真正明确、值得后续跟进的承诺。
+
+{timeline_text}
+
+输出 JSON 数组，每项字段（英文key）：
+- "promiser": 承诺者角色ID
+- "promise": 简短中文描述，如「Doro 答应发企鹅茧照片但还没发」
+- "followup": 承诺接续哪条动态，写它的标题
+- "expectations": [期待的其他人角色ID]
+- "urgency": "high" 或 "medium"
+没有任何符合条件的承诺时，输出 []。"""
+
+
+def detect_pending_promises(text_provider, timeline_text, authors_data, now_dt):
+    """Run the promise-detection LLM pass.
+
+    Returns a list of validated promise dicts
+    [{"promiser", "promise", "followup", "expectations", "urgency"}].
+    On any failure returns [] so publishing never depends on the detector.
+    """
+    if not timeline_text or not authors_data:
+        return []
+    char_list = "\n".join(f"- {info.get('name', cid)}（ID: {cid}）" for cid, info in authors_data.items())
+    now_block, _ = _build_time_context(now_dt)
+    system = _DETECT_SYSTEM.replace("<CHAR_LIST>", char_list).replace("<NOW_BLOCK>", now_block)
+    user = _DETECT_USER.format(timeline_text=timeline_text)
+
+    try:
+        response = text_provider.generate(
+            [{"role": "system", "content": system},
+             {"role": "user", "content": user}],
+            max_tokens=1500, temperature=0.2, enable_thinking=False,
+        )
+    except Exception as e:
+        print(f"[promise-detect] LLM call failed: {e}", file=sys.stderr)
+        return []
+
+    if not response or not response.strip():
+        return []
+
+    # Strip a possible markdown fence, then parse as JSON array.
+    text = response.strip()
+    if text.startswith("```"):
+        lines = text.split("\n")
+        json_lines = []
+        in_json = False
+        for line in lines:
+            if line.startswith("```") and not in_json:
+                in_json = True
+                continue
+            elif line.startswith("```") and in_json:
+                break
+            elif in_json:
+                json_lines.append(line)
+        text = "\n".join(json_lines)
+
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as e:
+        print(f"[promise-detect] JSON parse failed: {e}", file=sys.stderr)
+        return []
+
+    out = []
+    if isinstance(data, list):
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            pid = item.get("promiser", "")
+            if pid in authors_data and item.get("promise"):
+                out.append({
+                    "promiser": pid,
+                    "promise": str(item.get("promise", "")).strip(),
+                    "followup": str(item.get("followup", "")).strip(),
+                    "expectations": [x for x in item.get("expectations", [])
+                                     if isinstance(x, str) and x in authors_data],
+                    "urgency": item.get("urgency", "medium"),
+                })
+    return out
+
+
+def format_pending_block(promises, authors_data):
+    """Render the validated promise list into a compact prompt block.
+
+    Returns "" when there is nothing pending, so the caller can fall back to
+    the plain selection rules.
+    """
+    if not promises:
+        return ""
+    name = lambda cid: authors_data.get(cid, {}).get("name", cid)
+    lines = ["未兑现承诺清单（作为选角高权重依据，需综合场景判断是否由承诺者来发）："]
+    for p in promises:
+        exp = "、".join(name(x) for x in p.get("expectations") or []) or "（暂无人点名）"
+        base = f"- {name(p['promiser'])}（{p['promiser']}）承诺：{p['promise']}"
+        if p.get("followup"):
+            base += f"（接续《{p['followup']}》）"
+        base += f"，期待者：{exp}，紧迫度：{p.get('urgency', 'medium')}"
+        lines.append(base)
+    return "\n".join(lines)
 
 
 def generate_whisper_content(text_provider, characters_md, timeline_text,
@@ -1234,11 +1394,24 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
     recent_whispers = load_recent_whispers(count=15)
     recent_topics_summary = build_recent_topics_summary(recent_whispers, authors_data)
 
+    # Run the promise detector once up front. If it surfaces any unfulfilled
+    # promises, feed them to the selection prompt as a high-weight (not forced)
+    # factor. Any detector failure degrades to an empty block — never block
+    # publishing over the detector.
+    pending_block = ""
+    try:
+        promises = detect_pending_promises(text_provider, timeline_text, authors_data, now_dt)
+        if promises:
+            pending_block = format_pending_block(promises, authors_data)
+            print(f"[promise] {len(promises)} pending promise(s) fed to selection")
+    except Exception as e:
+        print(f"[promise] detection skipped (empty block): {e}", file=sys.stderr)
+
     def _generate_once():
         """Single generation attempt. Returns parsed dict or None."""
         system_prompt, user_prompt = build_publish_prompt(
             characters_md, timeline_text, day_info, now_dt, authors_data,
-            recent_topics_summary
+            recent_topics_summary, pending_block=pending_block
         )
         messages = [
             {"role": "system", "content": system_prompt},
@@ -2295,7 +2468,7 @@ class PublishError(Exception):
     run with a non-zero exit instead of silently degrading so CI is visible."""
 
 def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
-                       image_provider=None, prompt_provider=None):
+                       image_provider=None, prompt_provider=None, forced_character=None):
     """Execute the publish whisper task."""
     print("\n--- Publish Whisper ---")
 
@@ -2337,26 +2510,53 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
 
     authors_data = load_json(AUTHORS_PATH) if os.path.exists(AUTHORS_PATH) else {}
 
-    # Generate content: AI selects character + generates content in one call
-    content_data = generate_whisper_content(
-        text_provider, characters_md, timeline_text, day_info, now_dt, authors_data
-    )
-
-    if not content_data:
-        # Fallback: use weighted random character selector + retry AI generation
-        print("AI content generation failed, falling back to character_selector...")
-        character_id = select_character(WHISPERS_DIR)
-        character_name = get_author_nickname(character_id, authors_data)
-        print(f"Fallback character: {character_name} ({character_id})")
-
-        # Retry with a simpler prompt for the selected character
-        content_data = _fallback_generate(text_provider, character_id, character_name,
-                                          characters_md, timeline_text, day_info, now_dt)
-        if not content_data:
-            msg = ("publish generation failed (main + fallback) at "
+    # Generate content. Two paths:
+    #   - forced_character (from the workflow `author` input): publish as exactly
+    #     this character. Skips the AI's character choice and uses the targeted
+    #     fallback generator so the picked author is honored verbatim.
+    #   - default: AI selects the character + content in one call, with a
+    #     weighted-random fallback if that generation fails.
+    if forced_character:
+        if forced_character not in authors_data:
+            msg = (f"forced publish author '{forced_character}' not in authors.json at "
                    f"{now_dt.strftime('%Y-%m-%d %H:%M:%S')} Beijing time")
             print(f"ERROR: {msg}", file=sys.stderr)
             raise PublishError(msg)
+        character_id = forced_character
+        character_name = get_author_nickname(character_id, authors_data)
+        print(f"Forced publish author: {character_name} ({character_id})")
+        content_data = _fallback_generate(
+            text_provider, character_id, character_name,
+            characters_md, timeline_text, day_info, now_dt
+        )
+        if not content_data:
+            msg = ("forced publish generation failed at "
+                   f"{now_dt.strftime('%Y-%m-%d %H:%M:%S')} Beijing time")
+            print(f"ERROR: {msg}", file=sys.stderr)
+            raise PublishError(msg)
+        # Pin the author to the requested character regardless of what the
+        # model echoed back in the JSON.
+        content_data["character"] = character_id
+    else:
+        content_data = generate_whisper_content(
+            text_provider, characters_md, timeline_text, day_info, now_dt, authors_data
+        )
+
+        if not content_data:
+            # Fallback: use weighted random character selector + retry AI generation
+            print("AI content generation failed, falling back to character_selector...")
+            character_id = select_character(WHISPERS_DIR)
+            character_name = get_author_nickname(character_id, authors_data)
+            print(f"Fallback character: {character_name} ({character_id})")
+
+            # Retry with a simpler prompt for the selected character
+            content_data = _fallback_generate(text_provider, character_id, character_name,
+                                              characters_md, timeline_text, day_info, now_dt)
+            if not content_data:
+                msg = ("publish generation failed (main + fallback) at "
+                       f"{now_dt.strftime('%Y-%m-%d %H:%M:%S')} Beijing time")
+                print(f"ERROR: {msg}", file=sys.stderr)
+                raise PublishError(msg)
 
     character_id = content_data["character"]
     character_name = get_author_nickname(character_id, authors_data)
@@ -2800,6 +3000,7 @@ def main():
     parser = argparse.ArgumentParser(description="Whisper runner")
     parser.add_argument("--dry-run", action="store_true", help="Dry run, no actual changes")
     parser.add_argument("--force-publish", action="store_true", help="Force publish regardless of trigger")
+    parser.add_argument("--author", default="", help="Force publish as this exact character ID (implies --force-publish)")
     args = parser.parse_args()
 
     now = now_beijing()
@@ -2913,7 +3114,11 @@ def main():
     d1_client.save_state(state)
 
     # Task 1: Publish whisper
-    if args.force_publish:
+    # Picking an author also forces the publish (you can't choose who posts
+    # while also waiting on the probabilistic trigger). --force-publish alone
+    # keeps the AI's character choice; --author overrides it.
+    force_publish = args.force_publish or bool(args.author)
+    if force_publish:
         print("Force publish mode, bypassing trigger check")
         # Temporarily set last_run to far past to force trigger
         state["last_run"]["whispers_publish"] = "2026-06-01T00:00:00+08:00"
@@ -2922,7 +3127,8 @@ def main():
     try:
         published = do_publish_whisper(
             config, d1_client, get_provider("publish_whisper"), now, args.dry_run,
-            image_provider=image_provider, prompt_provider=prompt_provider
+            image_provider=image_provider, prompt_provider=prompt_provider,
+            forced_character=args.author or None
         )
     except PublishError as e:
         # Core task failed after all fallbacks — do not continue with the
