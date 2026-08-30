@@ -17,10 +17,10 @@ on:
       author:
         description: 'Author'
         required: false
-        default: ''
+        default: 'default'
         type: choice
         options:
-          - '' # default selection mechanism
+          - 'default'
           - doubao
           - guga
           - doro
@@ -84,8 +84,11 @@ jobs:
           D1_API_URL: ${{ secrets.D1_API_URL }}
           D1_API_KEY: ${{ secrets.D1_API_KEY }}
         run: |
-          if [ "${{ github.event.inputs.force_publish }}" = "true" ]; then
-            python .whisper-task/scripts/whisper_runner.py --force-publish --author "${{ github.event.inputs.author }}"
+          AUTHOR="${{ github.event.inputs.author }}"
+          if [ "$AUTHOR" != "default" ]; then
+            python .whisper-task/scripts/whisper_runner.py --force-publish --author "$AUTHOR"
+          elif [ "${{ github.event.inputs.force_publish }}" = "true" ]; then
+            python .whisper-task/scripts/whisper_runner.py --force-publish
           else
             python .whisper-task/scripts/whisper_runner.py
           fi

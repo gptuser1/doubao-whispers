@@ -3117,7 +3117,7 @@ def main():
     # Picking an author also forces the publish (you can't choose who posts
     # while also waiting on the probabilistic trigger). --force-publish alone
     # keeps the AI's character choice; --author overrides it.
-    force_publish = args.force_publish or bool(args.author)
+    force_publish = args.force_publish or (bool(args.author) and args.author != "default")
     if force_publish:
         print("Force publish mode, bypassing trigger check")
         # Temporarily set last_run to far past to force trigger
@@ -3128,7 +3128,7 @@ def main():
         published = do_publish_whisper(
             config, d1_client, get_provider("publish_whisper"), now, args.dry_run,
             image_provider=image_provider, prompt_provider=prompt_provider,
-            forced_character=args.author or None
+            forced_character=None if args.author in (None, "", "default") else args.author
         )
     except PublishError as e:
         # Core task failed after all fallbacks — do not continue with the
