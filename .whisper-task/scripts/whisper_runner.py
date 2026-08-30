@@ -72,7 +72,7 @@ MAX_REFERENCE_IMAGES = 4
 # without improving fidelity. Code-fixed (not AI-generated) so the AI cannot
 # drift into describing appearance.
 IMAGE_APPEARANCE_HARD_CONSTRAINT = (
-    "Reference image(s) show the character(s).\nFor single reference image: apply all fixed attributes to the sole character.\nFor multiple reference images (reference image 1, reference image 2, ...): each image represents a distinct character. All characters must appear together in the rendered scene. Apply fixed attributes to their respective referenced character.\nKeep the reference image's clothing style. No exposed skin.\nStyle anchor: kawaii chibi anime illustration, thick clean black outlines, soft cel shading, pastel warm colors, rounded cute proportions, big glossy eyes, gentle warm ambient lighting, cozy daily scene, soft blush, clean flat coloring.\nFixed attributes: face shape, hairstyle, skin tone, eye color, body build, clothing style, hand details."
+    "Reference image(s) show the character(s).\nFor single reference image: apply all fixed attributes to the sole character.\nFor multiple reference images (reference image 0, reference image 1, ...): each image represents a distinct character. All characters must appear together in the rendered scene. Apply fixed attributes to their respective referenced character.\nKeep the reference image's clothing style. No exposed skin.\nStyle anchor: kawaii chibi anime illustration, thick clean black outlines, soft cel shading, pastel warm colors, rounded cute proportions, big glossy eyes, gentle warm ambient lighting, cozy daily scene, soft blush, clean flat coloring.\nFixed attributes: face shape, hairstyle, skin tone, eye color, body build, clothing style, hand details."
 )
 
 # Beijing timezone
@@ -474,13 +474,13 @@ def build_image_prompt(text_provider, content, character_id, scene_chars,
         return NAME_ROMANIZATION.get(aid, get_author_nickname(aid, authors_data))
     char_names = [_roman(character_id)] + [_roman(a) for a in scene_chars]
     ref_mapping = ", ".join(
-        f"reference image {i+1} = {name}" for i, name in enumerate(char_names)
+        f"image {i} = {name}" for i, name in enumerate(char_names)
     )
 
     system_prompt = f"""You are a prompt generator. Your task is to generate a structured character scene description based on user prompt.
 
-Characters correspond to reference images in order: {ref_mapping}
-Refer to characters as "the character in reference image 1", "the character in reference image 2", etc. Do NOT use character names in the output — the image model only knows characters by their reference image position.
+Characters correspond to reference images and are indexed from 0 (image 0, image 1, ...), matching the input_image_N parameter names: {ref_mapping}
+Refer to characters as "the character in image 0", "the character in image 1", etc. Do NOT use character names in the output — the image model only knows characters by their zero-based reference image index.
 
 Variable Fields to Fill (based on user prompt, generate values for these only):
 
@@ -503,7 +503,7 @@ Variable Fields to Fill (based on user prompt, generate values for these only):
 
     1. Only generate content for the Variable Fields listed above.
     2. Keep all values concise, descriptive, and comma-separated where appropriate.
-    3. Refer to characters by reference image number, never by name.
+    3. Refer to characters by their zero-based image index (image 0, image 1, ...), never by name. Indexing MUST start at 0; never start from 1.
     4. Output format must be:
 
     Action: [your value]
@@ -521,7 +521,7 @@ Variable Fields to Fill (based on user prompt, generate values for these only):
 
     Example Output:
 
-    Action: the character in reference image 1 is cooking, stirring a pot, holding a wooden spoon
+    Action: the character in image 0 is cooking, stirring a pot, holding a wooden spoon
     Object: pot of soup, wooden spoon, ingredients on counter
     Expression: focused, slightly surprised, happy
     Setting: small kitchen with counter and stove
