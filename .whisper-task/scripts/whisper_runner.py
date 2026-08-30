@@ -448,8 +448,45 @@ def should_have_image(content, character_id, authors_data, recent_with_images,
     return False, "skipped (no mandatory rule, probability missed)", scene_chars
 
 
-def build_image_prompt(text_provider, content, character_id, scene_chars,
-                       authors_data, now_dt):
+def _ref_exists_for(aid):
+    if _REFERENCE_CACHE.get(aid):
+        return True
+    try:
+        return bool(get_reference_image_path(aid))
+    except Exception:
+        return False
+
+
+def resolve_image_roles(character_id, image_subjects, scene_chars, authors_data):
+    """Resolve the ordered list of character ids that should appear in an image.
+
+    Honors the model's image_subjects first — this reflects who is ACTUALLY in
+    the frame (e.g. a photo of guga wrapped as a penguin cocoon taken by doro
+    yields image_subjects=["guga"], NOT the author doro). Falls back to the
+    author + in-scene chars when the model gave no image_subjects. Only known
+    characters with an available reference image are kept, preserving order and
+    capping at MAX_REFERENCE_IMAGES. The same list feeds both build_image_prompt
+    (for image-N indexing) and reference-image collection, so indexes never
+    drift apart.
+    """
+    base = list(image_subjects or [])
+    if not base:
+        base = [character_id] + list(scene_chars or []) if scene_chars else [character_id]
+    roles, seen = [], set()
+    for aid in base:
+        if aid in seen or aid not in authors_data:
+            continue
+        if not _ref_exists_for(aid):
+            continue
+        roles.append(aid)
+        seen.add(aid)
+        if len(roles) >= MAX_REFERENCE_IMAGES:
+            break
+    return roles or [character_id]
+
+
+def build_image_prompt(text_provider, content, ref_roles,
+                       now_dt, authors_data):
     """Build an English image generation prompt via Qwen3-8B.
 
     The prompt is critical for the 4B flux model - it must be concrete, visual,
@@ -467,12 +504,14 @@ def build_image_prompt(text_provider, content, character_id, scene_chars,
     Returns a string prompt, or None on failure.
     """
     # Build character-reference mapping. Reference images are sent in the
-    # same order as this list, so the AI can refer to characters by their
+    # same order as `ref_roles`, so the AI can refer to characters by their
     # reference image number instead of by name (the image model doesn't
     # know character names — only the reference image positions matter).
+    # ref_roles reflects who is actually IN the frame (author or otherwise),
+    # resolved from the model's image_subjects.
     def _roman(aid):
         return NAME_ROMANIZATION.get(aid, get_author_nickname(aid, authors_data))
-    char_names = [_roman(character_id)] + [_roman(a) for a in scene_chars]
+    char_names = [_roman(a) for a in ref_roles]
     ref_mapping = ", ".join(
         f"image {i} = {name}" for i, name in enumerate(char_names)
     )
@@ -558,7 +597,7 @@ Write the image prompt now using the labeled format above. Only the prompt, noth
 
 
 def generate_whisper_image(image_provider, rephrase_provider, content, character_id,
-                           scene_chars, authors_data, now_dt, slug, date_str):
+                           image_subjects, scene_chars, authors_data, now_dt, slug, date_str):
     """Generate one image for a whisper.
 
     Args:
@@ -566,7 +605,10 @@ def generate_whisper_image(image_provider, rephrase_provider, content, character
         rephrase_provider: text provider for prompt building/rephrasing (Qwen3-8B)
         content: whisper content text
         character_id: author id
-        scene_chars: list of other character ids actually in the scene
+        image_subjects: ordered character ids actually IN the frame (from the
+            model's image_subjects); decides which reference images are sent and
+            which image-N each character maps to.
+        scene_chars: other character ids in the scene (legacy fallback)
         authors_data: authors dict
         now_dt: datetime
         slug: whisper slug
@@ -578,19 +620,20 @@ def generate_whisper_image(image_provider, rephrase_provider, content, character
         image_path is absolute path to the saved file.
     """
     # Build prompt
-    prompt = build_image_prompt(rephrase_provider, content, character_id,
-                                scene_chars, authors_data, now_dt)
+    roles = resolve_image_roles(character_id, image_subjects, scene_chars, authors_data)
+    prompt = build_image_prompt(rephrase_provider, content, roles, now_dt, authors_data)
     if not prompt:
         print("[image] Failed to build prompt, skipping image", file=sys.stderr)
         return None, None
     print(f"[image] Prompt: {prompt[:120]}...")
 
-    # Collect reference images: author + scene chars' reference images (max 4).
-    # Only characters actually in the scene get a reference image sent; a
-    # narratively-mentioned character (e.g. "上次被豆包姐抓到") does NOT.
-    ref_chars = [character_id] + scene_chars
+    # Collect reference images for the resolved on-screen roles (max 4).
+    # Order matches build_image_prompt's ref_roles, so image N in the prompt
+    # always lines up with the Nth reference image. A role that is merely
+    # mentioned but not in the frame is excluded by image_subjects, not by
+    # post-hoc filtering here.
     ref_data = []
-    for aid in ref_chars:
+    for aid in roles:
         cached = _REFERENCE_CACHE.get(aid)
         if cached:
             ref_data.append((aid, cached))
@@ -1215,6 +1258,7 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
 - mood: 角色发这条动态时的心情，从 happy/tired/sad/excited/content/calm/grumpy 中选一个
 - topics: 1-2个话题关键词（中文），概括动态主题。例如 ["炸鸡", "周末"]
 - scene_characters: 这条动态描述的场景中【实际在场】的其他角色ID列表（不含作者自己）。只有真正出现在画面里的角色才填；回忆/提及/吐槽/转述的对象不算在场。例如"上次被豆包姐抓到"不算豆包在场，填 []；"和豆包一起做饭"才算，填 ["doubao"]。如果场景里只有作者自己，填空数组 []
+- image_subjects: 这条动态的配图画面中【实际要出现】的角色ID列表（有序，第一个为画面主体），用于选取生图参考图。它的判断标准是"这张照片/画面里装的是谁、要拍谁"，与对话是否在场无关：作者自己入镜就含作者，拍到别人就把那个人列出来（如 doro 发"给咕嘎拍的企鹅茧照片"→ 填 ["guga"]，画面主体是咕嘎，不含 doro）。作者只是拍摄者/讲述者、不在画面时【不要】列入。空镜/无人物画面填 []。顺序即参考图的 image 0、image 1…编号
 - needs_image: 这条动态是否适合配图。有具体场景、物体、动作、视觉元素的动态适合配图（true）；纯情绪/感慨/抽象思考的不适合（false）
 - storyline_trigger: 如果这条动态可能触发故事线，返回 {{"type": "comfort_request或minor_conflict", "participants": ["角色ID"]}}。comfort_request: 角色情绪低落/遇到困难需要安慰；minor_conflict: 角色之间有小矛盾/冲突。否则返回 null
 
@@ -1227,6 +1271,7 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
   "mood": "happy",
   "topics": ["话题1", "话题2"],
   "scene_characters": [],
+  "image_subjects": [],
   "needs_image": true,
   "storyline_trigger": null
 }}"""
@@ -1475,6 +1520,10 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
                     c for c in data.get("scene_characters", [])
                     if isinstance(c, str) and c in authors_data
                 ] if isinstance(data.get("scene_characters"), list) else [],
+                "image_subjects": [
+                    c for c in data.get("image_subjects", [])
+                    if isinstance(c, str) and c in authors_data
+                ] if isinstance(data.get("image_subjects"), list) else [],
                 "needs_image": bool(data.get("needs_image", False)),
                 "storyline_trigger": data.get("storyline_trigger"),
             }
@@ -2629,7 +2678,8 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
             date_str = now_dt.strftime("%Y-%m-%d")
             img_filename, img_path = generate_whisper_image(
                 image_provider, prompt_provider,
-                content_data["content"], character_id, scene_chars,
+                content_data["content"], character_id,
+                content_data.get("image_subjects", []), scene_chars,
                 authors_data, now_dt, slug, date_str
             )
             if img_filename and img_path and os.path.exists(img_path):
@@ -2759,6 +2809,7 @@ def _fallback_generate(text_provider, character_id, character_name,
             "mood": None,
             "topics": [],
             "scene_characters": [],
+            "image_subjects": [],
             "needs_image": None,  # None = let rules 3/4 decide
             "storyline_trigger": None,
         }
