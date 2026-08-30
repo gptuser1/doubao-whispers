@@ -32,8 +32,10 @@ sys.path.insert(0, SCRIPT_DIR)
 from ai_client import (
     create_fallback_text_provider,
     create_image_provider,
+    create_pool_text_provider,
     merge_usage_into_state,
 )
+from refresh_model_pool import is_stale, refresh as refresh_model_pool
 from d1_client import D1Client
 from kv_client import KVClient
 from character_selector import select_character, CHARACTER_WEIGHTS
@@ -2823,49 +2825,54 @@ def main():
     if not ai_text_config:
         ai_text_config = {}
 
+    # Refresh the free-model pool if it is stale (>= 12h), then read it
+    # locally. This runs as an inline step of this heartbeat — NOT a separate
+    # cron or process. On failure the existing model-pool.json is kept and the
+    # whisper run continues; a broken/empty pool never ships.
+    changes_made = False
+    try:
+        if refresh_model_pool():
+            changes_made = True
+            print("[model-pool] refreshed local model-pool.json")
+        elif is_stale():
+            print("[model-pool] pool stale but refresh skipped/reverted", file=sys.stderr)
+    except Exception as e:
+        print(f"[model-pool] refresh failed, keeping existing pool: {e}", file=sys.stderr)
+
     # Build a single GLOBAL text pool (fallback chain). Source priority:
-    #   1. AI_TEXT_POOL env var — an ordered JSON array of provider configs.
-    #      This is the primary path (CI sets it; keys can be inlined in it).
+    #   1. model-pool.json — the pre-sorted free-model pool regenerated above
+    #      (see ai_client.create_pool_text_provider). Ordering and list live
+    #      in the repo; client only maps baseurl -> api key env var.
     #   2. config.json ai.text — legacy named profiles, used for local runs.
     # The pool wraps everything; every text task (publish/replies/interactions)
     # and image-prompt building shares it, so a failing model falls through to
     # the next entry instead of the old one-provider-per-task bifurcation.
     global_text_pool = None
-    pool_src = os.environ.get("AI_TEXT_POOL", "").strip()
-    try:
-        if pool_src:
-            # Support a base64-encoded pool: prefix with "b64:" so the secret
-            # value avoids raw JSON brackets/common words that GitHub Actions
-            # log-masking otherwise swallows (e.g. our "[ref]"/"[env]" tags).
-            if pool_src.startswith("b64:"):
-                b64_text = "".join(pool_src[4:].split())
-                pool_src = base64.b64decode(b64_text).decode("utf-8")
-            pool_configs = json.loads(pool_src)
-            if not isinstance(pool_configs, list):
-                raise ValueError("AI_TEXT_POOL must be a JSON array of provider configs")
-            global_text_pool = create_fallback_text_provider(pool_configs, name="env")
-            print(f"AI text pool [env]: {global_text_pool}")
-        elif ai_text_config:
-            # Legacy path: named profiles -> flattened in order
-            # (default, then any named profiles in insertion order).
-            profile_configs = []
-            if "default" in ai_text_config:
-                profile_configs.append(ai_text_config["default"])
-            if "provider" in ai_text_config:
-                profile_configs = [ai_text_config]
-            else:
-                for name, prof in ai_text_config.items():
-                    if name == "default":
-                        continue
-                    profile_configs.append(prof)
-            global_text_pool = create_fallback_text_provider(profile_configs, name="config")
-            print(f"AI text pool [config]: {global_text_pool}")
+    if os.path.exists(model_pool_path := os.path.join(PROJECT_ROOT, "model-pool.json")):
+        try:
+            global_text_pool = create_pool_text_provider()
+            print(f"AI text pool [model-pool]: {global_text_pool}")
+        except Exception as e:
+            print(f"model-pool.json unusable, falling back to config: {e}", file=sys.stderr)
+            global_text_pool = None
+    if global_text_pool is None and ai_text_config:
+        # Legacy path: named profiles -> flattened in order
+        # (default, then any named profiles in insertion order).
+        profile_configs = []
+        if "default" in ai_text_config:
+            profile_configs.append(ai_text_config["default"])
+        if "provider" in ai_text_config:
+            profile_configs = [ai_text_config]
         else:
-            print("No AI text provider configured (set AI_TEXT_POOL or config.json ai.text)",
-                  file=sys.stderr)
-            return 1
-    except Exception as e:
-        print(f"Failed to initialize text pool: {e}", file=sys.stderr)
+            for name, prof in ai_text_config.items():
+                if name == "default":
+                    continue
+                profile_configs.append(prof)
+        global_text_pool = create_fallback_text_provider(profile_configs, name="config")
+        print(f"AI text pool [config]: {global_text_pool}")
+    if global_text_pool is None:
+        print("No AI text provider configured (missing/invalid model-pool.json and config.json ai.text)",
+              file=sys.stderr)
         return 1
 
     # Single shared pool for all text tasks. Kept as a 1-item namespace so the
@@ -2904,8 +2911,6 @@ def main():
     _evolve_character_states(state["character_states"], now)
     _evolve_storylines(state["storylines"], now)
     d1_client.save_state(state)
-
-    changes_made = False
 
     # Task 1: Publish whisper
     if args.force_publish:

@@ -48,10 +48,13 @@ jobs:
       - name: Run whisper runner
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          # Global text pool (fallback chain): ordered JSON array of provider
-          # configs incl. their inline api_key/account_id/api_token. Set this
-          # single secret; it replaces the old OPENAI_*_API_KEY per-provider vars.
-          AI_TEXT_POOL: ${{ secrets.AI_TEXT_POOL }}
+          # Local free-model pool: whisper_runner refreshes model-pool.json at
+          # repo root when stale (>=12h), using the AA API key for quality
+          # ranking. The refreshed file is then committed alongside whisper data.
+          AA_API_KEY: ${{ secrets.AA_API_KEY }}
+          # Provider API keys, matched by baseurl host in ai_client.BASEURL_KEY_ENV.
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          ZEN_API_KEY: ${{ secrets.ZEN_API_KEY }}
           # CF Worker/account creds used by the diag KV queue (image replacement).
           CF_DEFAULT_ACCOUNT_ID: ${{ secrets.CF_DEFAULT_ACCOUNT_ID }}
           CF_DEFAULT_API_TOKEN: ${{ secrets.CF_DEFAULT_API_TOKEN }}

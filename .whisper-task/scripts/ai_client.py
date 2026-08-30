@@ -586,6 +586,91 @@ def create_image_provider(config):
         raise ValueError(f"Unknown image provider: {provider_name}")
 
 
+# ==================== Model Pool (local file) ====================
+#
+# The free-model pool is a minimal, pre-sorted list written to model-pool.json
+# at repo root by refresh_model_pool.py (run as a step of whisper_runner, not a
+# separate cron). Entries are [{model, baseurl}, ...] with ordering already
+# decided at refresh time. Each baseurl encodes the provider, so the client
+# maps baseurl -> api key env var, builds OpenAI-compatible configs, and feeds
+# them into the shared fallback pool.
+
+# baseurl (host) -> api key env var name. Extend as new providers are added.
+BASEURL_KEY_ENV = {
+    "openrouter.ai": "OPENROUTER_API_KEY",
+    "opencode.ai": "ZEN_API_KEY",
+}
+
+
+def model_pool_path():
+    """Repo-root model-pool.json, produced by refresh_model_pool.py."""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.abspath(os.path.join(script_dir, "..", "..", "model-pool.json"))
+
+
+def fetch_model_pool(timeout=20):
+    """Read the minimal free-model pool from the local model-pool.json.
+
+    Returns a list of {"model": str, "baseurl": str} entries, or [] when the
+    file is missing or invalid. Raises only on an unreadable-but-present file.
+    """
+    path = model_pool_path()
+    if not os.path.exists(path):
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f) or {}
+    return data.get("entries") or []
+
+
+def create_pool_provider_configs(pool_entries):
+    """Map {model, baseurl} entries to OpenAI provider configs.
+
+    Each entry whose baseurl host maps to a configured env key becomes an
+    OpenAI-compatible provider config with an inline api_key. Entries with no
+    key, unknown host, or empty baseurl are skipped. Returns list of configs.
+    """
+    configs = []
+    for entry in pool_entries or []:
+        model = (entry.get("model") or "").strip()
+        baseurl = (entry.get("baseurl") or "").strip().rstrip("/")
+        if not model or not baseurl:
+            continue
+        try:
+            from urllib.parse import urlparse
+            host = urlparse(baseurl).netloc.lower()
+        except Exception:
+            host = ""
+        key_env = BASEURL_KEY_ENV.get(host, "")
+        api_key = os.environ.get(key_env, "").strip() if key_env else ""
+        if not api_key:
+            print(f"[model-pool] skipping {model}@{baseurl}: no {key_env or 'key env'}",
+                  file=sys.stderr)
+            continue
+        configs.append({
+            "provider": "openai",
+            "model": model,
+            "base_url": baseurl,
+            "api_key": api_key,
+        })
+    return configs
+
+
+def create_pool_text_provider(name="model-pool"):
+    """Build a fallback text pool from the local model-pool.json.
+
+    Missing file -> returns None (no pool). Never substitutes a default.
+    """
+    try:
+        entries = fetch_model_pool()
+    except Exception as e:
+        print(f"[model-pool] read failed: {e}", file=sys.stderr)
+        raise
+    configs = create_pool_provider_configs(entries)
+    if not configs:
+        raise ValueError(f"pool[{name}]: no usable provider from model pool (check model-pool.json/api keys)")
+    return create_fallback_text_provider(configs, name=name)
+
+
 # ==================== CLI for testing ====================
 
 if __name__ == "__main__":
