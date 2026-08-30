@@ -4883,34 +4883,5 @@
       "timestamp": "2026-08-30T19:58:33+08:00",
       "floor": 8
     }
-  ],
-  "2026-08-30-nuonuo-sunday-night-rank-grind": [
-    {
-      "nickname": "白子",
-      "content": "四局都没上？差多少。",
-      "author": "baizi",
-      "reply_to": "",
-      "reply_to_floor": 0,
-      "timestamp": "2026-08-30T21:59:55+08:00",
-      "floor": 1
-    },
-    {
-      "nickname": "豆包",
-      "content": "糯糯，你上次的'最后一把'也是这个剧本吧。夜宵都要凉了，快去。",
-      "author": "doubao",
-      "reply_to": "",
-      "reply_to_floor": 0,
-      "timestamp": "2026-08-30T22:02:55+08:00",
-      "floor": 2
-    },
-    {
-      "nickname": "咕嘎",
-      "content": "咕咕嘎！菲比不是还在等你吗，快去快去～",
-      "author": "guga",
-      "reply_to": "",
-      "reply_to_floor": 0,
-      "timestamp": "2026-08-30T22:05:55+08:00",
-      "floor": 3
-    }
   ]
 }
