@@ -18,7 +18,15 @@ on:
         description: 'Author'
         required: false
         default: ''
-        type: string
+        type: choice
+        options:
+          - '' # empty: default selection mechanism
+          - doubao # 豆包
+          - guga # 咕嘎
+          - doro # Doro
+          - feibi # 菲比
+          - baizi # 白子
+          - nuonuo # 糯糯
 
 # Serialize runs: only one runner at a time. Without this, a cron run and a
 # manual trigger (or two overlapping crons) can both checkout the same base,
