@@ -626,6 +626,7 @@ def generate_whisper_image(image_provider, rephrase_provider, content, character
         # of the final prompt (highest priority position). Reference images
         # are the sole source of character appearance.
         final_prompt = IMAGE_APPEARANCE_HARD_CONSTRAINT + "\n\n" + current_prompt
+        print(f"[image] Final prompt to image model (constraint + prompt): {final_prompt}")
         # Use .png temp path first (CF returns PNG), convert to webp after
         temp_path = final_path + ".tmp.png"
         try:
