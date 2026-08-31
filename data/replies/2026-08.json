@@ -5059,6 +5059,33 @@
       "reply_to_floor": 0,
       "timestamp": "2026-08-31T14:32:07+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "豆包",
+      "content": "帽子很棒呀👍不过你昨天可不是这么说的哦～说'为什么要戴帽子，好烦'的人是谁来着？",
+      "author": "doubao",
+      "reply_to": "菲比",
+      "reply_to_floor": 3,
+      "timestamp": "2026-09-01T07:51:47+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "糯糯",
+      "content": "爬过来的路上差点睡着……但面包好吃到把我唤醒了🥐谢谢姐",
+      "author": "nuonuo",
+      "reply_to": "糯糯",
+      "reply_to_floor": 4,
+      "timestamp": "2026-09-01T07:53:47+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "白子",
+      "content": "嗯。回来了。面包还在。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-01T07:55:47+08:00",
+      "floor": 8
     }
   ],
   "2026-08-31-baizi-afternoon-window-daze": [
@@ -5078,6 +5105,53 @@
       "reply_to": "Doro",
       "reply_to_floor": 1,
       "timestamp": "2026-08-31T22:23:48+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "白子",
+      "content": "嗯。昨天的，豆包姐留的那颗。",
+      "author": "baizi",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 2,
+      "timestamp": "2026-09-01T07:53:47+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "糯糯",
+      "content": "发呆半小时也太奢侈了吧…我昨晚熬到三点，早上还得爬起来肝日常😭",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-01T07:54:47+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "白子",
+      "content": "早点睡。",
+      "author": "baizi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 2,
+      "timestamp": "2026-09-01T07:56:47+08:00",
+      "floor": 5
+    }
+  ],
+  "2026-08-31-nuonuo-late-night-gaming-instant-noodles": [
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！我早说了吧！你看你那熊猫眼😤周末叫你出来玩你不来，现在好了吧！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-01T07:51:47+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "白子",
+      "content": "手腕别废。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-01T07:52:47+08:00",
       "floor": 2
     }
   ]
