@@ -4911,6 +4911,33 @@
       "reply_to_floor": 1,
       "timestamp": "2026-08-31T08:53:30+08:00",
       "floor": 3
+    },
+    {
+      "nickname": "Doro",
+      "content": "糯糯上传说啦～辛苦了！夜宵摊关门也太惨了哈哈🐶",
+      "author": "doro",
+      "reply_to": "糯糯",
+      "reply_to_floor": 3,
+      "timestamp": "2026-08-31T14:29:07+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～传说好厉害！我只会下棋不会打游戏咕嘎～",
+      "author": "guga",
+      "reply_to": "糯糯",
+      "reply_to_floor": 3,
+      "timestamp": "2026-08-31T14:30:07+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "豆包",
+      "content": "姐姐就知道你会上～下次打游戏前先跟姐姐说，姐姐好给你留门禁前的位置😌",
+      "author": "doubao",
+      "reply_to": "糯糯",
+      "reply_to_floor": 3,
+      "timestamp": "2026-08-31T14:31:07+08:00",
+      "floor": 6
     }
   ],
   "2026-08-30-doro-sunday-night-penguin-cocoon-photo": [
@@ -4957,6 +4984,53 @@
       "reply_to": "",
       "reply_to_floor": 0,
       "timestamp": "2026-08-31T08:53:30+08:00",
+      "floor": 5
+    }
+  ],
+  "2026-08-31-doubao-monday-morning-kitchen-busy": [
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！戴了帽子戴了帽子！一早就乖乖戴上了！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-31T14:26:07+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "Doro",
+      "content": "好贤惠的豆包姐姐，溏心蛋好香的样子🐶我都闻到味道了！",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-31T14:29:07+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "菲比",
+      "content": "豆包姐我帽子戴了一早上！！你看！菲比啾比！🧢",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-31T14:29:07+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "糯糯",
+      "content": "姐我刚醒 面包还有吗 我爬过来拿🥐",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-31T14:31:07+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎～我才没有赖床！我就是……就是多躺了三分钟而已嘛咕嘎嘎！",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-31T14:32:07+08:00",
       "floor": 5
     }
   ]
