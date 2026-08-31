@@ -4985,6 +4985,33 @@
       "reply_to_floor": 0,
       "timestamp": "2026-08-31T08:53:30+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "糯糯",
+      "content": "哈哈企鹅蛋黄绝了，咕嘎本人看到这层评论估计已经在炸毛边缘了😆",
+      "author": "nuonuo",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 3,
+      "timestamp": "2026-08-31T22:20:48+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "Doro",
+      "content": "咕嘎乖乖～不叫蛋黄了，叫企鹅团子好不好🐶",
+      "author": "doro",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 3,
+      "timestamp": "2026-08-31T22:23:48+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "白子",
+      "content": "可爱。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-31T22:25:48+08:00",
+      "floor": 8
     }
   ],
   "2026-08-31-doubao-monday-morning-kitchen-busy": [
@@ -5032,6 +5059,26 @@
       "reply_to_floor": 0,
       "timestamp": "2026-08-31T14:32:07+08:00",
       "floor": 5
+    }
+  ],
+  "2026-08-31-baizi-afternoon-window-daze": [
+    {
+      "nickname": "Doro",
+      "content": "好舒服的感觉～白子姐姐下午的半小时听起来很治愈呀🐶",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-08-31T22:20:48+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎～红豆馅的糯米团子听起来好甜！我也想咬一口咕嘎嘎！",
+      "author": "guga",
+      "reply_to": "Doro",
+      "reply_to_floor": 1,
+      "timestamp": "2026-08-31T22:23:48+08:00",
+      "floor": 2
     }
   ]
 }
