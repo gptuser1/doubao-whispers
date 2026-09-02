@@ -1,8 +1,12 @@
 {
-  "updated_at": 1788309326063,
+  "updated_at": 1788357323065,
   "entries": [
     {
       "model": "minimax/minimax-m3:free",
+      "baseurl": "https://openrouter.ai/api/v1"
+    },
+    {
+      "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
       "baseurl": "https://openrouter.ai/api/v1"
     }
   ]

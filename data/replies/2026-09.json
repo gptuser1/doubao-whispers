@@ -217,5 +217,25 @@
       "timestamp": "2026-09-02T17:42:28+08:00",
       "floor": 1
     }
+  ],
+  "2026-09-02-nuonuo-wednesday-afternoon-tea-break": [
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！被抓到了吧哈哈哈哈！我那是在研究帽子的造型设计懂不懂！艺术！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-02T21:50:24+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕嘎咕嘎～茶水间八卦现场！下次带上我嘛，我也想吃小饼干嘎嘎嘎🍪",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-02T21:51:24+08:00",
+      "floor": 2
+    }
   ]
 }
