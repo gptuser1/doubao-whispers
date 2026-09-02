@@ -31,66 +31,11 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Chat test Groq models
+      - name: Run real-scenario probe
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
-          python - <<'PY'
-          import json, urllib.request, os
-
-          KEY = os.environ["GROQ_API_KEY"]
-          BASE = "https://api.groq.com/openai/v1/chat/completions"
-
-          TEST_PROMPT = (
-            "You are a strict data formatter. Given the text below, output a single JSON "
-            "object with exactly three keys: \"summary\" (one short sentence, max 20 words), "
-            "\"sentiment\" (one of positive/negative/neutral), \"word_count\" (integer). "
-            "Facts: the sky is blue, grass is green. Do not add anything else.\n\n"
-            "Text: Birds fly high in the sky and sing in the morning."
-          )
-
-          for model in ["qwen/qwen3.8-27b", "qwen/qwen3.6-27b", "openai/gpt-oss-120b"]:
-              print(f"\n{'='*60}\nMODEL: {model}\n{'='*60}")
-              payload = {
-                  "model": model,
-                  "messages": [{"role": "user", "content": TEST_PROMPT}],
-                  "temperature": 0,
-                  "max_tokens": 200,
-              }
-              req = urllib.request.Request(
-                  BASE,
-                  data=json.dumps(payload).encode(),
-                  headers={
-                      "Authorization": f"Bearer {KEY}",
-                      "Content-Type": "application/json",
-                      "User-Agent": "curl/8",
-                  },
-                  method="POST",
-              )
-              try:
-                  with urllib.request.urlopen(req, timeout=45) as r:
-                      status = r.status
-                      # rate limit / usage headers
-                      rl = {k: v for k, v in r.headers.items() if "ratelimit" in k or "retry" in k or "reset" in k}
-                      body = r.read().decode()
-                  data = json.loads(body)
-                  content = data["choices"][0]["message"]["content"]
-                  usage = data.get("usage", {})
-                  print(f"HTTP {status}")
-                  print(f"rate-limit headers: {rl}")
-                  print(f"usage: prompt_tokens={usage.get('prompt_tokens')}, completion_tokens={usage.get('completion_tokens')}")
-                  print(f"finish_reason={data['choices'][0].get('finish_reason')}")
-                  print(f"--- raw output ---")
-                  print(content)
-                  # obedience check: is it valid JSON with the 3 required keys?
-                  try:
-                      parsed = json.loads(content.strip().strip('`').strip())
-                      ok_fields = all(k in parsed for k in ("summary","sentiment","word_count"))
-                      print(f"--- obedience: valid JSON={True}, has 3 required keys={ok_fields}, word_count={parsed.get('word_count')} (type={type(parsed.get('word_count')).__name__})")
-                  except Exception as e:
-                      print(f"--- obedience: INVALID JSON ({e})")
-              except urllib.error.HTTPError as e:
-                  print(f"HTTP ERROR {e.code}: {e.read().decode()[:300]}")
-              except Exception as e:
-                  print(f"ERROR: {repr(e)}")
-          PY
+          python .whisper-task/scripts/probe_groq.py \
+            --models qwen/qwen3.8-27b qwen/qwen3.6-27b openai/gpt-oss-120b \
+            --api-key-env GROQ_API_KEY \
+            --max-tokens 512
