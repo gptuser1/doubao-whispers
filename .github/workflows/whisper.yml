@@ -31,39 +31,100 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: List Groq models
+      - name: Score Groq candidates via AA
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          AA_API_KEY: ${{ secrets.AA_API_KEY }}
         run: |
           python - <<'PY'
-          import json, urllib.request, os
+          import json, re, urllib.request, os
 
-          key = os.environ["GROQ_API_KEY"]
-
-          def call(url):
-              req = urllib.request.Request(url, headers={
-                  "Authorization": f"Bearer {key}",
-                  "User-Agent": "curl/8",
-              })
+          def fetch(url, headers=None):
+              req = urllib.request.Request(url, headers=headers or {})
               with urllib.request.urlopen(req, timeout=30) as r:
-                  return r.status, dict(r.headers), r.read()
+                  return r.status, r.read()
 
-          try:
-              status, headers, body = call("https://api.groq.com/openai/v1/models")
-              print("GET /v1/models -> HTTP", status)
-              print("== headers ==")
-              for k, v in headers.items():
-                  print(f"  {k}: {v}")
-              print("== models ==")
-              data = json.loads(body)
-              ms = data.get("data", [])
-              print(f"total models: {len(ms)}")
-              for m in ms:
-                  print(f"  {m.get('id')}  (owned_by={m.get('owned_by')}, created={m.get('created')})")
-          except Exception as e:
-              print("ERROR listing models:", repr(e))
+          # ---- 1. Groq model list (with key, US runner) ----
+          stat, body = fetch("https://api.groq.com/openai/v1/models", {
+              "Authorization": f"Bearer {os.environ['GROQ_API_KEY']}",
+              "User-Agent": "curl/8",
+          })
+          groq = json.loads(body).get("data", [])
+          print(f"GROQ /models HTTP {stat}, {len(groq)} models")
+
+          # ---- 2. AA data (with key) ----
+          aa_status, aa_body = fetch("https://artificialanalysis.ai/api/v2/data/llms/models", {
+              "x-api-key": os.environ["AA_API_KEY"],
+              "User-Agent": "curl/8",
+          })
+          aa = json.loads(aa_body).get("data", [])
+          print(f"AA /models HTTP {aa_status}, {len(aa)} rows")
+
+          def normalize(name):
+              s = (name or "").lower()
+              s = re.sub(r":free$", "", s)
+              s = re.sub(r"-free$", "", s)
+              s = re.sub(r":[a-z]+$", "", s)
+              s = re.sub(r"^[a-z0-9-]+/", "", s)
+              return re.sub(r"[^a-z0-9]+", "", s).strip()
+
+          aa_index = {}
+          for m in aa:
               try:
-                  print("body:", e.read().decode() if hasattr(e, 'read') else "")
-              except Exception:
-                  pass
+                  score = m["evaluations"]["artificial_analysis_intelligence_index"]
+              except (KeyError, TypeError):
+                  continue
+              if isinstance(score, (int, float)):
+                  if m.get("slug"):
+                      aa_index.setdefault(normalize(m["slug"]), float(score))
+
+          variants = {
+              "contributor","fin","it","code","preview","reasoning","thinking",
+              "instruct","chat","nano","mini","small","fini","tt","beta",
+          }
+          def aa_score(model_id):
+              def tryk(k):
+                  return aa_index.get(k)
+              v = tryk(normalize(model_id))
+              if v is not None: return v
+              id_lower = (model_id or "").lower()
+              candidates = [id_lower]
+              if "/" in id_lower:
+                  candidates.append(id_lower.split("/")[-1])
+              for base in candidates:
+                  tokens = [t for t in re.split(r"[^a-z0-9]+", base) if t]
+                  for _ in range(3):
+                      if not tokens: break
+                      last = tokens[-1]
+                      if not (last == "free" or last in variants): break
+                      tokens.pop()
+                      v = tryk(normalize(" ".join(tokens)))
+                      if v is not None: return v
+              return None
+
+          candidates = [
+              "qwen/qwen3.8-27b",
+              "qwen/qwen3.6-27b",
+              "openai/gpt-oss-20b",
+              "openai/gpt-oss-120b",
+              "groq/compound",
+          ]
+          print("\n=== AA scores for Groq candidates ===")
+          for mid in candidates:
+              s = aa_score(mid)
+              print(f"  {mid:30s} -> AA={s}")
+
+          # Show the raw AA rows that matched qwen3/gpt-oss anywhere, for transparency
+          print("\n=== AA rows containing 'qwen3' or 'gpt-oss' (slug: score) ===")
+          shown = 0
+          for m in aa:
+              slug = m.get("slug") or ""
+              if "qwen3" in slug.lower() or "gpt-oss" in slug.lower():
+                  try:
+                      sc = m["evaluations"]["artificial_analysis_intelligence_index"]
+                  except Exception:
+                      sc = "?"
+                  print(f"  {slug:35s} -> {sc}")
+                  shown += 1
+          print(f"({shown} matching rows)")
           PY
