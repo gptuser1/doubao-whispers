@@ -31,100 +31,66 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Score Groq candidates via AA
+      - name: Chat test Groq models
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          AA_API_KEY: ${{ secrets.AA_API_KEY }}
         run: |
           python - <<'PY'
-          import json, re, urllib.request, os
+          import json, urllib.request, os
 
-          def fetch(url, headers=None):
-              req = urllib.request.Request(url, headers=headers or {})
-              with urllib.request.urlopen(req, timeout=30) as r:
-                  return r.status, r.read()
+          KEY = os.environ["GROQ_API_KEY"]
+          BASE = "https://api.groq.com/openai/v1/chat/completions"
 
-          # ---- 1. Groq model list (with key, US runner) ----
-          stat, body = fetch("https://api.groq.com/openai/v1/models", {
-              "Authorization": f"Bearer {os.environ['GROQ_API_KEY']}",
-              "User-Agent": "curl/8",
-          })
-          groq = json.loads(body).get("data", [])
-          print(f"GROQ /models HTTP {stat}, {len(groq)} models")
+          TEST_PROMPT = (
+            "You are a strict data formatter. Given the text below, output a single JSON "
+            "object with exactly three keys: \"summary\" (one short sentence, max 20 words), "
+            "\"sentiment\" (one of positive/negative/neutral), \"word_count\" (integer). "
+            "Facts: the sky is blue, grass is green. Do not add anything else.\n\n"
+            "Text: Birds fly high in the sky and sing in the morning."
+          )
 
-          # ---- 2. AA data (with key) ----
-          aa_status, aa_body = fetch("https://artificialanalysis.ai/api/v2/data/llms/models", {
-              "x-api-key": os.environ["AA_API_KEY"],
-              "User-Agent": "curl/8",
-          })
-          aa = json.loads(aa_body).get("data", [])
-          print(f"AA /models HTTP {aa_status}, {len(aa)} rows")
-
-          def normalize(name):
-              s = (name or "").lower()
-              s = re.sub(r":free$", "", s)
-              s = re.sub(r"-free$", "", s)
-              s = re.sub(r":[a-z]+$", "", s)
-              s = re.sub(r"^[a-z0-9-]+/", "", s)
-              return re.sub(r"[^a-z0-9]+", "", s).strip()
-
-          aa_index = {}
-          for m in aa:
+          for model in ["qwen/qwen3.8-27b", "qwen/qwen3.6-27b", "openai/gpt-oss-120b"]:
+              print(f"\n{'='*60}\nMODEL: {model}\n{'='*60}")
+              payload = {
+                  "model": model,
+                  "messages": [{"role": "user", "content": TEST_PROMPT}],
+                  "temperature": 0,
+                  "max_tokens": 200,
+              }
+              req = urllib.request.Request(
+                  BASE,
+                  data=json.dumps(payload).encode(),
+                  headers={
+                      "Authorization": f"Bearer {KEY}",
+                      "Content-Type": "application/json",
+                      "User-Agent": "curl/8",
+                  },
+                  method="POST",
+              )
               try:
-                  score = m["evaluations"]["artificial_analysis_intelligence_index"]
-              except (KeyError, TypeError):
-                  continue
-              if isinstance(score, (int, float)):
-                  if m.get("slug"):
-                      aa_index.setdefault(normalize(m["slug"]), float(score))
-
-          variants = {
-              "contributor","fin","it","code","preview","reasoning","thinking",
-              "instruct","chat","nano","mini","small","fini","tt","beta",
-          }
-          def aa_score(model_id):
-              def tryk(k):
-                  return aa_index.get(k)
-              v = tryk(normalize(model_id))
-              if v is not None: return v
-              id_lower = (model_id or "").lower()
-              candidates = [id_lower]
-              if "/" in id_lower:
-                  candidates.append(id_lower.split("/")[-1])
-              for base in candidates:
-                  tokens = [t for t in re.split(r"[^a-z0-9]+", base) if t]
-                  for _ in range(3):
-                      if not tokens: break
-                      last = tokens[-1]
-                      if not (last == "free" or last in variants): break
-                      tokens.pop()
-                      v = tryk(normalize(" ".join(tokens)))
-                      if v is not None: return v
-              return None
-
-          candidates = [
-              "qwen/qwen3.8-27b",
-              "qwen/qwen3.6-27b",
-              "openai/gpt-oss-20b",
-              "openai/gpt-oss-120b",
-              "groq/compound",
-          ]
-          print("\n=== AA scores for Groq candidates ===")
-          for mid in candidates:
-              s = aa_score(mid)
-              print(f"  {mid:30s} -> AA={s}")
-
-          # Show the raw AA rows that matched qwen3/gpt-oss anywhere, for transparency
-          print("\n=== AA rows containing 'qwen3' or 'gpt-oss' (slug: score) ===")
-          shown = 0
-          for m in aa:
-              slug = m.get("slug") or ""
-              if "qwen3" in slug.lower() or "gpt-oss" in slug.lower():
+                  with urllib.request.urlopen(req, timeout=45) as r:
+                      status = r.status
+                      # rate limit / usage headers
+                      rl = {k: v for k, v in r.headers.items() if "ratelimit" in k or "retry" in k or "reset" in k}
+                      body = r.read().decode()
+                  data = json.loads(body)
+                  content = data["choices"][0]["message"]["content"]
+                  usage = data.get("usage", {})
+                  print(f"HTTP {status}")
+                  print(f"rate-limit headers: {rl}")
+                  print(f"usage: prompt_tokens={usage.get('prompt_tokens')}, completion_tokens={usage.get('completion_tokens')}")
+                  print(f"finish_reason={data['choices'][0].get('finish_reason')}")
+                  print(f"--- raw output ---")
+                  print(content)
+                  # obedience check: is it valid JSON with the 3 required keys?
                   try:
-                      sc = m["evaluations"]["artificial_analysis_intelligence_index"]
-                  except Exception:
-                      sc = "?"
-                  print(f"  {slug:35s} -> {sc}")
-                  shown += 1
-          print(f"({shown} matching rows)")
+                      parsed = json.loads(content.strip().strip('`').strip())
+                      ok_fields = all(k in parsed for k in ("summary","sentiment","word_count"))
+                      print(f"--- obedience: valid JSON={True}, has 3 required keys={ok_fields}, word_count={parsed.get('word_count')} (type={type(parsed.get('word_count')).__name__})")
+                  except Exception as e:
+                      print(f"--- obedience: INVALID JSON ({e})")
+              except urllib.error.HTTPError as e:
+                  print(f"HTTP ERROR {e.code}: {e.read().decode()[:300]}")
+              except Exception as e:
+                  print(f"ERROR: {repr(e)}")
           PY
