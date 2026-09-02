@@ -2,18 +2,9 @@ name: Whisper Runner
 
 on:
   schedule:
-    # Every 25 minutes. The script enforces Beijing-time active hours
-    # (7:00-23:00) and per-task min_interval_minutes gates, so a denser cron
-    # just lets those gates fire closer to on-time instead of being rounded
-    # up to the next hour.
     - cron: '*/25 * * * *'
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch:
     inputs:
-      force_publish:
-        description: 'Force publish'
-        required: false
-        default: false
-        type: boolean
       author:
         description: 'Author'
         required: false
@@ -21,74 +12,58 @@ on:
         type: choice
         options:
           - 'default'
-          - doubao
-          - guga
-          - doro
-          - feibi
-          - baizi
-          - nuonuo
-
-# Serialize runs: only one runner at a time. Without this, a cron run and a
-# manual trigger (or two overlapping crons) can both checkout the same base,
-# modify the same JSON files, and then fight on push — the loser hits a
-# non-fast-forward rejection and, with JSON files, a real rebase conflict it
-# can't auto-resolve. Queuing (cancel-in-progress: false) lets the in-flight
-# run finish cleanly so the next run checks out a base that already includes
-# its changes.
-concurrency:
-  group: whisper-runner
-  cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   TZ: Asia/Shanghai
 
 jobs:
-  run:
+  probe:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-        with:
-          token: ${{ secrets.GH_TOKEN }}
-          fetch-depth: 1
 
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
-      - name: Install dependencies
-        run: |
-          pip install Pillow requests
-
-      - name: Run whisper runner
+      - name: List Groq models
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          # Local free-model pool: whisper_runner refreshes
-          # .whisper-task/model-pool.json when stale (>=12h), using the AA API
-          # key for quality ranking. The refreshed file is then committed
-          # alongside whisper data.
-          AA_API_KEY: ${{ secrets.AA_API_KEY }}
-          # Provider API keys, matched by baseurl host in ai_client.BASEURL_KEY_ENV.
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          ZEN_API_KEY: ${{ secrets.ZEN_API_KEY }}
-          # CF Worker/account creds used by the diag KV queue (image replacement).
-          CF_DEFAULT_ACCOUNT_ID: ${{ secrets.CF_DEFAULT_ACCOUNT_ID }}
-          CF_DEFAULT_API_TOKEN: ${{ secrets.CF_DEFAULT_API_TOKEN }}
-          CF_IMAGE_ACCOUNT_ID: ${{ secrets.CF_IMAGE_ACCOUNT_ID }}
-          CF_IMAGE_API_TOKEN: ${{ secrets.CF_IMAGE_API_TOKEN }}
-          CF_DIAG_KV_ID: ${{ secrets.CF_DIAG_KV_ID }}
-          D1_API_URL: ${{ secrets.D1_API_URL }}
-          D1_API_KEY: ${{ secrets.D1_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
-          AUTHOR="${{ github.event.inputs.author }}"
-          if [ "$AUTHOR" != "default" ]; then
-            python .whisper-task/scripts/whisper_runner.py --force-publish --author "$AUTHOR"
-          elif [ "${{ github.event.inputs.force_publish }}" = "true" ]; then
-            python .whisper-task/scripts/whisper_runner.py --force-publish
-          else
-            python .whisper-task/scripts/whisper_runner.py
-          fi
+          python - <<'PY'
+          import json, urllib.request, os
+
+          key = os.environ["GROQ_API_KEY"]
+
+          def call(url):
+              req = urllib.request.Request(url, headers={
+                  "Authorization": f"Bearer {key}",
+                  "User-Agent": "curl/8",
+              })
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  return r.status, dict(r.headers), r.read()
+
+          try:
+              status, headers, body = call("https://api.groq.com/openai/v1/models")
+              print("GET /v1/models -> HTTP", status)
+              print("== headers ==")
+              for k, v in headers.items():
+                  print(f"  {k}: {v}")
+              print("== models ==")
+              data = json.loads(body)
+              ms = data.get("data", [])
+              print(f"total models: {len(ms)}")
+              for m in ms:
+                  print(f"  {m.get('id')}  (owned_by={m.get('owned_by')}, created={m.get('created')})")
+          except Exception as e:
+              print("ERROR listing models:", repr(e))
+              try:
+                  print("body:", e.read().decode() if hasattr(e, 'read') else "")
+              except Exception:
+                  pass
+          PY
