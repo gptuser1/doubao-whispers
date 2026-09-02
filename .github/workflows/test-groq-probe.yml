@@ -1,0 +1,53 @@
+name: Test Groq Probe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: List Groq models
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json, urllib.request, os
+
+          key = os.environ["GROQ_API_KEY"]
+
+          def call(url):
+              req = urllib.request.Request(url, headers={
+                  "Authorization": f"Bearer {key}",
+                  "User-Agent": "curl/8",
+              })
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  return r.status, dict(r.headers), r.read()
+
+          try:
+              status, headers, body = call("https://api.groq.com/openai/v1/models")
+              print("GET /v1/models -> HTTP", status)
+              print("== headers ==")
+              for k, v in headers.items():
+                  print(f"  {k}: {v}")
+              print("== models ==")
+              data = json.loads(body)
+              ms = data.get("data", [])
+              print(f"total models: {len(ms)}")
+              for m in ms:
+                  print(f"  {m.get('id')}  (owned_by={m.get('owned_by')}, created={m.get('created')})")
+          except Exception as e:
+              print("ERROR listing models:", repr(e))
+              try:
+                  print("body:", e.read().decode() if hasattr(e, 'read') else "")
+              except Exception:
+                  pass
+          PY
