@@ -15,12 +15,22 @@ honored the catchphrase / personality, whether it stayed Chinese).
 import json
 import os
 import sys
+import argparse
 import urllib.error
 import urllib.request
-import argparse
 
 
-def chat(base_url, api_key, model, system, user, max_tokens=512, temperature=0.9):
+def chat(base_url, api_key, model, system, user,
+         max_tokens=10240, temperature=0.7,
+         reasoning_effort=None, reasoning_format="hidden"):
+    """Hit Groq chat/completions with the semantic equivalent of the project's
+    generate() call. The project expresses 'thinking on/off' via
+    enable_thinking; Groq has no such field, so we express the same intent
+    with Groq's own reasoning params (reasoning_effort / reasoning_format),
+    and keep content clean (no chain-of-thought leaked into the body) via
+    reasoning_format="hidden". Payload faithfully mirrors project parameter
+    values unless overridden.
+    """
     payload = {
         "model": model,
         "messages": [
@@ -31,6 +41,11 @@ def chat(base_url, api_key, model, system, user, max_tokens=512, temperature=0.9
         "temperature": temperature,
         "stream": False,
     }
+    # Semantic translation of project enable_thinking=True onto Groq's schema.
+    if reasoning_effort:
+        payload["reasoning_effort"] = reasoning_effort
+    payload["reasoning_format"] = reasoning_format
+
     req = urllib.request.Request(
         f"{base_url}/chat/completions",
         data=json.dumps(payload).encode(),
@@ -41,7 +56,7 @@ def chat(base_url, api_key, model, system, user, max_tokens=512, temperature=0.9
         },
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=90) as r:
+    with urllib.request.urlopen(req, timeout=120) as r:
         return r.status, json.loads(r.read().decode())
 
 
@@ -107,7 +122,16 @@ def main():
                     help="base url for the provider (default Groq)")
     ap.add_argument("--api-key-env", default="GROQ_API_KEY",
                     help="env var holding the API key")
-    ap.add_argument("--max-tokens", type=int, default=512)
+    ap.add_argument("--max-tokens", type=int, default=10240,
+                    help="match project whisper-generation max_tokens")
+    ap.add_argument("--temperature", type=float, default=0.7,
+                    help="match project whisper-generation temperature")
+    ap.add_argument("--reasoning-effort", default="medium",
+                    choices=["none", "low", "medium", "high", "default"],
+                    help="Groq semantic equivalent of project enable_thinking=True")
+    ap.add_argument("--reasoning-format", default="hidden",
+                    choices=["raw", "parsed", "hidden"],
+                    help="keep content clean: hidden = reasoning not leaked into body")
     args = ap.parse_args()
 
     api_key = os.environ.get(args.api_key_env, "").strip()
@@ -124,6 +148,9 @@ def main():
                     args.base_url, api_key, model,
                     case["system"], case["user"],
                     max_tokens=args.max_tokens,
+                    temperature=args.temperature,
+                    reasoning_effort=args.reasoning_effort,
+                    reasoning_format=args.reasoning_format,
                 )
             except urllib.error.HTTPError as e:
                 print(f"HTTP {e.code}: {e.read().decode()[:300]}")
