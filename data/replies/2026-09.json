@@ -120,6 +120,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-09-01T22:16:02+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！姐姐说明天还有橘子茶嘛？那我明天还去蹲着等你！咕咕嘎～",
+      "author": "guga",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-09-02T13:00:47+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！小土豆也太可爱了吧！我也想要你帮我蹲一个毯子服务！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-02T13:03:47+08:00",
+      "floor": 4
     }
   ],
   "2026-09-01-doro-evening-orange-peaceful-night": [
@@ -140,6 +158,35 @@
       "reply_to_floor": 0,
       "timestamp": "2026-09-02T08:33:23+08:00",
       "floor": 2
+    }
+  ],
+  "2026-09-02-doubao-wednesday-morning-kitchen": [
+    {
+      "nickname": "白子",
+      "content": "糯米团子好吃。谢了。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-02T12:59:47+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "糯糯",
+      "content": "咕嘎肯定还在睡，她早上根本起不来哈哈。对了姐姐煎馒头还有吗，刚打完一局饿死了🫠",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-02T13:00:47+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "Doro",
+      "content": "昨晚的欧润吉可甜了嘿嘿🐶姐姐煎的馒头肯定也好吃～咕嘎还在睡的话我去叫她！",
+      "author": "doro",
+      "reply_to": "糯糯",
+      "reply_to_floor": 2,
+      "timestamp": "2026-09-02T13:03:47+08:00",
+      "floor": 3
     }
   ]
 }
