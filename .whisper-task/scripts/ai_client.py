@@ -25,6 +25,8 @@ import base64
 import requests
 from abc import ABC, abstractmethod
 
+from log import log
+
 
 # Default User-Agent — custom string avoids Cloudflare bot detection (1010)
 # that blocks the default urllib/requests User-Agents on some endpoints.
@@ -56,8 +58,7 @@ def _should_retry(status_code=None, body=""):
 def _retry_sleep(attempt, reason, base_delay=2):
     """Sleep before a retry with exponential backoff, logging the reason."""
     delay = base_delay * (2 ** attempt)  # 2s, 4s, 8s
-    print(f"[AI retry] {reason}, retrying in {delay}s "
-          f"(attempt {attempt + 1}/3)...", file=sys.stderr)
+    log(f"{reason}, retrying in {delay}s (attempt {attempt + 1}/3)", tag="AI retry")
     time.sleep(delay)
 
 
@@ -236,9 +237,7 @@ class OpenAIText(TextProvider):
                 cache_note = ""
                 if cache_hit or cache_miss:
                     cache_note = f" (cache hit={cache_hit}, miss={cache_miss})"
-                print(f"[AI usage] model={self.model} prompt={prompt} "
-                      f"completion={completion} total={total}{cache_note}",
-                      file=sys.stderr)
+                log(f"model={self.model} prompt={prompt} completion={completion} total={total}{cache_note}", tag="AI usage")
 
             return result.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
 
@@ -280,8 +279,7 @@ class FallbackTextProvider(TextProvider):
                 )
             except Exception as e:
                 errors.append(f"{label}: {e}")
-                print(f"[pool:{self.name}] {label} failed, trying next: {e}",
-                      file=sys.stderr)
+                log(f"{label} failed, trying next: {e}", tag=f"pool:{self.name}")
                 self._absorb_usage(provider)
                 continue
 
@@ -292,8 +290,7 @@ class FallbackTextProvider(TextProvider):
                 return out.strip()
 
             errors.append(f"{label}: empty output")
-            print(f"[pool:{self.name}] {label} returned empty content, trying next",
-                  file=sys.stderr)
+            log(f"{label} returned empty content, trying next", tag=f"pool:{self.name}")
             self._absorb_usage(provider)
 
         raise RuntimeError(
@@ -407,7 +404,7 @@ class WorkersAIImage(ImageProvider):
                         field_name = f"input_image_{idx}"
                         files.append((field_name, (f"ref_{idx}.png", ref_bytes, "image/png")))
                 except Exception as e:
-                    print(f"[image] Skipping reference {ref}: {e}", file=sys.stderr)
+                    log(f"Skipping reference {ref}: {e}", tag="image")
 
         try:
             resp = requests.post(url, data=data, files=files, headers=headers, timeout=600)
@@ -480,7 +477,7 @@ def _prepare_reference_image(path, max_size=512):
         img.save(buf, format="PNG")
         return buf.getvalue()
     except Exception as e:
-        print(f"[image] Failed to prepare reference {path}: {e}", file=sys.stderr)
+        log(f"Failed to prepare reference {path}: {e}", tag="image")
         return None
 
 
@@ -568,8 +565,7 @@ def create_fallback_text_provider(configs, name="pool"):
             providers.append(create_text_provider(cfg))
         except Exception as e:
             model = cfg.get("model", "?")
-            print(f"[pool:{name}] skipping provider #{idx} ({model}): {e}",
-                  file=sys.stderr)
+            log(f"skipping provider #{idx} ({model}): {e}", tag=f"pool:{name}")
     if not providers:
         raise ValueError(f"pool[{name}]: no text provider could be initialized")
     return FallbackTextProvider(providers, name=name)
@@ -648,8 +644,7 @@ def create_pool_provider_configs(pool_entries):
         key_env = BASEURL_KEY_ENV.get(host, "")
         api_key = os.environ.get(key_env, "").strip() if key_env else ""
         if not api_key:
-            print(f"[model-pool] skipping {model}@{baseurl}: no {key_env or 'key env'}",
-                  file=sys.stderr)
+            log(f"skipping {model}@{baseurl}: no {key_env or 'key env'}", tag="model-pool")
             continue
         configs.append({
             "provider": "openai",
@@ -668,7 +663,7 @@ def create_pool_text_provider(name="model-pool"):
     try:
         entries = fetch_model_pool()
     except Exception as e:
-        print(f"[model-pool] read failed: {e}", file=sys.stderr)
+        log(f"read failed: {e}", tag="model-pool")
         raise
     configs = create_pool_provider_configs(entries)
     if not configs:

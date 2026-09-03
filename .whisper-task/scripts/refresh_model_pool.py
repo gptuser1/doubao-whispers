@@ -22,6 +22,8 @@ from datetime import datetime, timezone
 # Import requests lazily so unit tests that don't need network still load.
 import requests
 
+from log import log
+
 # Paths. model-pool.json lives next to config.json (both under .whisper-task/).
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
@@ -191,7 +193,7 @@ def build_aa_index():
     raises if missing so callers can keep the old file."""
     api_key = os.environ.get("AA_API_KEY", "").strip()
     if not api_key:
-        print("[model-pool] AA_API_KEY unset, cannot score models", file=sys.stderr)
+        log("AA_API_KEY unset, cannot score models", tag="model-pool")
         raise ValueError("AA_API_KEY required to refresh model pool")
     data = _fetch_json(AA_MODELS_URL, headers={"x-api-key": api_key})
     index = {}
@@ -275,10 +277,10 @@ def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
                 if i < max_attempts:
                     time.sleep(ACK_BASE_DELAY * i)
                     continue
-                return False, f"http {resp.status_code}: {resp.text[:120]}"
+                return False, f"http {resp.status_code}:\n{resp.text}"
 
             # Deterministic 4xx (auth / missing model / bad request) — no retry.
-            return False, f"http {resp.status_code}: {resp.text[:120]}"
+            return False, f"http {resp.status_code}:\n{resp.text}"
         return False, "max attempts exhausted"
 
     ok, detail = attempt(
@@ -292,8 +294,7 @@ def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
     if ok:
         return True, detail
 
-    print("[model-pool] chat/completions ack failed; trying /responses",
-          file=sys.stderr)
+    log(f"{model}: chat/completions failed, fallback to /responses", tag="model-pool")
     ok, rdetail = attempt(
         "responses",
         {
@@ -303,7 +304,8 @@ def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
     )
     if ok:
         return True, rdetail
-    return False, f"chat/completions {detail}; /responses {rdetail}"
+    return False, (f"{model}: chat/completions {detail}\n"
+                   f"{model}: /responses    {rdetail}")
 
 
 # --------------------------------------------------------------------------
@@ -341,8 +343,7 @@ def compile_pool():
             alive.append((score, entry))
         else:
             dropped += 1
-            print(f"[model-pool] ack failed, dropping {entry['model']}: {detail}",
-                  file=sys.stderr)
+            log(f"ack failed, dropping {entry['model']}: {detail}", tag="model-pool")
 
     alive.sort(key=lambda t: t[0], reverse=True)
     entries = [e for _, e in alive]
@@ -376,6 +377,6 @@ def refresh(force=False):
 
 if __name__ == "__main__":
     if refresh(force=("--force" in sys.argv)):
-        print(f"[model-pool] refreshed -> {POOL_PATH}")
+        log(f"refreshed -> {POOL_PATH}", tag="model-pool")
     else:
-        print("[model-pool] pool is fresh, nothing to do")
+        log("pool is fresh, nothing to do", tag="model-pool")

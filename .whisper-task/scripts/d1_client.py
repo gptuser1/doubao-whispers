@@ -9,6 +9,7 @@ import os
 import sys
 import requests
 from datetime import datetime, timezone, timedelta
+from log import log
 
 
 # Beijing timezone
@@ -69,7 +70,7 @@ class D1Client:
         try:
             return json.loads(value_str)
         except json.JSONDecodeError:
-            print("Warning: state JSON parse failed, returning default", file=sys.stderr)
+            log("Warning: state JSON parse failed, returning default", tag="d1")
             return self._default_state()
 
     def save_state(self, state):
@@ -112,7 +113,7 @@ class D1Client:
             )
             return results if results else []
         except RuntimeError as e:
-            print(f"Warning: failed to query replies: {e}", file=sys.stderr)
+            log(f"Warning: failed to query replies: {e}", tag="d1")
             return []
 
     def delete_replies(self, reply_ids):
@@ -134,7 +135,7 @@ class D1Client:
                     [reply_id]
                 )
             except RuntimeError as e:
-                print(f"Warning: failed to delete reply {reply_id}: {e}", file=sys.stderr)
+                log(f"Warning: failed to delete reply {reply_id}: {e}", tag="d1")
 
     def get_max_floor(self, whisper_id):
         """Get the current max floor number for a whisper."""

@@ -18,7 +18,9 @@
 import argparse
 import os
 import re
+import sys
 from datetime import datetime
+from log import log
 
 
 def slugify(title):
@@ -98,14 +100,14 @@ def create_post(date_str, author, title, content, images=None, tags=None, slug=N
         if not content.endswith('\n'):
             f.write('\n')
 
-    print(f"动态文件已创建：{file_path}")
-    print(f"  标题：{title}")
-    print(f"  作者：{author}")
-    print(f"  日期：{date_str}")
+    log(f"动态文件已创建：{file_path}", tag="post")
+    log(f"  标题：{title}", tag="post")
+    log(f"  作者：{author}", tag="post")
+    log(f"  日期：{date_str}", tag="post")
     if images:
-        print(f"  配图：{len(images)} 张")
+        log(f"  配图：{len(images)} 张", tag="post")
     if tags:
-        print(f"  标签：{', '.join(tags)}")
+        log(f"  标签：{', '.join(tags)}", tag="post")
 
     return file_path
 

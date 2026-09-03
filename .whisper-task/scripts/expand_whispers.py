@@ -9,6 +9,7 @@ import os
 import json
 import sys
 from pathlib import Path
+from log import log
 
 
 def expand_whispers(data_dir='data/whispers', output_dir='content/whispers'):
@@ -17,7 +18,7 @@ def expand_whispers(data_dir='data/whispers', output_dir='content/whispers'):
     output_path = Path(output_dir)
     
     if not data_path.exists():
-        print(f"错误：数据目录不存在：{data_dir}")
+        log(f"错误：数据目录不存在：{data_dir}", tag="expand")
         sys.exit(1)
     
     # 确保输出目录存在
@@ -81,9 +82,9 @@ def expand_whispers(data_dir='data/whispers', output_dir='content/whispers'):
             
             total += 1
         
-        print(f"✓ {month}：{len(whispers)} 条动态")
+        log(f"✓ {month}：{len(whispers)} 条动态", tag="expand")
     
-    print(f"\n合计：{total} 条动态已生成到 {output_dir}/")
+    log(f"合计：{total} 条动态已生成到 {output_dir}/", tag="expand")
 
 
 if __name__ == '__main__':

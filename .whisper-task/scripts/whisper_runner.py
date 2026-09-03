@@ -29,6 +29,7 @@ from datetime import datetime, timezone, timedelta
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
 
+from log import log
 from ai_client import (
     create_fallback_text_provider,
     create_image_provider,
@@ -212,8 +213,8 @@ def run_script(cmd, cwd=PROJECT_ROOT):
     """Run a subprocess and return stdout."""
     result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
     if result.returncode != 0:
-        print(f"Command failed: {' '.join(cmd)}", file=sys.stderr)
-        print(result.stderr, file=sys.stderr)
+        log(f"Command failed: {' '.join(cmd)}")
+        log(result.stderr)
     return result.stdout, result.returncode
 
 
@@ -348,12 +349,11 @@ def preload_references():
             png_bytes = _prepare_reference_image(path)
             if png_bytes:
                 _REFERENCE_CACHE[aid] = png_bytes
-                print(f"[ref] Cached {aid}: {len(png_bytes)} bytes",
-                      file=sys.stderr)
+                log(f"Cached {aid}: {len(png_bytes)} bytes", tag="ref")
             else:
-                print(f"[ref] Failed to cache {aid}", file=sys.stderr)
+                log(f"Failed to cache {aid}", tag="ref")
         else:
-            print(f"[ref] No reference image file for {aid}", file=sys.stderr)
+            log(f"No reference image file for {aid}", tag="ref")
 
 
 def extract_mentioned_characters(content, authors_data):
@@ -592,7 +592,7 @@ Write the image prompt now using the labeled format above. Only the prompt, noth
             prompt = "\n".join(l for l in lines if not l.startswith("```")).strip()
         return prompt if prompt else None
     except Exception as e:
-        print(f"[image] Prompt generation failed: {e}", file=sys.stderr)
+        log(f"Prompt generation failed: {e}", tag="image")
         return None
 
 
@@ -623,9 +623,9 @@ def generate_whisper_image(image_provider, rephrase_provider, content, character
     roles = resolve_image_roles(character_id, image_subjects, scene_chars, authors_data)
     prompt = build_image_prompt(rephrase_provider, content, roles, now_dt, authors_data)
     if not prompt:
-        print("[image] Failed to build prompt, skipping image", file=sys.stderr)
+        log("Failed to build prompt, skipping image", tag="image")
         return None, None
-    print(f"[image] Prompt: {prompt[:120]}...")
+    log(f"Prompt: {prompt[:120]}...", tag="image")
 
     # Collect reference images for the resolved on-screen roles (max 4).
     # Order matches build_image_prompt's ref_roles, so image N in the prompt
@@ -642,13 +642,13 @@ def generate_whisper_image(image_provider, rephrase_provider, content, character
             if p:
                 ref_data.append(p)
             else:
-                print(f"[image] No reference image found for {aid}", file=sys.stderr)
+                log(f"No reference image found for {aid}", tag="image")
     ref_data = ref_data[:MAX_REFERENCE_IMAGES]
     if not ref_data:
-        print("[image] No reference images available, skipping image", file=sys.stderr)
+        log("No reference images available, skipping image", tag="image")
         return None, None
     ref_labels = [r[0] if isinstance(r, tuple) else os.path.basename(r) for r in ref_data]
-    print(f"[image] Reference images: {ref_labels}")
+    log(f"Reference images: {ref_labels}", tag="image")
 
     # Output path: static/images/YYYY-MM-DD-{slug}-1.webp
     # CF returns PNG (base64); we save as .png then convert to .webp
@@ -669,7 +669,7 @@ def generate_whisper_image(image_provider, rephrase_provider, content, character
         # of the final prompt (highest priority position). Reference images
         # are the sole source of character appearance.
         final_prompt = IMAGE_APPEARANCE_HARD_CONSTRAINT + "\n\n" + current_prompt
-        print(f"[image] Final prompt to image model (constraint + prompt): {final_prompt}")
+        log(f"Final prompt to image model (constraint + prompt): {final_prompt}", tag="image")
         # Use .png temp path first (CF returns PNG), convert to webp after
         temp_path = final_path + ".tmp.png"
         try:
@@ -683,21 +683,21 @@ def generate_whisper_image(image_provider, rephrase_provider, content, character
                 if rc != 0 or not os.path.exists(final_path):
                     # Fallback: if process_image.py fails, just rename png to webp
                     # (Hugo can serve it, browser will handle)
-                    print(f"[image] process_image.py failed, using raw PNG", file=sys.stderr)
+                    log(f"process_image.py failed, using raw PNG", tag="image")
                     import shutil
                     shutil.move(temp_path, final_path)
                 else:
                     # Clean up temp
                     if os.path.exists(temp_path):
                         os.remove(temp_path)
-                print(f"[image] Generated: {final_path}")
+                log(f"Generated: {final_path}", tag="image")
                 return image_filename, final_path
         except RuntimeError as e:
             flagged = getattr(e, "flagged", False)
             if flagged and attempt < max_retries:
                 wait = 5 * (attempt + 1)
-                print(f"[image] Flagged by safety filter (attempt {attempt+1}/{max_retries}), "
-                      f"rephrasing after {wait}s...", file=sys.stderr)
+                log(f"Flagged by safety filter (attempt {attempt+1}/{max_retries}), "
+                      f"rephrasing after {wait}s...", tag="image")
                 time.sleep(wait)
                 if attempt == max_retries - 1:
                     # Last retry: use a simplified minimal prompt to minimize
@@ -708,10 +708,10 @@ def generate_whisper_image(image_provider, rephrase_provider, content, character
                     if new_prompt:
                         current_prompt = new_prompt
                 continue
-            print(f"[image] Generation failed: {e}", file=sys.stderr)
+            log(f"Generation failed: {e}", tag="image")
             break
         except Exception as e:
-            print(f"[image] Generation error: {e}", file=sys.stderr)
+            log(f"Generation error: {e}", tag="image")
             break
 
     # Cleanup temp file if exists
@@ -743,7 +743,7 @@ Rules:
             new_prompt = "\n".join(l for l in lines if not l.startswith("```")).strip()
         return new_prompt if new_prompt else None
     except Exception as e:
-        print(f"[image] Rephrase failed: {e}", file=sys.stderr)
+        log(f"Rephrase failed: {e}", tag="image")
         return None
 
 
@@ -767,9 +767,9 @@ def repack_month_images(month_str):
     """Re-run pack_images.py for the given month after adding new images."""
     stdout, rc = run_script([sys.executable, PACK_IMAGES_SCRIPT, month_str])
     if rc == 0:
-        print(f"[image] Repacked {month_str}.tar")
+        log(f"Repacked {month_str}.tar", tag="image")
     else:
-        print(f"[image] WARNING: pack_images.py failed for {month_str}", file=sys.stderr)
+        log(f"WARNING: pack_images.py failed for {month_str}", tag="image")
     return rc == 0
 
 
@@ -798,7 +798,7 @@ def _get_diag_kv():
     try:
         return KVClient(account_id, namespace_id, api_token)
     except ValueError as e:
-        print(f"[diag] KV client init failed: {e}", file=sys.stderr)
+        log(f"KV client init failed: {e}", tag="diag")
         return None
 
 
@@ -845,23 +845,23 @@ def apply_image_replacements(now_dt, dry_run=False):
     Returns (changes_made, processed_kv_keys) — processed_kv_keys 是成功应用的
     KV key 列表，由调用方在 push 成功后删除。
     """
-    print("\n--- Apply Image Replacements ---")
+    log("\n--- Apply Image Replacements ---")
     kv = _get_diag_kv()
     if kv is None:
-        print("[diag] KV not configured (CF_DEFAULT_ACCOUNT_ID/CF_DEFAULT_API_TOKEN/CF_DIAG_KV_ID), skipping")
+        log("KV not configured (CF_DEFAULT_ACCOUNT_ID/CF_DEFAULT_API_TOKEN/CF_DIAG_KV_ID), skipping", tag="diag")
         return False, []
 
     try:
         keys = kv.list_keys(prefix=_DIAG_KV_REPLACE_PREFIX)
     except Exception as e:
-        print(f"[diag] KV list failed: {e}", file=sys.stderr)
+        log(f"KV list failed: {e}", tag="diag")
         return False, []
 
     if not keys:
-        print("No pending image replacements")
+        log("No pending image replacements")
         return False, []
 
-    print(f"Found {len(keys)} pending image replacement request(s)")
+    log(f"Found {len(keys)} pending image replacement request(s)")
 
     # 取出所有请求值
     requests_by_whisper = {}  # whisper_id -> (latest_value, all_keys_for_this_whisper)
@@ -870,7 +870,7 @@ def apply_image_replacements(now_dt, dry_run=False):
             raw = kv.get_value(key)
             req = json.loads(raw)
         except Exception as e:
-            print(f"[diag] Failed to read KV key {key}: {e}", file=sys.stderr)
+            log(f"Failed to read KV key {key}: {e}", tag="diag")
             continue
         wid = req.get("whisper_id", "")
         if not wid:
@@ -888,12 +888,12 @@ def apply_image_replacements(now_dt, dry_run=False):
         requests_by_whisper[wid][2].append(key)
 
     if not requests_by_whisper:
-        print("No valid image replacement requests")
+        log("No valid image replacement requests")
         return False, []
 
     if dry_run:
         for wid, (req, _, _) in requests_by_whisper.items():
-            print(f"  [DRY RUN] Would replace image for {wid} (seq={req.get('seq',1)})")
+            log(f"  [DRY RUN] Would replace image for {wid} (seq={req.get('seq',1)})")
         return False, []
 
     changes_made = False
@@ -904,19 +904,19 @@ def apply_image_replacements(now_dt, dry_run=False):
         image_b64 = req.get("image_base64", "")
         content_type = req.get("content_type", "image/webp")
 
-        print(f"  Processing {wid} (seq={seq})")
+        log(f"  Processing {wid} (seq={seq})")
 
         # 校验 whisper 存在
         whisper_json_path = os.path.join(WHISPERS_DIR, f"{month_str}.json")
         if not os.path.exists(whisper_json_path):
-            print(f"    Skip: whisper file {month_str}.json not found")
+            log(f"    Skip: whisper file {month_str}.json not found")
             _delete_keys_silent(kv, all_keys)
             continue
         month_data = load_json(whisper_json_path)
         slug_part = wid[11:]
         whisper_data = month_data.get(slug_part)
         if not whisper_data:
-            print(f"    Skip: whisper {wid} not found in {month_str}.json")
+            log(f"    Skip: whisper {wid} not found in {month_str}.json")
             _delete_keys_silent(kv, all_keys)
             continue
 
@@ -928,7 +928,7 @@ def apply_image_replacements(now_dt, dry_run=False):
         try:
             img_bytes = base64.b64decode(image_b64)
         except Exception as e:
-            print(f"    Skip: base64 decode failed: {e}")
+            log(f"    Skip: base64 decode failed: {e}")
             _delete_keys_silent(kv, all_keys)
             continue
 
@@ -941,7 +941,7 @@ def apply_image_replacements(now_dt, dry_run=False):
                 with open(final_path, "wb") as f:
                     f.write(img_bytes)
             except Exception as e:
-                print(f"    Skip: write webp failed: {e}")
+                log(f"    Skip: write webp failed: {e}")
                 _delete_keys_silent(kv, all_keys)
                 continue
         else:
@@ -954,7 +954,7 @@ def apply_image_replacements(now_dt, dry_run=False):
                 # 调 process_image.py 转换
                 _, rc = run_script([sys.executable, PROCESS_IMAGE_SCRIPT, tmp_path, final_path])
                 if rc != 0 or not os.path.exists(final_path):
-                    print(f"    Skip: process_image.py conversion failed")
+                    log(f"    Skip: process_image.py conversion failed")
                     _delete_keys_silent(kv, all_keys)
                     continue
             finally:
@@ -979,22 +979,21 @@ def apply_image_replacements(now_dt, dry_run=False):
                 whisper_data["images"] = [x for x in images_list if x]
                 month_data[slug_part] = whisper_data
                 save_json(whisper_json_path, month_data)
-                print(f"    Added images field to {wid}: {whisper_data['images']}")
+                log(f"    Added images field to {wid}: {whisper_data['images']}")
 
         # 重打包当月 tar（pack_images.py 会自动从旧 tar补齐其他图 + 重新打包，
         # 且不会用旧 tar 覆盖我们刚写的新文件）
         if not repack_month_images(month_str):
-            print(f"    WARNING: repack failed for {month_str}, image written but tar not updated",
-                  file=sys.stderr)
+            log(f"    WARNING: repack failed for {month_str}, image written but tar not updated")
 
         # Defer KV key deletion to main() — only delete after git push
         # succeeds, so a push failure doesn't lose the replacement request.
         processed_keys.extend(all_keys)
 
         changes_made = True
-        print(f"    Replaced image for {wid}: {image_filename}")
+        log(f"    Replaced image for {wid}: {image_filename}")
 
-    print(f"Image replacements complete: "
+    log(f"Image replacements complete: "
           f"{sum(1 for w in requests_by_whisper.values()) } processed, "
           f"changes={'yes' if changes_made else 'no'}")
     return changes_made, processed_keys
@@ -1006,7 +1005,7 @@ def _delete_keys_silent(kv, keys):
         try:
             kv.delete_key(k)
         except Exception as e:
-            print(f"[diag] KV delete failed for {k}: {e}", file=sys.stderr)
+            log(f"KV delete failed for {k}: {e}", tag="diag")
 
 
 # ==================== Content Generation ====================
@@ -1367,11 +1366,11 @@ def detect_pending_promises(text_provider, timeline_text, authors_data, now_dt):
             max_tokens=1500, temperature=0.2, enable_thinking=False,
         )
     except Exception as e:
-        print(f"[promise-detect] LLM call failed: {e}", file=sys.stderr)
+        log(f"LLM call failed: {e}", tag="promise-detect")
         return []
 
     if not response or not response.strip():
-        print("[promise-detect] LLM returned empty response", file=sys.stderr)
+        log("LLM returned empty response", tag="promise-detect")
         return []
 
     # Strip a possible markdown fence, then parse as JSON array.
@@ -1393,10 +1392,10 @@ def detect_pending_promises(text_provider, timeline_text, authors_data, now_dt):
     try:
         data = json.loads(text)
     except json.JSONDecodeError as e:
-        print(f"[promise-detect] JSON parse failed: {e}", file=sys.stderr)
+        log(f"JSON parse failed: {e}", tag="promise-detect")
         return []
 
-    print(f"[promise-detect] raw response: {text[:400]!r}", file=sys.stderr)
+    log(f"raw response: {text[:400]!r}", tag="promise-detect")
 
     out = []
     if isinstance(data, list):
@@ -1457,11 +1456,11 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
         promises = detect_pending_promises(text_provider, timeline_text, authors_data, now_dt)
         if promises:
             pending_block = format_pending_block(promises, authors_data)
-            print(f"[promise] {len(promises)} pending promise(s) fed to selection")
+            log(f"{len(promises)} pending promise(s) fed to selection", tag="promise")
         else:
-            print("[promise] detector returned no pending promises")
+            log("detector returned no pending promises", tag="promise")
     except Exception as e:
-        print(f"[promise] detection skipped (empty block): {e}", file=sys.stderr)
+        log(f"detection skipped (empty block): {e}", tag="promise")
 
     def _generate_once():
         """Single generation attempt. Returns parsed dict or None."""
@@ -1476,7 +1475,7 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
         try:
             response = text_provider.generate(messages, max_tokens=10240, temperature=0.7, enable_thinking=True)
         except Exception as e:
-            print(f"AI generation failed: {e}", file=sys.stderr)
+            log(f"AI generation failed: {e}")
             return None
 
         # Parse JSON from response
@@ -1502,10 +1501,10 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
             content = data.get("content", "").strip()
 
             if not character or not title or not content:
-                print("AI response missing fields", file=sys.stderr)
+                log("AI response missing fields")
                 return None
             if character not in authors_data:
-                print(f"Warning: AI returned unknown character '{character}'", file=sys.stderr)
+                log(f"Warning: AI returned unknown character '{character}'")
                 return None
 
             # Parse model-provided metadata (with fallbacks)
@@ -1529,8 +1528,8 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
             }
             return result
         except json.JSONDecodeError as e:
-            print(f"Failed to parse AI response as JSON: {e}", file=sys.stderr)
-            print(f"Response: {response[:200]}", file=sys.stderr)
+            log(f"Failed to parse AI response as JSON: {e}")
+            log(f"Response: {response[:200]}")
             return None
 
     # First attempt
@@ -1541,20 +1540,20 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
     # Similarity check against the chosen character's recent posts
     similar, sim = is_too_similar(result["content"], result["character"], recent_whispers)
     if similar:
-        print(f"[repeat-check] Content too similar to recent (sim={sim:.2f}), regenerating once...",
-              file=sys.stderr)
+        log(f"Content too similar to recent (sim={sim:.2f}), regenerating once...",
+              tag="repeat-check")
         # Bump temperature for the retry to encourage divergence
         retry = _generate_once()
         if retry:
             similar2, sim2 = is_too_similar(retry["content"], retry["character"], recent_whispers)
             if not similar2:
-                print(f"[repeat-check] Regeneration OK (sim={sim2:.2f})", file=sys.stderr)
+                log(f"Regeneration OK (sim={sim2:.2f})", tag="repeat-check")
                 return retry
-            print(f"[repeat-check] Still similar after retry (sim={sim2:.2f}), using retry anyway",
-                  file=sys.stderr)
+            log(f"Still similar after retry (sim={sim2:.2f}), using retry anyway",
+                  tag="repeat-check")
             return retry
         # retry failed to parse, fall back to original
-        print("[repeat-check] Retry failed to parse, using original", file=sys.stderr)
+        log("Retry failed to parse, using original", tag="repeat-check")
     return result
 
 
@@ -1689,7 +1688,7 @@ def generate_smart_reply(text_provider, whisper_content, whisper_author_id,
     try:
         response = text_provider.generate(messages, max_tokens=10240, temperature=0.7, enable_thinking=True)
     except Exception as e:
-        print(f"Smart reply generation failed: {e}", file=sys.stderr)
+        log(f"Smart reply generation failed: {e}")
         return []
 
     if not response:
@@ -1717,7 +1716,7 @@ def generate_smart_reply(text_provider, whisper_content, whisper_author_id,
         try:
             data = json.loads(repaired)
         except json.JSONDecodeError:
-            print(f"Failed to parse smart reply JSON: {response[:200]}", file=sys.stderr)
+            log(f"Failed to parse smart reply JSON: {response[:200]}")
             return []
 
     replies_data = data.get("replies", []) if isinstance(data, dict) else []
@@ -1836,13 +1835,13 @@ def _evolve_storylines(storylines, now_dt):
 
         if sl["phase"] == "active" and hours > 48:
             sl["phase"] = "de-escalating"
-            print(f"[storyline] {sl['id']}: active → de-escalating")
+            log(f"{sl['id']}: active → de-escalating", tag="storyline")
 
         elif sl["phase"] == "de-escalating" and hours > 72:
             sl["phase"] = "resolved"
             sl["resolved_at"] = now_dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
             storylines.setdefault("completed", []).append(sl)
-            print(f"[storyline] {sl['id']}: resolved!")
+            log(f"{sl['id']}: resolved!", tag="storyline")
 
     storylines["active"] = [sl for sl in active if sl["phase"] != "resolved"]
 
@@ -1850,7 +1849,7 @@ def _evolve_storylines(storylines, now_dt):
     completed = storylines.get("completed", [])
     if len(completed) > 15:
         storylines["completed"] = completed[-15:]
-        print(f"[storyline] Trimmed completed list from {len(completed)} to 15")
+        log(f"Trimmed completed list from {len(completed)} to 15", tag="storyline")
 
 
 # B1: Cache for whisper data to avoid repeated disk reads in cross-reference
@@ -1875,7 +1874,7 @@ def _load_whisper_cache():
             except Exception:
                 continue
     _WHISPER_CACHE_LOADED = True
-    print(f"[cache] Loaded {_WHISPER_CACHE and len(_WHISPER_CACHE) or 0} month files into whisper cache")
+    log(f"Loaded {_WHISPER_CACHE and len(_WHISPER_CACHE) or 0} month files into whisper cache", tag="cache")
     return _WHISPER_CACHE
 
 
@@ -2054,7 +2053,7 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
     try:
         response = text_provider.generate(messages, max_tokens=10240, temperature=0.7, enable_thinking=True)
     except Exception as e:
-        print(f"Character interaction generation failed: {e}", file=sys.stderr)
+        log(f"Character interaction generation failed: {e}")
         return None
 
     if not response:
@@ -2084,7 +2083,7 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
         try:
             replies = json.loads(repaired)
         except json.JSONDecodeError:
-            print(f"Failed to parse interaction JSON: {response[:200]}", file=sys.stderr)
+            log(f"Failed to parse interaction JSON: {response[:200]}")
             return None
 
     if not isinstance(replies, list):
@@ -2147,8 +2146,7 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
         # P0: author CAN now participate. Only filter out chars NOT in this
         # round's candidate list (prevents "全员到齐" from AI over-generating).
         if author_id not in candidate_ids:
-            print(f"[reply-filter] {author_id} not in this round's candidates, skipping",
-                  file=sys.stderr)
+            log(f"{author_id} not in this round's candidates, skipping", tag="reply-filter")
             continue
         # Ensure nickname matches author_id
         if author_id in authors_data:
@@ -2156,8 +2154,7 @@ def generate_character_interactions(text_provider, whisper_data, whisper_author_
         # Dedup
         norm_content = content.replace(" ", "").replace("\n", "")
         if norm_content in existing_contents or norm_content in seen_contents:
-            print(f"[reply-dedup] Skipping duplicate reply from {nickname}: {content[:30]}...",
-                  file=sys.stderr)
+            log(f"Skipping duplicate reply from {nickname}: {content[:30]}...", tag="reply-dedup")
             continue
         seen_contents.add(norm_content)
         existing_contents.add(norm_content)
@@ -2325,7 +2322,7 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
     P3: per-whisper candidate chars pre-filtered (2-4, including author ~50%
         of the time when there are existing replies).
     """
-    print("\n--- Character Interactions ---")
+    log("\n--- Character Interactions ---")
 
     state = d1_client.get_state()
     last_run = state.get("last_run", {}).get("character_interactions", "")
@@ -2336,10 +2333,10 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
     random_offset = state.get("next_random_offset", {}).get("character_interactions", 0)
 
     trigger_result = check_trigger("character_interactions", last_run, now_str, random_offset)
-    print(f"Trigger check: {trigger_result.get('trigger', False)} - {trigger_result.get('reason', '')}")
+    log(f"Trigger check: {trigger_result.get('trigger', False)} - {trigger_result.get('reason', '')}")
 
     if not trigger_result.get("trigger", False):
-        print("Character interactions: not triggered, skipping")
+        log("Character interactions: not triggered, skipping")
         return False
 
     # Load characters.md and authors data
@@ -2398,7 +2395,7 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
                 })
 
     if not candidates:
-        print("No whispers need interactions")
+        log("No whispers need interactions")
         state["last_run"]["character_interactions"] = now_str
         new_offset = random.randint(0, 30)
         state["next_random_offset"]["character_interactions"] = new_offset
@@ -2445,11 +2442,11 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
     else:
         candidates = pool
 
-    print(f"Found {len(candidates)} whispers needing interactions")
+    log(f"Found {len(candidates)} whispers needing interactions")
 
     if dry_run:
         for c in candidates:
-            print(f"  [DRY RUN] Would interact: {c['whisper_id']} ({c['char_reply_count']} char replies)")
+            log(f"  [DRY RUN] Would interact: {c['whisper_id']} ({c['char_reply_count']} char replies)")
         return False
 
     total_new_replies = 0
@@ -2460,17 +2457,17 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
         author_name = get_author_nickname(author_id, authors_data)
         existing_replies = c["existing_replies"]
 
-        print(f"  Processing {whisper_id} ({c['char_reply_count']} existing char replies)")
+        log(f"  Processing {whisper_id} ({c['char_reply_count']} existing char replies)")
 
         # P3: pre-filter candidate chars for this round (2-4, maybe incl. author)
         candidate_chars = _select_candidate_chars(
             author_id, existing_replies, authors_data, now_dt
         )
         if not candidate_chars:
-            print(f"    No candidate chars available, skipping")
+            log(f"    No candidate chars available, skipping")
             continue
         cand_names = [nick for _, nick in candidate_chars]
-        print(f"    Candidates this round: {cand_names}")
+        log(f"    Candidates this round: {cand_names}")
 
         new_replies = generate_character_interactions(
             text_provider, w_data, author_name, existing_replies,
@@ -2479,7 +2476,7 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
         )
 
         if not new_replies:
-            print(f"    No valid interactions generated")
+            log(f"    No valid interactions generated")
             continue
 
         # Write to data/replies/*.json
@@ -2488,7 +2485,7 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
         total_new_replies += len(new_replies)
         for r in new_replies:
             reply_to_info = f" (reply to {r['reply_to']}#{r['reply_to_floor']})" if r.get("reply_to") else ""
-            print(f"    + {r['nickname']}: {r['content'][:40]}...{reply_to_info}")
+            log(f"    + {r['nickname']}: {r['content'][:40]}...{reply_to_info}")
 
         # Storyline detection for this whisper
         triggered, sl_type, participants = _detect_storyline_triggers(w_data, whisper_id, authors_data)
@@ -2508,7 +2505,7 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
                     "escalation_level": 1,
                 }
                 storylines["active"].append(new_sl)
-                print(f"[storyline] New {sl_type} started: {new_sl['id']}")
+                log(f"New {sl_type} started: {new_sl['id']}", tag="storyline")
 
     # Update state
     state["last_run"]["character_interactions"] = now_str
@@ -2517,7 +2514,7 @@ def do_character_interactions(config, d1_client, text_provider, now_dt, dry_run=
     state["stats"]["total_tasks_executed"] = state["stats"].get("total_tasks_executed", 0) + 1
     d1_client.save_state(state)
 
-    print(f"Character interactions complete: {total_new_replies} replies generated")
+    log(f"Character interactions complete: {total_new_replies} replies generated")
     return total_new_replies > 0
 
 
@@ -2531,7 +2528,7 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
                        image_provider=None, prompt_provider=None, forced_character=None,
                        force=False):
     """Execute the publish whisper task."""
-    print("\n--- Publish Whisper ---")
+    log("\n--- Publish Whisper ---")
 
     state = d1_client.get_state()
     state.setdefault("character_states", {})
@@ -2546,25 +2543,25 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
 
     # Check trigger (bypassed entirely when --force-publish is set)
     if force:
-        print("Trigger check: True (forced)")
+        log("Trigger check: True (forced)")
     else:
         trigger_result = check_trigger("publish_whisper", last_run, now_str, random_offset)
-        print(f"Trigger check: {trigger_result.get('trigger', False)} - {trigger_result.get('reason', '')}")
+        log(f"Trigger check: {trigger_result.get('trigger', False)} - {trigger_result.get('reason', '')}")
 
     if not force and not trigger_result.get("trigger", False):
-        print("Publish whisper: not triggered, skipping")
+        log("Publish whisper: not triggered, skipping")
         return False
 
     # Get timeline
     timeline_text = get_timeline_text(15)
     if not timeline_text:
-        print("Warning: failed to get timeline, using empty context")
+        log("Warning: failed to get timeline, using empty context")
         timeline_text = "(no recent whispers)"
 
     # Check holiday
     date_str = now_dt.strftime("%Y-%m-%d")
     day_info = check_holiday(date_str)
-    print(f"Day info: {day_info.get('type')} {day_info.get('holiday_name', '')}")
+    log(f"Day info: {day_info.get('type')} {day_info.get('holiday_name', '')}")
 
     # Load characters.md and authors data
     characters_md = ""
@@ -2584,11 +2581,11 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
         if forced_character not in authors_data:
             msg = (f"forced publish author '{forced_character}' not in authors.json at "
                    f"{now_dt.strftime('%Y-%m-%d %H:%M:%S')} Beijing time")
-            print(f"ERROR: {msg}", file=sys.stderr)
+            log(f"ERROR: {msg}")
             raise PublishError(msg)
         character_id = forced_character
         character_name = get_author_nickname(character_id, authors_data)
-        print(f"Forced publish author: {character_name} ({character_id})")
+        log(f"Forced publish author: {character_name} ({character_id})")
         content_data = _fallback_generate(
             text_provider, character_id, character_name,
             characters_md, timeline_text, day_info, now_dt
@@ -2596,23 +2593,23 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
         if not content_data:
             msg = ("forced publish generation failed at "
                    f"{now_dt.strftime('%Y-%m-%d %H:%M:%S')} Beijing time")
-            print(f"ERROR: {msg}", file=sys.stderr)
+            log(f"ERROR: {msg}")
             raise PublishError(msg)
         # Pin the author to the requested character regardless of what the
         # model echoed back in the JSON.
         content_data["character"] = character_id
     else:
-        print("Selection path: AI character selection (no forced author)")
+        log("Selection path: AI character selection (no forced author)")
         content_data = generate_whisper_content(
             text_provider, characters_md, timeline_text, day_info, now_dt, authors_data
         )
 
         if not content_data:
             # Fallback: use weighted random character selector + retry AI generation
-            print("AI content generation failed, falling back to character_selector...")
+            log("AI content generation failed, falling back to character_selector...")
             character_id = select_character(WHISPERS_DIR)
             character_name = get_author_nickname(character_id, authors_data)
-            print(f"Fallback character: {character_name} ({character_id})")
+            log(f"Fallback character: {character_name} ({character_id})")
 
             # Retry with a simpler prompt for the selected character
             content_data = _fallback_generate(text_provider, character_id, character_name,
@@ -2620,17 +2617,17 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
             if not content_data:
                 msg = ("publish generation failed (main + fallback) at "
                        f"{now_dt.strftime('%Y-%m-%d %H:%M:%S')} Beijing time")
-                print(f"ERROR: {msg}", file=sys.stderr)
+                log(f"ERROR: {msg}")
                 raise PublishError(msg)
 
     character_id = content_data["character"]
     character_name = get_author_nickname(character_id, authors_data)
-    print(f"Selected character: {character_name} ({character_id})")
-    print(f"Generated: {content_data['title']}")
+    log(f"Selected character: {character_name} ({character_id})")
+    log(f"Generated: {content_data['title']}")
 
     if dry_run:
-        print(f"[DRY RUN] Would publish: {content_data['title']}")
-        print(f"Content: {content_data['content']}")
+        log(f"[DRY RUN] Would publish: {content_data['title']}")
+        log(f"Content: {content_data['content']}")
         return False
 
     # Use model-provided slug, or fallback to hash-based slug
@@ -2638,7 +2635,7 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
     month_str = now_dt.strftime("%Y-%m")
     month_json_path = os.path.join(WHISPERS_DIR, f"{month_str}.json")
     slug = check_slug(month_json_path, slug)
-    print(f"Slug: {slug}")
+    log(f"Slug: {slug}")
 
     # Load month JSON
     if os.path.exists(month_json_path):
@@ -2673,7 +2670,7 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
             model_needs_image=content_data.get("needs_image", False),
             model_scene_chars=model_scene_chars
         )
-        print(f"[image] Decision: {should_img} ({reason})")
+        log(f"Decision: {should_img} ({reason})", tag="image")
         if should_img:
             date_str = now_dt.strftime("%Y-%m-%d")
             img_filename, img_path = generate_whisper_image(
@@ -2689,16 +2686,16 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
                 # Repack the month's tar so the image ships to the repo
                 repack_month_images(month_str)
                 image_generated = True
-                print(f"[image] Attached image: /images/{img_filename}")
+                log(f"Attached image: /images/{img_filename}", tag="image")
             else:
-                print(f"[image] Generation failed, whisper will be text-only")
+                log(f"Generation failed, whisper will be text-only", tag="image")
     elif not image_provider:
-        print("[image] No image provider configured, skipping image generation")
+        log("No image provider configured, skipping image generation", tag="image")
 
     # Save
     save_json(month_json_path, month_data)
     _invalidate_whisper_cache()  # B1: invalidate cache after publishing
-    print(f"Saved whisper to {month_json_path}")
+    log(f"Saved whisper to {month_json_path}")
 
     # Update character state (use model-provided mood/topics with keyword fallback)
     cs = character_states.setdefault(character_id, {})
@@ -2717,7 +2714,7 @@ def do_publish_whisper(config, d1_client, text_provider, now_dt, dry_run=False,
     state["stats"]["total_tasks_executed"] = state["stats"].get("total_tasks_executed", 0) + 1
     d1_client.save_state(state)
 
-    print(f"Updated D1 state: last_run={now_str}, next_offset={new_offset}")
+    log(f"Updated D1 state: last_run={now_str}, next_offset={new_offset}")
     return True
 
 
@@ -2781,7 +2778,7 @@ def _fallback_generate(text_provider, character_id, character_name,
     try:
         response = text_provider.generate(messages, max_tokens=10240, temperature=0.9, enable_thinking=True)
     except Exception as e:
-        print(f"Fallback AI generation failed: {e}", file=sys.stderr)
+        log(f"Fallback AI generation failed: {e}")
         return None
 
     response = response.strip()
@@ -2819,7 +2816,7 @@ def _fallback_generate(text_provider, character_id, character_name,
 
 def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
     """Check and reply to user comments from D1."""
-    print("\n--- Check Replies ---")
+    log("\n--- Check Replies ---")
 
     state = d1_client.get_state()
     last_run = state.get("last_run", {}).get("whispers_check_replies", "")
@@ -2832,23 +2829,23 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
 
     # Check trigger
     trigger_result = check_trigger("check_replies", last_run, now_str, random_offset)
-    print(f"Trigger check: {trigger_result.get('trigger', False)} - {trigger_result.get('reason', '')}")
+    log(f"Trigger check: {trigger_result.get('trigger', False)} - {trigger_result.get('reason', '')}")
 
     if not trigger_result.get("trigger", False):
-        print("Check replies: not triggered, skipping")
+        log("Check replies: not triggered, skipping")
         return False, []
 
     # Get pending replies from D1 (is_doubao = 0)
     replies = d1_client.get_pending_replies()
     if not replies:
-        print("No new replies to process")
+        log("No new replies to process")
         state["last_run"]["whispers_check_replies"] = now_str
         new_offset = random.randint(0, 5)
         state["next_random_offset"]["whispers_check_replies"] = new_offset
         d1_client.save_state(state)
         return False, []
 
-    print(f"Found {len(replies)} pending replies to process")
+    log(f"Found {len(replies)} pending replies to process")
 
     # Load characters.md and authors data
     characters_md = ""
@@ -2875,7 +2872,7 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
                 reply_ids_to_delete.append(reply["id"])
 
     if dry_run:
-        print(f"[DRY RUN] Would process {len(replies)} replies across {len(replies_by_whisper)} whispers")
+        log(f"[DRY RUN] Would process {len(replies)} replies across {len(replies_by_whisper)} whispers")
         return False, []
 
     # Process each whisper's replies
@@ -2899,7 +2896,7 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
                 whisper_data = month_whispers[slug_part]
 
         if not whisper_data:
-            print(f"Warning: whisper {whisper_id} not found, skipping replies")
+            log(f"Warning: whisper {whisper_id} not found, skipping replies")
             continue
 
         whisper_author_id = whisper_data.get("author", "")
@@ -2984,7 +2981,7 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
                     })
                     new_replies_added += 1
                     role_tag = f"[{role_type}]"
-                    print(f"  {role_tag} {char_name} replied to {whisper_id}: {ai_reply[:50]}...")
+                    log(f"  {role_tag} {char_name} replied to {whisper_id}: {ai_reply[:50]}...")
 
         # Write all new replies (user + character) to repo json in one batch.
         # add_replies() merges with existing replies and recalculates floors
@@ -3008,7 +3005,7 @@ def do_check_replies(config, d1_client, text_provider, now_dt, dry_run=False):
     state["stats"]["total_tasks_executed"] = state["stats"].get("total_tasks_executed", 0) + 1
     d1_client.save_state(state)
 
-    print(f"Reply processing complete: {new_replies_added} AI replies generated")
+    log(f"Reply processing complete: {new_replies_added} AI replies generated")
     return new_replies_added > 0, reply_ids_to_delete
 
 
@@ -3023,11 +3020,11 @@ def git_commit_and_push(changes_made, dry_run=False):
     we don't loop forever on a real conflict.
     """
     if not changes_made:
-        print("\nNo changes to commit")
+        log("\nNo changes to commit")
         return True
 
     if dry_run:
-        print(f"\n[DRY RUN] Would commit and push changes")
+        log(f"\n[DRY RUN] Would commit and push changes")
         return True
 
     # Configure git
@@ -3046,15 +3043,15 @@ def git_commit_and_push(changes_made, dry_run=False):
     for attempt in range(1, max_attempts + 1):
         _, rc = run_script(["git", "push"])
         if rc == 0:
-            print("Pushed changes to remote")
+            log("Pushed changes to remote")
             return True
         if attempt >= max_attempts:
-            print(f"Failed to push after {max_attempts} attempts, giving up", file=sys.stderr)
+            log(f"Failed to push after {max_attempts} attempts, giving up")
             return False
-        print(f"Push rejected (attempt {attempt}/{max_attempts}), pulling --rebase...", file=sys.stderr)
+        log(f"Push rejected (attempt {attempt}/{max_attempts}), pulling --rebase...")
         _, pull_rc = run_script(["git", "pull", "--rebase", "origin", "main"])
         if pull_rc != 0:
-            print("git pull --rebase failed (likely a real conflict), giving up", file=sys.stderr)
+            log("git pull --rebase failed (likely a real conflict), giving up")
             run_script(["git", "rebase", "--abort"])
             return False
 
@@ -3072,22 +3069,22 @@ def main():
     args = parser.parse_args()
 
     now = now_beijing()
-    print(f"=== Whisper Runner started at {now.strftime('%Y-%m-%d %H:%M:%S')} Beijing time ===")
+    log(f"=== Whisper Runner started at {now.strftime('%Y-%m-%d %H:%M:%S')} Beijing time ===")
 
     # Check active hours
     if not (ACTIVE_HOUR_START <= now.hour < ACTIVE_HOUR_END):
-        print(f"Outside active hours ({ACTIVE_HOUR_START}:00-{ACTIVE_HOUR_END}:00), exiting")
+        log(f"Outside active hours ({ACTIVE_HOUR_START}:00-{ACTIVE_HOUR_END}:00), exiting")
         return 0
 
     # Load config
     config = load_json(CONFIG_PATH)
-    print(f"Config loaded: {len(config.get('operations', {}))} operations")
+    log(f"Config loaded: {len(config.get('operations', {}))} operations")
 
     # Initialize clients
     try:
         d1_client = D1Client()
     except ValueError as e:
-        print(f"Failed to initialize D1 client: {e}", file=sys.stderr)
+        log(f"Failed to initialize D1 client: {e}")
         return 1
 
     ai_text_config = config.get("ai", {}).get("text", {})
@@ -3103,13 +3100,13 @@ def main():
         if args.force_model_pool or is_stale():
             if refresh_model_pool(force=args.force_model_pool):
                 changes_made = True
-                print("[model-pool] refreshed local model-pool.json")
+                log("[model-pool] refreshed local model-pool.json")
             elif args.force_model_pool:
-                print("[model-pool] force refresh failed (no models passed AA/ACK)", file=sys.stderr)
+                log("[model-pool] force refresh failed (no models passed AA/ACK)")
             elif is_stale():
-                print("[model-pool] pool stale but refresh skipped/reverted", file=sys.stderr)
+                log("[model-pool] pool stale but refresh skipped/reverted")
     except Exception as e:
-        print(f"[model-pool] refresh failed, keeping existing pool: {e}", file=sys.stderr)
+        log(f"[model-pool] refresh failed, keeping existing pool: {e}")
 
     # Build a single GLOBAL text pool (fallback chain). Source priority:
     #   1. model-pool.json — the pre-sorted free-model pool regenerated above
@@ -3123,9 +3120,9 @@ def main():
     if os.path.exists(model_pool_path := os.path.join(PROJECT_ROOT, ".whisper-task", "model-pool.json")):
         try:
             global_text_pool = create_pool_text_provider()
-            print(f"AI text pool [model-pool]: {global_text_pool}")
+            log(f"AI text pool [model-pool]: {global_text_pool}")
         except Exception as e:
-            print(f"model-pool.json unusable, falling back to config: {e}", file=sys.stderr)
+            log(f"model-pool.json unusable, falling back to config: {e}")
             global_text_pool = None
     if global_text_pool is None and ai_text_config:
         # Legacy path: named profiles -> flattened in order
@@ -3141,10 +3138,9 @@ def main():
                     continue
                 profile_configs.append(prof)
         global_text_pool = create_fallback_text_provider(profile_configs, name="config")
-        print(f"AI text pool [config]: {global_text_pool}")
+        log(f"AI text pool [config]: {global_text_pool}")
     if global_text_pool is None:
-        print("No AI text provider configured (missing/invalid model-pool.json and config.json ai.text)",
-              file=sys.stderr)
+        log("No AI text provider configured (missing/invalid model-pool.json and config.json ai.text)")
         return 1
 
     # Single shared pool for all text tasks. Kept as a 1-item namespace so the
@@ -3162,9 +3158,9 @@ def main():
     if ai_image_config:
         try:
             image_provider = create_image_provider(ai_image_config)
-            print(f"AI image provider: {ai_image_config.get('model', 'unknown')}")
+            log(f"AI image provider: {ai_image_config.get('model', 'unknown')}")
         except Exception as e:
-            print(f"Failed to init image provider (whispers will be text-only): {e}", file=sys.stderr)
+            log(f"Failed to init image provider (whispers will be text-only): {e}")
 
     # Pre-load and cache reference image PNG bytes so image generation doesn't
     # re-read files on every call.
@@ -3190,7 +3186,7 @@ def main():
     # keeps the AI's character choice; --author overrides it.
     force_publish = args.force_publish or (bool(args.author) and args.author != "default")
     if force_publish:
-        print("Force publish mode, bypassing trigger check")
+        log("Force publish mode, bypassing trigger check")
 
     try:
         published = do_publish_whisper(
@@ -3202,7 +3198,7 @@ def main():
     except PublishError as e:
         # Core task failed after all fallbacks — do not continue with the
         # remaining tasks or commit; surface the failure to CI.
-        print(f"ERROR: publish aborted ({e})", file=sys.stderr)
+        log(f"ERROR: publish aborted ({e})")
         return 1
     if published:
         changes_made = True
@@ -3236,7 +3232,7 @@ def main():
         merge_usage_into_state(state, combined_usage,
                                now.strftime("%Y-%m-%dT%H:%M:%S+08:00"))
         d1_client.save_state(state)
-        print(f"Token usage this run: prompt={combined_usage['prompt']} "
+        log(f"Token usage this run: prompt={combined_usage['prompt']} "
               f"completion={combined_usage['completion']} "
               f"total={combined_usage['total']} "
               f"cache_hit={combined_usage['cache_hit']}")
@@ -3250,18 +3246,18 @@ def main():
 
     if push_ok and changes_made and not args.dry_run:
         if reply_ids_to_delete:
-            print(f"Deleting {len(reply_ids_to_delete)} synced user replies from D1")
+            log(f"Deleting {len(reply_ids_to_delete)} synced user replies from D1")
             d1_client.delete_replies(reply_ids_to_delete)
         if kv_keys_to_delete:
             kv = _get_diag_kv()
             if kv:
-                print(f"Deleting {len(kv_keys_to_delete)} processed image-replacement KV keys")
+                log(f"Deleting {len(kv_keys_to_delete)} processed image-replacement KV keys")
                 _delete_keys_silent(kv, kv_keys_to_delete)
 
-    print(f"\n=== Whisper Runner finished ===")
+    log(f"\n=== Whisper Runner finished ===")
     if not push_ok:
-        print("WARNING: git push failed — D1 replies and KV keys were NOT deleted, "
-              "next run will retry", file=sys.stderr)
+        log("WARNING: git push failed — D1 replies and KV keys were NOT deleted, "
+              "next run will retry")
         return 1
     return 0
 

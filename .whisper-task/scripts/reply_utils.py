@@ -30,6 +30,7 @@ import argparse
 import json
 import os
 import sys
+from log import log
 
 
 def load_month_file(month_file):
@@ -89,9 +90,9 @@ def add_replies(month_file, whisper_id, new_replies):
     # 保存
     save_month_file(month_file, data)
 
-    print(f"已追加 {len(new_replies)} 条回复到 {whisper_id}")
-    print(f"  该动态总回复数：{len(all_replies)} 条")
-    print(f"  月文件：{month_file}")
+    log(f"已追加 {len(new_replies)} 条回复到 {whisper_id}", tag="reply")
+    log(f"  该动态总回复数：{len(all_replies)} 条", tag="reply")
+    log(f"  月文件：{month_file}", tag="reply")
 
 
 def get_replies(month_file, whisper_id):
@@ -100,11 +101,11 @@ def get_replies(month_file, whisper_id):
     replies = data.get(whisper_id, [])
 
     if not replies:
-        print(f"动态 {whisper_id} 暂无回复")
+        log(f"动态 {whisper_id} 暂无回复", tag="reply")
         return
 
-    print(f"动态 {whisper_id} 共有 {len(replies)} 条回复：")
-    print()
+    log(f"动态 {whisper_id} 共有 {len(replies)} 条回复：", tag="reply")
+    log("", tag="reply")
     for reply in replies:
         floor = reply.get('floor', '?')
         nickname = reply.get('nickname', '匿名')
@@ -118,9 +119,9 @@ def get_replies(month_file, whisper_id):
             if reply_to_floor:
                 prefix += f" #{reply_to_floor}F"
 
-        print(f"{prefix}")
-        print(f"  {content}")
-        print()
+        log(f"{prefix}", tag="reply")
+        log(f"  {content}", tag="reply")
+        log("", tag="reply")
 
 
 def list_replies(month_file):
@@ -128,13 +129,13 @@ def list_replies(month_file):
     data = load_month_file(month_file)
 
     if not data:
-        print(f"月文件 {month_file} 暂无数据")
+        log(f"月文件 {month_file} 暂无数据", tag="reply")
         return
 
-    print(f"月文件 {month_file} 共有 {len(data)} 条动态：")
-    print()
+    log(f"月文件 {month_file} 共有 {len(data)} 条动态：", tag="reply")
+    log("", tag="reply")
     for whisper_id, replies in sorted(data.items()):
-        print(f"  {whisper_id}: {len(replies)} 条回复")
+        log(f"  {whisper_id}: {len(replies)} 条回复", tag="reply")
 
 
 def main():

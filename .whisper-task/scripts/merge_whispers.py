@@ -9,6 +9,7 @@ import re
 import json
 import sys
 from pathlib import Path
+from log import log
 
 
 def parse_front_matter(content):
@@ -100,7 +101,7 @@ def merge_whispers(content_dir='content/whispers', output_dir='data/whispers'):
         name = md_file.stem
         match = re.match(r'^(\d{4}-\d{2})-\d{2}-(.+)$', name)
         if not match:
-            print(f"跳过（文件名格式不对）：{md_file.name}")
+            log(f"跳过（文件名格式不对）：{md_file.name}", tag="merge")
             continue
         
         month = match.group(1)  # YYYY-MM
@@ -140,10 +141,10 @@ def merge_whispers(content_dir='content/whispers', output_dir='data/whispers'):
             json.dump(whispers, f, ensure_ascii=False, indent=2)
         
         count = len(whispers)
-        print(f"✓ {month}.json：{count} 条动态")
+        log(f"✓ {month}.json：{count} 条动态", tag="merge")
     
     total = sum(len(v) for v in months.values())
-    print(f"\n合计：{len(months)} 个月，{total} 条动态")
+    log(f"合计：{len(months)} 个月，{total} 条动态", tag="merge")
 
 
 if __name__ == '__main__':

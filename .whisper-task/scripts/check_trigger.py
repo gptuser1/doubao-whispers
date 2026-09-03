@@ -19,6 +19,7 @@ import os
 import random
 import sys
 from datetime import datetime, timedelta, timezone, date
+from log import log
 
 
 # ==================== 节假日判断 ====================
@@ -26,7 +27,7 @@ from datetime import datetime, timedelta, timezone, date
 def load_holidays(holidays_file):
     """加载节假日数据"""
     if not os.path.exists(holidays_file):
-        print(f"错误：节假日文件不存在：{holidays_file}", file=sys.stderr)
+        log(f"错误：节假日文件不存在：{holidays_file}", tag="trigger")
         return None
     with open(holidays_file, 'r', encoding='utf-8') as f:
         return json.load(f)
@@ -143,7 +144,7 @@ def check_holiday(date_str, holidays_file):
 def load_config(config_file):
     """加载配置文件"""
     if not os.path.exists(config_file):
-        print(f"错误：配置文件不存在：{config_file}", file=sys.stderr)
+        log(f"错误：配置文件不存在：{config_file}", tag="trigger")
         return None
     with open(config_file, 'r', encoding='utf-8') as f:
         return json.load(f)
@@ -413,7 +414,7 @@ def cmd_trigger(args):
     # 找到任务配置
     operations = config.get('operations', {})
     if args.task not in operations:
-        print(f"错误：找不到任务 {args.task}", file=sys.stderr)
+        log(f"错误：找不到任务 {args.task}", tag="trigger")
         return 1
     
     task_config = operations[args.task]
