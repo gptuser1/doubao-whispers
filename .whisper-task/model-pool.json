@@ -1,6 +1,10 @@
 {
-  "updated_at": 1788405518865,
+  "updated_at": 1788406960320,
   "entries": [
+    {
+      "model": "muse-spark-1.2-contributor-free",
+      "baseurl": "https://opencode.ai/zen/v1"
+    },
     {
       "model": "minimax/minimax-m3:free",
       "baseurl": "https://openrouter.ai/api/v1"
