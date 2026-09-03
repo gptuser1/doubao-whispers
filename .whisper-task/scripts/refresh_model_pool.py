@@ -221,11 +221,6 @@ ACK_TIMEOUT = 15
 ACK_PROMPT = "Reply with exactly: ack"
 ACK_MAX_ATTEMPTS = 3
 ACK_BASE_DELAY = 8  # seconds; backoff = base * attempt (8s, 16s)
-ACK_MAX_TOKENS = 4  # chat/completions: minimal budget; "ack" fits in 4 tokens
-# /responses: must be generous — reasoning models spend most output on thinking
-# (muse-spark ACK needs ~512 even at effort=low; 4 tokens always comes back
-# empty and would misjudge a healthy model as dead).
-ACK_RESPONSES_MAX_TOKENS = 512
 
 
 def _extract_host(baseurl):
@@ -236,18 +231,16 @@ def _extract_host(baseurl):
         return ""
 
 
-def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS,
-              user_agent=None):
+def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
     """Send a minimal request and require a usable reply, with retry.
 
-    Tests /chat/completions first; if that fails, falls back to the
-    Responses API (/responses), so models served only on one endpoint still
-    pass. A model only passes if at least one endpoint eventually returns 200
-    with at least one non-empty assistant content token. Retries only cover
-    transient noise (network error, 429, 5xx); a deterministic 4xx (auth
-    401/403, missing model 404) fails immediately without burning extra
-    attempts. Missing provider key and empty/final replies also fail so dead
-    models never enter the pool. Returns (ok, detail).
+    Probes /chat/completions first; on failure falls back to the Responses
+    API (/responses) so models served on either endpoint pass. Liveness is
+    judged by the HTTP status code (200 = alive); truncated output does not
+    matter. Retries only cover transient noise (network error, 429, 5xx); a
+    deterministic 4xx (auth 401/403, missing model 404) fails immediately.
+    Missing provider key also fails so dead models never enter the pool.
+    Returns (ok, detail).
     """
     model = entry.get("model", "")
     baseurl = (entry.get("baseurl") or "").rstrip("/")
@@ -257,11 +250,9 @@ def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS,
         return False, f"no {key_env or 'api key'} configured"
 
     headers = {"Authorization": f"Bearer {api_key}"}
-    if user_agent:
-        headers["User-Agent"] = user_agent
 
-    def attempt(endpoint, body, extract):
-        """One endpoint's ack loop; same retry semantics as the original."""
+    def attempt(endpoint, body):
+        """One endpoint's ack loop; retry semantics mirror the original."""
         url = f"{baseurl}/{endpoint}"
         for i in range(1, max_attempts + 1):
             try:
@@ -273,13 +264,7 @@ def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS,
                 return False, f"request error: {e}"
 
             if resp.status_code == 200:
-                try:
-                    content = extract(resp)
-                except Exception as e:
-                    return False, f"bad json: {e}"
-                if not content:
-                    return False, "empty reply"
-                return True, content[:24]
+                return True, f"http {resp.status_code}"
 
             if resp.status_code == 429 or 500 <= resp.status_code < 600:
                 # Transient — retry with backoff before blaming the model.
@@ -297,35 +282,22 @@ def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS,
         {
             "model": model,
             "messages": [{"role": "user", "content": ACK_PROMPT}],
-            "max_tokens": ACK_MAX_TOKENS,
+            "max_tokens": 4,
             "temperature": 0,
         },
-        lambda r: ((r.json().get("choices") or [{}])[0]
-                   .get("message") or {}).get("content") or "",
     )
     if ok:
         return True, detail
 
-    # /responses fallback: some providers (e.g. zen) serve models only there.
-    # max_output_tokens must be generous — reasoning models burn the budget on
-    # thinking first (verified: muse-spark ACK needs ~512 even at effort=low);
-    # 4 tokens always comes back empty and would misjudge the model as dead.
-    print(f"[model-pool] {model}: chat/completions ack failed ({detail}); "
-          "trying /responses", file=sys.stderr)
+    print("[model-pool] chat/completions ack failed; trying /responses",
+          file=sys.stderr)
     ok, rdetail = attempt(
         "responses",
         {
             "model": model,
             "input": ACK_PROMPT,
-            "max_output_tokens": ACK_RESPONSES_MAX_TOKENS,
+            "max_output_tokens": 4,
         },
-        lambda r: "".join(
-            c.get("text", "")
-            for item in r.json().get("output") or []
-            if item.get("type") == "message"
-            for c in item.get("content") or []
-            if c.get("type") == "output_text"
-        ),
     )
     if ok:
         return True, rdetail
