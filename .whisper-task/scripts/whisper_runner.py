@@ -3067,6 +3067,7 @@ def main():
     parser = argparse.ArgumentParser(description="Whisper runner")
     parser.add_argument("--dry-run", action="store_true", help="Dry run, no actual changes")
     parser.add_argument("--force-publish", action="store_true", help="Force publish regardless of trigger")
+    parser.add_argument("--force-model-pool", action="store_true", help="Force refresh model pool regardless of staleness")
     parser.add_argument("--author", default="", help="Force publish as this exact character ID (implies --force-publish)")
     args = parser.parse_args()
 
@@ -3099,11 +3100,14 @@ def main():
     # whisper run continues; a broken/empty pool never ships.
     changes_made = False
     try:
-        if refresh_model_pool():
-            changes_made = True
-            print("[model-pool] refreshed local model-pool.json")
-        elif is_stale():
-            print("[model-pool] pool stale but refresh skipped/reverted", file=sys.stderr)
+        if args.force_model_pool or is_stale():
+            if refresh_model_pool(force=args.force_model_pool):
+                changes_made = True
+                print("[model-pool] refreshed local model-pool.json")
+            elif args.force_model_pool:
+                print("[model-pool] force refresh failed (no models passed AA/ACK)", file=sys.stderr)
+            elif is_stale():
+                print("[model-pool] pool stale but refresh skipped/reverted", file=sys.stderr)
     except Exception as e:
         print(f"[model-pool] refresh failed, keeping existing pool: {e}", file=sys.stderr)
 

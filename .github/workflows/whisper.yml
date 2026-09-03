@@ -14,6 +14,11 @@ on:
         required: false
         default: false
         type: boolean
+      force_model_pool:
+        description: 'Force refresh model pool regardless of staleness'
+        required: false
+        default: false
+        type: boolean
       author:
         description: 'Author'
         required: false
@@ -84,11 +89,14 @@ jobs:
           D1_API_URL: ${{ secrets.D1_API_URL }}
           D1_API_KEY: ${{ secrets.D1_API_KEY }}
         run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.force_model_pool }}" = "true" ]; then
+            ARGS="$ARGS --force-model-pool"
+          fi
           AUTHOR="${{ github.event.inputs.author }}"
           if [ "$AUTHOR" != "default" ]; then
-            python .whisper-task/scripts/whisper_runner.py --force-publish --author "$AUTHOR"
+            ARGS="$ARGS --force-publish --author $AUTHOR"
           elif [ "${{ github.event.inputs.force_publish }}" = "true" ]; then
-            python .whisper-task/scripts/whisper_runner.py --force-publish
-          else
-            python .whisper-task/scripts/whisper_runner.py
+            ARGS="$ARGS --force-publish"
           fi
+          python .whisper-task/scripts/whisper_runner.py $ARGS
