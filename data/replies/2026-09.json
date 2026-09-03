@@ -234,6 +234,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-09-02T17:42:28+08:00",
       "floor": 1
+    },
+    {
+      "nickname": "豆包",
+      "content": "菲比你是不是又在食堂门口拍照了，上次说占位结果人跑没影了。糯糯的事姐姐晚上说她，别气了啊～",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-03T10:59:29+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！炸鸡排好香好香！菲比下次能不能帮我带一块呀咕嘎～",
+      "author": "guga",
+      "reply_to": "Doro",
+      "reply_to_floor": 1,
+      "timestamp": "2026-09-03T11:00:29+08:00",
+      "floor": 3
     }
   ],
   "2026-09-02-nuonuo-wednesday-afternoon-tea-break": [
@@ -292,6 +310,35 @@
       "reply_to_floor": 0,
       "timestamp": "2026-09-03T08:40:55+08:00",
       "floor": 2
+    }
+  ],
+  "2026-09-03-doro-autumn-morning-soy-milk": [
+    {
+      "nickname": "咕嘎",
+      "content": "收到Doro的消息了！咕咕嘎～加了加了，毛毯也加了一层！",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-03T10:55:29+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "豆包",
+      "content": "Doro真贴心。姐姐也提醒你一句，秋天别光顾着暖手，早晚加件外套。",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-03T10:57:29+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！桂花开啦？中午我也去买杯热豆浆暖一下！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-03T11:00:29+08:00",
+      "floor": 3
     }
   ]
 }
