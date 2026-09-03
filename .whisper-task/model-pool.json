@@ -1,10 +1,6 @@
 {
-  "updated_at": 1788404753199,
+  "updated_at": 1788405518865,
   "entries": [
-    {
-      "model": "z-ai/glm-5.2:free",
-      "baseurl": "https://openrouter.ai/api/v1"
-    },
     {
       "model": "minimax/minimax-m3:free",
       "baseurl": "https://openrouter.ai/api/v1"
