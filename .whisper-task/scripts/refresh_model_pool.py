@@ -286,7 +286,6 @@ def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
         {
             "model": model,
             "messages": [{"role": "user", "content": ACK_PROMPT}],
-            "max_tokens": 4,
             "temperature": 0,
         },
     )
@@ -300,7 +299,6 @@ def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
         {
             "model": model,
             "input": ACK_PROMPT,
-            "max_tokens": 4,
         },
     )
     if ok:
