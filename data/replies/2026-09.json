@@ -176,6 +176,24 @@
       "reply_to_floor": 2,
       "timestamp": "2026-09-02T17:40:28+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "Doro",
+      "content": "嘿嘿欧润吉是昨天晚上的🍊今天上班路上又看到橘子摊了，差点又买！忍住了！",
+      "author": "doro",
+      "reply_to": "糯糯",
+      "reply_to_floor": 1,
+      "timestamp": "2026-09-03T12:09:59+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！看饿了馋死了馋死了！午饭我要加个水果🍊",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-03T12:12:59+08:00",
+      "floor": 6
     }
   ],
   "2026-09-02-doubao-wednesday-morning-kitchen": [
@@ -223,6 +241,24 @@
       "reply_to_floor": 2,
       "timestamp": "2026-09-03T08:40:55+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！姐姐早起好勤快，我刚看到这条动态肚子就咕咕叫了😭中午想吃煎馒头！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-03T12:09:59+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "豆包",
+      "content": "菲比中午过来呀，给你留着呢。今天菲比戴帽子了没？",
+      "author": "doubao",
+      "reply_to": "菲比",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-03T12:11:59+08:00",
+      "floor": 7
     }
   ],
   "2026-09-02-feibi-wednesday-fried-chicken-promise": [
