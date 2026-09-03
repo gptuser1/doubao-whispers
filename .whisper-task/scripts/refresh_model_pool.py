@@ -232,13 +232,14 @@ def _extract_host(baseurl):
 
 
 def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
-    """Send a minimal chat request and require a usable reply, with retry.
+    """Send a minimal request and require a usable reply, with retry.
 
-    A model only passes if the endpoint eventually returns 200 with at least
-    one non-empty assistant content token. Retries only cover transient noise
-    (network error, 429, 5xx); a deterministic 4xx (auth 401/403, missing model
-    404) fails immediately without burning extra attempts. Missing provider key
-    and empty/final replies also fail so dead models never enter the pool.
+    Probes /chat/completions first; on failure falls back to the Responses
+    API (/responses) so models served on either endpoint pass. Liveness is
+    judged by the HTTP status code (200 = alive); truncated output does not
+    matter. Retries only cover transient noise (network error, 429, 5xx); a
+    deterministic 4xx (auth 401/403, missing model 404) fails immediately.
+    Missing provider key also fails so dead models never enter the pool.
     Returns (ok, detail).
     """
     model = entry.get("model", "")
@@ -247,53 +248,60 @@ def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
     api_key = os.environ.get(key_env, "").strip() if key_env else ""
     if not api_key:
         return False, f"no {key_env or 'api key'} configured"
-    url = f"{baseurl}/chat/completions"
-    body = {
-        "model": model,
-        "messages": [{"role": "user", "content": ACK_PROMPT}],
-        "max_tokens": 4,
-        "temperature": 0,
-    }
+
     headers = {"Authorization": f"Bearer {api_key}"}
 
-    for attempt in range(1, max_attempts + 1):
-        try:
-            resp = requests.post(url, json=body, headers=headers, timeout=timeout)
-        except Exception as e:
-            if attempt < max_attempts:
-                time.sleep(ACK_BASE_DELAY * attempt)
-                continue
-            return False, f"request error: {e}"
-
-        if resp.status_code == 200:
+    def attempt(endpoint, body):
+        """One endpoint's ack loop; retry semantics mirror the original."""
+        url = f"{baseurl}/{endpoint}"
+        for i in range(1, max_attempts + 1):
             try:
-                content = _extract_ack_content(resp)
+                resp = requests.post(url, json=body, headers=headers, timeout=timeout)
             except Exception as e:
-                return False, f"bad json: {e}"
-            if not content:
-                return False, "empty reply"
-            return True, content[:24]
+                if i < max_attempts:
+                    time.sleep(ACK_BASE_DELAY * i)
+                    continue
+                return False, f"request error: {e}"
 
-        if resp.status_code == 429 or 500 <= resp.status_code < 600:
-            # Transient — retry with backoff before blaming the model.
-            if attempt < max_attempts:
-                time.sleep(ACK_BASE_DELAY * attempt)
-                continue
+            if resp.status_code == 200:
+                return True, f"http {resp.status_code}"
+
+            if resp.status_code == 429 or 500 <= resp.status_code < 600:
+                # Transient — retry with backoff before blaming the model.
+                if i < max_attempts:
+                    time.sleep(ACK_BASE_DELAY * i)
+                    continue
+                return False, f"http {resp.status_code}: {resp.text[:120]}"
+
+            # Deterministic 4xx (auth / missing model / bad request) — no retry.
             return False, f"http {resp.status_code}: {resp.text[:120]}"
+        return False, "max attempts exhausted"
 
-        # Deterministic 4xx (auth / missing model / bad request) — no retry.
-        return False, f"http {resp.status_code}: {resp.text[:120]}"
+    ok, detail = attempt(
+        "chat/completions",
+        {
+            "model": model,
+            "messages": [{"role": "user", "content": ACK_PROMPT}],
+            "max_tokens": 4,
+            "temperature": 0,
+        },
+    )
+    if ok:
+        return True, detail
 
-    return False, "max attempts exhausted"
-
-
-def _extract_ack_content(resp):
-    data = resp.json()
-    choices = data.get("choices") or []
-    content = ""
-    if choices:
-        content = (choices[0].get("message", {}) or {}).get("content") or ""
-    return content.strip()
+    print("[model-pool] chat/completions ack failed; trying /responses",
+          file=sys.stderr)
+    ok, rdetail = attempt(
+        "responses",
+        {
+            "model": model,
+            "input": ACK_PROMPT,
+            "max_output_tokens": 4,
+        },
+    )
+    if ok:
+        return True, rdetail
+    return False, f"chat/completions {detail}; /responses {rdetail}"
 
 
 # --------------------------------------------------------------------------
