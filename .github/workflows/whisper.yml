@@ -31,6 +31,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install deps
+        run: pip install requests
+
       - name: ACK big-pickle via real pool ack_probe (UA variants)
         env:
           ZEN_API_KEY: ${{ secrets.ZEN_API_KEY }}
