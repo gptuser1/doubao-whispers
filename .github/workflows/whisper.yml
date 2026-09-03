@@ -94,7 +94,7 @@ jobs:
             ARGS="$ARGS --force-model-pool"
           fi
           AUTHOR="${{ github.event.inputs.author }}"
-          if [ "$AUTHOR" != "default" ]; then
+          if [ -n "$AUTHOR" ] && [ "$AUTHOR" != "default" ]; then
             ARGS="$ARGS --force-publish --author $AUTHOR"
           elif [ "${{ github.event.inputs.force_publish }}" = "true" ]; then
             ARGS="$ARGS --force-publish"
