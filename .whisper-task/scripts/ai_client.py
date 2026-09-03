@@ -187,6 +187,10 @@ class OpenAIText(TextProvider):
             "Content-Type": "application/json",
             "User-Agent": _DEFAULT_UA,
         }
+        if "openrouter.ai" in self.base_url:
+            headers["HTTP-Referer"] = "https://github.com/doubao-whispers"
+            headers["X-OpenRouter-Title"] = "doubao-whispers"
+            headers["X-OpenRouter-Categories"] = "cli-agent,personal-agent"
 
         max_retries = 3
         for attempt in range(max_retries + 1):

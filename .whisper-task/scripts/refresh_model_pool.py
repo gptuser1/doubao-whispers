@@ -250,6 +250,10 @@ def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
         return False, f"no {key_env or 'api key'} configured"
 
     headers = {"Authorization": f"Bearer {api_key}"}
+    if "openrouter.ai" in baseurl:
+        headers["HTTP-Referer"] = "https://github.com/doubao-whispers"
+        headers["X-OpenRouter-Title"] = "doubao-whispers"
+        headers["X-OpenRouter-Categories"] = "cli-agent,personal-agent"
 
     def attempt(endpoint, body):
         """One endpoint's ack loop; retry semantics mirror the original."""
@@ -296,7 +300,7 @@ def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
         {
             "model": model,
             "input": ACK_PROMPT,
-            "max_output_tokens": 4,
+            "max_tokens": 4,
         },
     )
     if ok:
