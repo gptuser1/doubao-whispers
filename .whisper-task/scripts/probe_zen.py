@@ -19,13 +19,17 @@ ZEN_BASE = "https://opencode.ai/zen/v1"
 ACK_PROMPT = "Reply with exactly: ack"
 
 
-def responses_ack(base_url, api_key, model, max_output_tokens=128, timeout=60):
+def responses_ack(base_url, api_key, model, max_output_tokens=128,
+                  reasoning_effort=None, timeout=60):
     """Send an ACK prompt over the Responses API; return (status, body)."""
     payload = {
         "model": model,
         "input": ACK_PROMPT,
         "max_output_tokens": max_output_tokens,
     }
+    # Defaults to effort=high on zen; override so short outputs survive thinking.
+    if reasoning_effort:
+        payload["reasoning"] = {"effort": reasoning_effort}
     req = urllib.request.Request(
         f"{base_url}/responses",
         data=json.dumps(payload).encode(),
@@ -58,6 +62,9 @@ def main():
     ap.add_argument("--base-url", default=ZEN_BASE)
     ap.add_argument("--api-key-env", default="ZEN_API_KEY")
     ap.add_argument("--max-output-tokens", type=int, default=128)
+    ap.add_argument("--reasoning-effort", default=None,
+                    choices=["none", "low", "medium", "high"],
+                    help="zen defaults to high; low/none keeps short outputs alive")
     args = ap.parse_args()
 
     api_key = os.environ.get(args.api_key_env, "").strip()
@@ -66,11 +73,13 @@ def main():
               file=sys.stderr)
 
     for model in args.models:
-        print(f"\n{'='*64}\nMODEL: {model}  (ACK via {args.base_url}/responses)\n{'='*64}")
+        print(f"\n{'='*64}\nMODEL: {model}  (ACK via {args.base_url}/responses, "
+              f"max_otok={args.max_output_tokens}, effort={args.reasoning_effort})\n{'='*64}")
         try:
             status, body = responses_ack(
                 args.base_url, api_key, model,
                 max_output_tokens=args.max_output_tokens,
+                reasoning_effort=args.reasoning_effort,
             )
         except urllib.error.HTTPError as e:
             print(f"HTTP {e.code}: {e.read().decode()[:500]}")
@@ -81,9 +90,12 @@ def main():
 
         out = extract_text(body)
         usage = body.get("usage") or {}
+        otok = usage.get("output_tokens") or 0
+        rtok = (usage.get("output_tokens_details") or {}).get("reasoning_tokens") or 0
         acked = out.strip().lower().startswith("ack")
         print(f"HTTP {status} | status={body.get('status')} | acked={acked} | "
-              f"itok={usage.get('input_tokens')} otok={usage.get('output_tokens')}")
+              f"itok={usage.get('input_tokens')} otok={otok} reasoning={rtok} "
+              f"| thinking占输出 {rtok * 100 // otok if otok else 0}%")
         print("---- output ----")
         print(out or "(empty)")
         if not acked:

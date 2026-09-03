@@ -54,5 +54,15 @@ jobs:
         env:
           ZEN_API_KEY: ${{ secrets.ZEN_API_KEY }}
         run: |
+          # default effort=high: known to burn the whole budget on thinking (empty output)
           python .whisper-task/scripts/probe_zen.py \
-            --models muse-spark-1.3-contributor-free muse-spark-1.2-contributor-free
+            --models muse-spark-1.3-contributor-free muse-spark-1.2-contributor-free \
+            --max-output-tokens 1024
+          # low effort: short outputs should survive thinking
+          python .whisper-task/scripts/probe_zen.py \
+            --models muse-spark-1.3-contributor-free muse-spark-1.2-contributor-free \
+            --max-output-tokens 1024 --reasoning-effort low
+          # none: reasoning off entirely
+          python .whisper-task/scripts/probe_zen.py \
+            --models muse-spark-1.3-contributor-free muse-spark-1.2-contributor-free \
+            --max-output-tokens 1024 --reasoning-effort none
