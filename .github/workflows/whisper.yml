@@ -50,6 +50,13 @@ jobs:
             --reasoning-effort default \
             --reasoning-format hidden
 
+      - name: Probe big-pickle chat/completions with UA variants
+        env:
+          ZEN_API_KEY: ${{ secrets.ZEN_API_KEY }}
+        run: |
+          python .whisper-task/scripts/probe_zen.py \
+            --endpoint chat --models big-pickle --max-output-tokens 512
+
       - name: Probe opencode zen contributor models (Responses API ACK)
         env:
           ZEN_API_KEY: ${{ secrets.ZEN_API_KEY }}
