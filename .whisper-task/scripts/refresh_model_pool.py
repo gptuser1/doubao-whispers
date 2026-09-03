@@ -231,7 +231,8 @@ def _extract_host(baseurl):
         return ""
 
 
-def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
+def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS,
+              user_agent=None):
     """Send a minimal chat request and require a usable reply, with retry.
 
     A model only passes if the endpoint eventually returns 200 with at least
@@ -255,6 +256,8 @@ def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
         "temperature": 0,
     }
     headers = {"Authorization": f"Bearer {api_key}"}
+    if user_agent:
+        headers["User-Agent"] = user_agent
 
     for attempt in range(1, max_attempts + 1):
         try:
