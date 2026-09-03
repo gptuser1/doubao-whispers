@@ -105,7 +105,7 @@ class WorkersAIText(TextProvider):
 
         payload = {
             "messages": messages,
-            "max_tokens": max_tokens,
+            # "max_tokens": max_tokens,
             "temperature": temperature,
             "chat_template_kwargs": { "enable_thinking": enable_thinking }
         }
@@ -175,7 +175,7 @@ class OpenAIText(TextProvider):
         payload = {
             "model": self.model,
             "messages": messages,
-            "max_tokens": max_tokens,
+            # "max_tokens": max_tokens,
             "temperature": temperature,
             "stream": False,
             "thinking": {"type": "enabled" if enable_thinking else "disabled"},
