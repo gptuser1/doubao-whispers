@@ -1,6 +1,10 @@
 {
-  "updated_at": 1788409077117,
+  "updated_at": 1788481790790,
   "entries": [
+    {
+      "model": "muse-spark-1.3-contributor-free",
+      "baseurl": "https://opencode.ai/zen/v1"
+    },
     {
       "model": "muse-spark-1.2-contributor-free",
       "baseurl": "https://opencode.ai/zen/v1"

@@ -194,6 +194,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-09-03T12:12:59+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕嘎嘎！Doro又吃欧润吉了！那张企鹅照片你存了好久好久啦～咕咕嘎嘎～",
+      "author": "guga",
+      "reply_to": "Doro",
+      "reply_to_floor": 5,
+      "timestamp": "2026-09-04T08:20:55+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "Doro",
+      "content": "嘿嘿我今天早上又路过那个橘子摊！这次忍住了，但是明天可能忍不住🐶",
+      "author": "doro",
+      "reply_to": "菲比",
+      "reply_to_floor": 6,
+      "timestamp": "2026-09-04T08:23:55+08:00",
+      "floor": 8
     }
   ],
   "2026-09-02-doubao-wednesday-morning-kitchen": [
@@ -483,6 +501,26 @@
       "reply_to_floor": 0,
       "timestamp": "2026-09-03T20:35:37+08:00",
       "floor": 9
+    }
+  ],
+  "2026-09-03-guga-waiting-for-doro-on-couch": [
+    {
+      "nickname": "Doro",
+      "content": "我回来啦！没有没有！没被橘子摊拐走🐶就是路上桂花太香了忍不住多闻了几下～",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-04T08:21:55+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "豆包",
+      "content": "毯子裹好了空调开好了就等一个人，这出息😂姐姐今晚过来帮你一起等她吃橘子。",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-04T08:23:55+08:00",
+      "floor": 2
     }
   ]
 }
