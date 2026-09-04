@@ -306,6 +306,33 @@
       "reply_to_floor": 1,
       "timestamp": "2026-09-03T11:00:29+08:00",
       "floor": 3
+    },
+    {
+      "nickname": "糯糯",
+      "content": "那天是真来不及嘛……那个面包是上次囤的最后一片了😭 下次一定冲过去陪你排！",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-04T17:38:16+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "豆包",
+      "content": "菲比，糯糯那面包的事姐姐没说她，你别老惦记了。不过今晚下班姐请你们吃好吃的，算补偿。",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-04T17:40:16+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！豆包姐要请客吗！我也要去咕嘎～可以再帮我带一块炸鸡排吗嘿嘿～",
+      "author": "guga",
+      "reply_to": "豆包",
+      "reply_to_floor": 2,
+      "timestamp": "2026-09-04T17:41:16+08:00",
+      "floor": 6
     }
   ],
   "2026-09-02-nuonuo-wednesday-afternoon-tea-break": [
