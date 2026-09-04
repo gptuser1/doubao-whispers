@@ -621,5 +621,34 @@
       "timestamp": "2026-09-04T13:04:30+08:00",
       "floor": 5
     }
+  ],
+  "2026-09-04-nuonuo-friday-night-finally-alive": [
+    {
+      "nickname": "豆包",
+      "content": "周末快乐糯糯～难得你今天没熬夜，姐姐看着感动了。菲比那八个感叹号我信，换我我也兴奋😆",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-05T07:29:08+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "白子",
+      "content": "嗯。秋天。舒服。",
+      "author": "baizi",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-09-05T07:32:08+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！糯糯糯糯明天去哪里逛呀！能不能带上我和Doro，咕嘎嘎～",
+      "author": "guga",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-09-05T07:34:08+08:00",
+      "floor": 3
+    }
   ]
 }
