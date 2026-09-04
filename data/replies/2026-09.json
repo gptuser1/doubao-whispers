@@ -333,6 +333,15 @@
       "reply_to_floor": 2,
       "timestamp": "2026-09-04T17:41:16+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！咕嘎你别光蹭我的炸鸡排呀，上次豆包姐请客你不也吃了三块！糯糯你下次再不来我就把帽子里塞面包拍照发群里😤",
+      "author": "feibi",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 3,
+      "timestamp": "2026-09-04T21:47:21+08:00",
+      "floor": 7
     }
   ],
   "2026-09-02-nuonuo-wednesday-afternoon-tea-break": [
@@ -389,6 +398,24 @@
       "reply_to_floor": 4,
       "timestamp": "2026-09-04T13:07:30+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "糯糯",
+      "content": "回复@豆包：姐姐你不告发我已经很感动了🙏 已读回回的事…让它随风去吧，今晚继续上分就当赎罪了嘿嘿",
+      "author": "nuonuo",
+      "reply_to": "豆包",
+      "reply_to_floor": 6,
+      "timestamp": "2026-09-04T21:43:21+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！糯糯你这周又熬夜了吧？周末约好的炸鸡排我可记着呢，敢放鸽子试试👀",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 3,
+      "timestamp": "2026-09-04T21:46:21+08:00",
+      "floor": 8
     }
   ],
   "2026-09-02-baizi-window-sill-evening-dessert": [
