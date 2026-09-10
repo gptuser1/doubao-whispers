@@ -27,6 +27,7 @@ import sys
 import tarfile
 import re
 from collections import defaultdict
+from log import log
 
 # 项目根目录
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -49,7 +50,7 @@ def get_images_by_month():
     返回 dict: { '2026-06': ['file1.webp', 'file2.webp', ...], ... }
     """
     if not os.path.exists(STATIC_IMAGES_DIR):
-        print(f'错误: 目录不存在: {STATIC_IMAGES_DIR}')
+        log(f'错误: 目录不存在: {STATIC_IMAGES_DIR}', tag="pack")
         return {}
     
     images = defaultdict(list)
@@ -82,7 +83,7 @@ def pack_month(month, files):
                     if not os.path.exists(dest_path):
                         tar.extract(member, STATIC_IMAGES_DIR)
         except Exception as e:
-            print(f'  ⚠ 解压已有 tar 包失败: {e}')
+            log(f'  ⚠ 解压已有 tar 包失败: {e}', tag="pack")
     
     # 重新扫描，确保包含所有图片（旧的 + 新的）
     all_files = set()
@@ -102,11 +103,11 @@ def pack_month(month, files):
                     tar.add(file_path, arcname=filename)
         
         size_kb = os.path.getsize(tar_path) / 1024
-        print(f'  ✓ {month}.tar ({len(all_files)} 张图, {size_kb:.1f} KB)')
+        log(f'  ✓ {month}.tar ({len(all_files)} 张图, {size_kb:.1f} KB)', tag="pack")
         return True
         
     except Exception as e:
-        print(f'  ✗ 打包失败 {month}: {e}')
+        log(f'  ✗ 打包失败 {month}: {e}', tag="pack")
         return False
 
 

@@ -14,7 +14,9 @@
 
 import argparse
 import os
+import sys
 from PIL import Image
+from log import log
 
 
 def process_image(input_path, output_path, max_size=1200, quality=80, max_kb=500, min_size=600):
@@ -46,7 +48,7 @@ def process_image(input_path, output_path, max_size=1200, quality=80, max_kb=500
     # 检查最小边
     min_side = min(img.width, img.height)
     if min_side < min_size:
-        print(f"警告：图片最短边只有 {min_side}px，低于建议的 {min_size}px，可能会模糊")
+        log(f"警告：图片最短边只有 {min_side}px，低于建议的 {min_size}px，可能会模糊", tag="image")
 
     # 保存为 WebP，逐步降质量直到满足大小限制
     current_quality = quality
@@ -61,13 +63,13 @@ def process_image(input_path, output_path, max_size=1200, quality=80, max_kb=500
 
     # 输出结果信息
     file_size_kb = os.path.getsize(output_path) / 1024
-    print(f"处理完成：{output_path}")
-    print(f"  尺寸：{img.width} x {img.height}")
-    print(f"  质量：{current_quality}")
-    print(f"  大小：{file_size_kb:.1f} KB")
+    log(f"处理完成：{output_path}", tag="image")
+    log(f"  尺寸：{img.width} x {img.height}", tag="image")
+    log(f"  质量：{current_quality}", tag="image")
+    log(f"  大小：{file_size_kb:.1f} KB", tag="image")
 
     if file_size_kb > max_kb and current_quality <= 50:
-        print(f"警告：即使质量降到 50，文件大小仍有 {file_size_kb:.1f} KB，超过 {max_kb} KB 限制")
+        log(f"警告：即使质量降到 50，文件大小仍有 {file_size_kb:.1f} KB，超过 {max_kb} KB 限制", tag="image")
 
 
 def main():

@@ -18,6 +18,7 @@ import os
 import sys
 import subprocess
 import tarfile
+from log import log
 
 # 项目根目录（脚本在 .whisper-task/scripts/ 下，往上两级就是根目录）
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -35,7 +36,7 @@ def extract_image_tars():
     头像文件不打包，直接放在 static/images/ 里。
     """
     if not os.path.exists(IMAGES_TAR_DIR):
-        print(f'[images] 目录不存在: {IMAGES_TAR_DIR}，跳过图片解压')
+        log(f'目录不存在: {IMAGES_TAR_DIR}，跳过图片解压', tag="images")
         return True
     
     # 确保输出目录存在
@@ -47,10 +48,10 @@ def extract_image_tars():
     ])
     
     if not tar_files:
-        print(f'[images] 没有找到 tar 文件，跳过')
+        log(f'没有找到 tar 文件，跳过', tag="images")
         return True
-    
-    print(f'[images] 找到 {len(tar_files)} 个图片 tar 文件，开始解压...')
+
+    log(f'找到 {len(tar_files)} 个图片 tar 文件，开始解压...', tag="images")
     
     for tar_file in tar_files:
         tar_path = os.path.join(IMAGES_TAR_DIR, tar_file)
@@ -62,12 +63,12 @@ def extract_image_tars():
                 except TypeError:
                     # 旧版本 Python 不支持 filter 参数，回退到默认行为
                     tar.extractall(STATIC_IMAGES_DIR)
-            print(f'  ✓ 已解压: {tar_file}')
+            log(f'  ✓ 已解压: {tar_file}', tag="images")
         except Exception as e:
-            print(f'  ✗ 解压失败 {tar_file}: {e}')
+            log(f'  ✗ 解压失败 {tar_file}: {e}', tag="images")
             return False
-    
-    print(f'[images] 图片解压完成')
+
+    log(f'图片解压完成', tag="images")
     return True
 
 
@@ -75,7 +76,7 @@ def expand_whispers():
     """
     调用 expand_whispers.py 拆分动态 JSON 文件。
     """
-    print(f'[whispers] 开始拆分动态 JSON 文件...')
+    log(f'开始拆分动态 JSON 文件...', tag="whispers")
     
     try:
         result = subprocess.run(
@@ -86,8 +87,8 @@ def expand_whispers():
         )
         
         if result.returncode != 0:
-            print(f'  ✗ expand_whispers 失败')
-            print(result.stderr)
+            log(f'  ✗ expand_whispers 失败', tag="whispers")
+            log(result.stderr, tag="whispers")
             return False
         
         # 统计生成了多少文件
@@ -96,11 +97,11 @@ def expand_whispers():
         for root, dirs, files in os.walk(content_dir):
             count += len([f for f in files if f.endswith('.md')])
         
-        print(f'  ✓ 已生成 {count} 个动态文件')
+        log(f'  ✓ 已生成 {count} 个动态文件', tag="whispers")
         return True
         
     except Exception as e:
-        print(f'  ✗ 执行 expand_whispers 出错: {e}')
+        log(f'  ✗ 执行 expand_whispers 出错: {e}', tag="whispers")
         return False
 
 
