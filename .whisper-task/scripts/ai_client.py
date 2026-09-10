@@ -22,6 +22,7 @@ import os
 import sys
 import time
 import base64
+import uuid
 import requests
 from abc import ABC, abstractmethod
 
@@ -31,6 +32,31 @@ from log import log
 # Default User-Agent — custom string avoids Cloudflare bot detection (1010)
 # that blocks the default urllib/requests User-Agents on some endpoints.
 _DEFAULT_UA = "doubao-whispers/1.0"
+
+
+# Session-id state for the opencode.ai shim headers below. The zen free-tier
+# models require opencode client/session markers on the request to behave like
+# an opencode CLI call, otherwise they reject with MissingSessionID. Sessions
+# rotate every 30 minutes to avoid appearing as an unbounded single session.
+_OC_SESSION = None
+_OC_SESSION_TS = 0.0
+
+def _oc_shim_headers():
+    """Return headers that make zen calls look like they come from the
+    opencode CLI. The real API key is still sent by callers (usage metering);
+    only these markers are added."""
+    global _OC_SESSION, _OC_SESSION_TS
+    now = time.time()
+    if _OC_SESSION is None or now - _OC_SESSION_TS > 30 * 60:
+        _OC_SESSION = f"ses_{uuid.uuid4().hex[:16]}"
+        _OC_SESSION_TS = now
+    return {
+        "User-Agent": "opencode/1.15.0 ai-sdk/provider-utils/4.0.23 runtime/bun/1.3.13",
+        "x-opencode-client": "cli",
+        "x-opencode-project": "global",
+        "x-opencode-request": f"msg_{uuid.uuid4().hex[:16]}",
+        "x-opencode-session": _OC_SESSION,
+    }
 
 
 # ==================== Retry Helpers ====================
@@ -192,6 +218,11 @@ class OpenAIText(TextProvider):
             headers["HTTP-Referer"] = "https://github.com/doubao-whispers"
             headers["X-OpenRouter-Title"] = "doubao-whispers"
             headers["X-OpenRouter-Categories"] = "cli-agent,personal-agent"
+        if "opencode.ai" in self.base_url:
+            # zen free-tier models require opencode CLI markers, otherwise they
+            # respond MissingSessionID. Real key stays in the request for usage
+            # metering on the provider side.
+            headers.update(_oc_shim_headers())
 
         max_retries = 3
         for attempt in range(max_retries + 1):

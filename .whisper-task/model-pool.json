@@ -1,17 +1,13 @@
 {
-  "updated_at": 1788743311809,
+  "updated_at": 1789037204000,
   "entries": [
     {
-      "model": "muse-spark-1.3-contributor-free",
+      "model": "mimo-v2.5-free",
       "baseurl": "https://opencode.ai/zen/v1"
     },
     {
-      "model": "muse-spark-1.2-contributor-free",
+      "model": "big-pickle",
       "baseurl": "https://opencode.ai/zen/v1"
-    },
-    {
-      "model": "minimax/minimax-m3:free",
-      "baseurl": "https://openrouter.ai/api/v1"
     }
   ]
 }

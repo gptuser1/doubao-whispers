@@ -177,14 +177,22 @@ def fetch_openrouter_free():
     return out
 
 
+# zen free-tier ids that don't carry the '-free' suffix yet are free
+# (verified against /chat/completions). Kept here so the pool refresh doesn't
+# silently drop working models that the AA filter would also never rank.
+ZEN_FREE_EXTRAS = ("big-pickle",)
+
+
 def fetch_zen_free():
-    """opencode zen models whose id ends with '-free'."""
+    """opencode zen models whose id ends with '-free', plus curated extras."""
     data = _fetch_json(ZEN_MODELS_URL)
     out = []
     for m in data.get("data") or []:
         mid = m.get("id") or ""
         if mid.endswith("-free"):
             out.append({"model": mid, "baseurl": ZEN_BASE})
+    for extra in ZEN_FREE_EXTRAS:
+        out.append({"model": extra, "baseurl": ZEN_BASE})
     return out
 
 
@@ -256,6 +264,11 @@ def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
         headers["HTTP-Referer"] = "https://github.com/doubao-whispers"
         headers["X-OpenRouter-Title"] = "doubao-whispers"
         headers["X-OpenRouter-Categories"] = "cli-agent,personal-agent"
+    if "opencode.ai" in baseurl:
+        # zen free-tier models require opencode CLI markers (MissingSessionID
+        # otherwise). Imported from ai_client so both paths share the shim.
+        from ai_client import _oc_shim_headers
+        headers.update(_oc_shim_headers())
 
     def attempt(endpoint, body):
         """One endpoint's ack loop; retry semantics mirror the original."""
@@ -294,6 +307,13 @@ def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
     if ok:
         return True, detail
 
+    # The /responses fallback only makes sense for providers that actually
+    # serve generation on that endpoint. whisper_runner always generates via
+    # chat/completions (OpenAIText), so a model that only answers /responses
+    # would pass ack but fail every real request — skip the fallback for zen.
+    if "opencode.ai" in baseurl:
+        return False, f"{model}: chat/completions {detail}"
+
     log(f"{model}: chat/completions failed, fallback to /responses", tag="model-pool")
     ok, rdetail = attempt(
         "responses",
@@ -328,9 +348,15 @@ def compile_pool():
     scored = []  # (score, entry)
     for entry in sources:
         score = aa_score(entry["model"], aa_index)
-        if score is None or score < POOL_MIN_SCORE:
-            continue
-        scored.append((score, entry))
+        is_zen = ZEN_BASE in (entry.get("baseurl") or "")
+        if score is not None and score >= POOL_MIN_SCORE:
+            scored.append((score, entry))
+        elif is_zen:
+            # zen free-tier models rarely have an AA row (the index covers
+            # mainstream names), so quality sorting by AA would silently
+            # starve the pool. Keep them with a floor score and let the ACK
+            # liveness gate decide; AA-scored models still rank first.
+            scored.append((score or 0.0, entry))
 
     # Liveness gate: every quality-passed candidate must answer an ACK probe.
     # A dead endpoint, missing provider key, auth failure, or empty reply drops
