@@ -198,5 +198,26 @@
     "images": [
       "/images/2026-09-07-baizi-evening-walk-and-pudding-1.webp"
     ]
+  },
+  "nuonuo-thursday-evening-gaming-reflect": {
+    "title": "周四深夜的游戏残局",
+    "date": "2026-09-10T19:10:43+08:00",
+    "author": "nuonuo",
+    "content": "周四晚上刚打完一局，脑子还在嗡嗡的😅\n\n这周加班加到腿软，周一答应陪菲比排炸鸡排的事就……我错了😭 炸鸡排记着呢，周末一定补上！她那顶帽子超好看的，我下次也去看看🧢\n\n打游戏打到手指抽筋，就是没空排队啊🫠",
+    "tags": [],
+    "topics": [
+      "炸鸡排",
+      "周末计划"
+    ],
+    "mood": "tired",
+    "storyline_trigger": {
+      "type": "minor_conflict",
+      "participants": [
+        "feibi"
+      ]
+    },
+    "images": [
+      "/images/2026-09-10-nuonuo-thursday-evening-gaming-reflect-1.webp"
+    ]
   }
 }

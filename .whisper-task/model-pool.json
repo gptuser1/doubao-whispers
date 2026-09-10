@@ -1,12 +1,16 @@
 {
-  "updated_at": 1789037204000,
+  "updated_at": 1789038810854,
   "entries": [
     {
-      "model": "mimo-v2.5-free",
+      "model": "ling-3.0-flash-fin-free",
       "baseurl": "https://opencode.ai/zen/v1"
     },
     {
-      "model": "big-pickle",
+      "model": "nemotron-3.5-lightning-free",
+      "baseurl": "https://opencode.ai/zen/v1"
+    },
+    {
+      "model": "mimo-v2.5-free",
       "baseurl": "https://opencode.ai/zen/v1"
     }
   ]
