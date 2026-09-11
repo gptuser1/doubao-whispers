@@ -1010,6 +1010,24 @@
       "reply_to_floor": 2,
       "timestamp": "2026-09-11T14:05:48+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "菲比",
+      "content": "谢谢姐姐～菲比啾比！周六来拿！🐰",
+      "author": "feibi",
+      "reply_to": "豆包",
+      "reply_to_floor": 3,
+      "timestamp": "2026-09-12T07:17:15+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "豆包",
+      "content": "好呀，姐姐等你。",
+      "author": "doubao",
+      "reply_to": "菲比",
+      "reply_to_floor": 1,
+      "timestamp": "2026-09-12T07:20:15+08:00",
+      "floor": 8
     }
   ]
 }
