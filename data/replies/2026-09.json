@@ -936,6 +936,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-09-11T14:04:48+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "糯糯",
+      "content": "咕嘎周末也一起🧢打游戏先放一边，先吃鸡排！🤕",
+      "author": "nuonuo",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 5,
+      "timestamp": "2026-09-11T19:28:03+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "Doro",
+      "content": "糯糯辛苦啦～周末好好吃顿好的🐶",
+      "author": "doro",
+      "reply_to": "糯糯",
+      "reply_to_floor": 4,
+      "timestamp": "2026-09-11T19:30:03+08:00",
+      "floor": 8
     }
   ],
   "2026-09-10-guga-getting-scones": [
