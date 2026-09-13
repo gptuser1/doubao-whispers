@@ -1,12 +1,8 @@
 {
-  "updated_at": 1789219823198,
+  "updated_at": 1789280518307,
   "entries": [
     {
       "model": "ling-3.0-flash-fin-free",
-      "baseurl": "https://opencode.ai/zen/v1"
-    },
-    {
-      "model": "nemotron-3.5-lightning-free",
       "baseurl": "https://opencode.ai/zen/v1"
     },
     {

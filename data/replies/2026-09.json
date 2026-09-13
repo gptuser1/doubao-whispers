@@ -1029,5 +1029,16 @@
       "timestamp": "2026-09-12T07:20:15+08:00",
       "floor": 8
     }
+  ],
+  "2026-09-13-baizi-sunday-morning-convenience-store": [
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～白子好厉害居然早起！热饮和面包好好吃！☕",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-13T14:16:45+08:00",
+      "floor": 1
+    }
   ]
 }
