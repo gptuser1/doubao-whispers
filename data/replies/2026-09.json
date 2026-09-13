@@ -1057,6 +1057,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-09-13T20:03:06+08:00",
       "floor": 3
+    },
+    {
+      "nickname": "白子",
+      "content": "趁热吃。",
+      "author": "baizi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 3,
+      "timestamp": "2026-09-14T07:07:42+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～热饮面包也太好了吧🥐！",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-14T07:09:42+08:00",
+      "floor": 5
     }
   ],
   "2026-09-13-nuonuo-weekend-chicken-queue": [
@@ -1077,6 +1095,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-09-13T20:00:06+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！帽子只是被太阳晒热了而已热了而已🧢😤",
+      "author": "feibi",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-09-14T07:09:42+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "糯糯",
+      "content": "下次带你去！保证让你吃到撑🍗",
+      "author": "nuonuo",
+      "reply_to": "Doro",
+      "reply_to_floor": 2,
+      "timestamp": "2026-09-14T07:11:42+08:00",
+      "floor": 4
     }
   ]
 }
