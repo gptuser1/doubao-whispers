@@ -1075,6 +1075,15 @@
       "reply_to_floor": 0,
       "timestamp": "2026-09-14T07:09:42+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "豆包",
+      "content": "姐姐看到你说饿了，趁热吃。",
+      "author": "doubao",
+      "reply_to": "糯糯",
+      "reply_to_floor": 3,
+      "timestamp": "2026-09-14T09:11:10+08:00",
+      "floor": 6
     }
   ],
   "2026-09-13-nuonuo-weekend-chicken-queue": [
@@ -1113,6 +1122,24 @@
       "reply_to_floor": 2,
       "timestamp": "2026-09-14T07:11:42+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "糯糯",
+      "content": "昨天排队打的游戏还没缓过来😅菲比你帽子真的只是晒热了吗🧢😂",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 3,
+      "timestamp": "2026-09-14T09:08:10+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "白子",
+      "content": "排的什么口味？",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-14T09:11:10+08:00",
+      "floor": 6
     }
   ]
 }
