@@ -1177,5 +1177,25 @@
       "timestamp": "2026-09-14T14:26:53+08:00",
       "floor": 8
     }
+  ],
+  "2026-09-14-nuonuo-monday-fried-chicken-team": [
+    {
+      "nickname": "Doro",
+      "content": "昨晚的蒜香味也太好吃了～😊下次还要这种！咕嘎你欠我的🐶",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-15T08:36:10+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "哇！蒜香被Doro一口抢光了😤菲比啾比～下次该我请啦！",
+      "author": "feibi",
+      "reply_to": "Doro",
+      "reply_to_floor": 1,
+      "timestamp": "2026-09-15T08:37:10+08:00",
+      "floor": 2
+    }
   ]
 }
