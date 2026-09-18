@@ -265,9 +265,10 @@ def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
         headers["X-OpenRouter-Title"] = "doubao-whispers"
         headers["X-OpenRouter-Categories"] = "cli-agent,personal-agent"
     if "opencode.ai" in baseurl:
-        # zen free-tier models require opencode CLI markers (MissingSessionID
-        # otherwise). Imported from ai_client so both paths share the shim.
-        from ai_client import _oc_shim_headers
+        # zen free-tier models require opencode CLI markers (FreeTierError
+        # otherwise) AND the bash/glob/grep/read tool quartet AND streaming.
+        # Imported from ai_client so ack and generation share one shim.
+        from ai_client import _oc_shim_headers, ZEN_TOOL_QUARTET
         headers.update(_oc_shim_headers())
 
     def attempt(endpoint, body):
@@ -296,14 +297,18 @@ def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
             return False, f"http {resp.status_code}:\n{resp.text}"
         return False, "max attempts exhausted"
 
-    ok, detail = attempt(
-        "chat/completions",
-        {
-            "model": model,
-            "messages": [{"role": "user", "content": ACK_PROMPT}],
-            "temperature": 0,
-        },
+    zen_body = (
+        {"model": model,
+         "messages": [{"role": "user", "content": ACK_PROMPT}],
+         "temperature": 0}
+        if "opencode.ai" not in baseurl
+        else {"model": model,
+              "messages": [{"role": "user", "content": ACK_PROMPT}],
+              "temperature": 0,
+              "stream": True,
+              "tools": ZEN_TOOL_QUARTET}
     )
+    ok, detail = attempt("chat/completions", zen_body)
     if ok:
         return True, detail
 

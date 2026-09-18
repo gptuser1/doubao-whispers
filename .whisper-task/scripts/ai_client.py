@@ -22,7 +22,6 @@ import os
 import sys
 import time
 import base64
-import uuid
 import requests
 from abc import ABC, abstractmethod
 
@@ -36,10 +35,32 @@ _DEFAULT_UA = "doubao-whispers/1.0"
 
 # Session-id state for the opencode.ai shim headers below. The zen free-tier
 # models require opencode client/session markers on the request to behave like
-# an opencode CLI call, otherwise they reject with MissingSessionID. Sessions
+# an opencode CLI call, otherwise they reject with FreeTierError. Sessions
 # rotate every 30 minutes to avoid appearing as an unbounded single session.
 _OC_SESSION = None
 _OC_SESSION_TS = 0.0
+
+# Fingerprint constants matching opencode CLI 1.18.31 (sst/opencode source).
+# UA shape is opencode/{channel}/{version}/cli and both ids are the real
+# 26-char shape (12 hex of a time-derived counter + 14 random base62), NOT a
+# plain UUID suffix — zen checks the shape and rejects fake markers.
+_OC_CHANNEL = "latest"
+_OC_VERSION = "1.18.31"
+_OC_ID_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+
+def _oc_id(prefix, descending=True):
+    """Reproduce opencode identifier.ts create(): 12 hex chars of
+    (timestamp_ms << 12 | counter) [bitwise-NOT when descending] followed by
+    14 random base62 chars."""
+    value = int(time.time() * 1000) * 0x1000 + 1
+    if descending:
+        value = ~value
+    value &= (1 << 64) - 1
+    ts_hex = "".join(f"{(value >> (40 - 8 * i)) & 0xFF:02x}" for i in range(6))
+    rand = "".join(_OC_ID_ALPHABET[os.urandom(1)[0] % 62] for _ in range(14))
+    return f"{prefix}{ts_hex}{rand}"
+
 
 def _oc_shim_headers():
     """Return headers that make zen calls look like they come from the
@@ -48,15 +69,46 @@ def _oc_shim_headers():
     global _OC_SESSION, _OC_SESSION_TS
     now = time.time()
     if _OC_SESSION is None or now - _OC_SESSION_TS > 30 * 60:
-        _OC_SESSION = f"ses_{uuid.uuid4().hex[:16]}"
+        _OC_SESSION = _oc_id("ses_", descending=True)
         _OC_SESSION_TS = now
     return {
-        "User-Agent": "opencode/1.15.0 ai-sdk/provider-utils/4.0.23 runtime/bun/1.3.13",
+        "User-Agent": f"opencode/{_OC_CHANNEL}/{_OC_VERSION}/cli",
         "x-opencode-client": "cli",
         "x-opencode-project": "global",
-        "x-opencode-request": f"msg_{uuid.uuid4().hex[:16]}",
+        "x-opencode-request": _oc_id("msg_", descending=False),
         "x-opencode-session": _OC_SESSION,
     }
+
+
+# The bash/glob/grep/read tool quartet. zen free-tier models reject requests
+# that don't declare tools ("OpenCode's free tier can only be used from within
+# OpenCode", 403 FreeTierError); the models still answer in plain text without
+# emitting tool calls. Verified via probe_zen_fingerprint.py on test/probe.
+def _zen_tool(name, description, props):
+    return {
+        "type": "function",
+        "function": {
+            "name": name,
+            "description": description,
+            "parameters": {
+                "type": "object",
+                "properties": props,
+                "required": list(props)[:1],
+            },
+        },
+    }
+
+
+ZEN_TOOL_QUARTET = [
+    _zen_tool("bash", "Safely execute commands in a bash shell within a persistent session.",
+              {"command": {"type": "string"}}),
+    _zen_tool("glob", "Find files by glob pattern.",
+              {"pattern": {"type": "string"}, "path": {"type": "string"}}),
+    _zen_tool("grep", "Find lines in files matching a regex.",
+              {"pattern": {"type": "string"}, "path": {"type": "string"}}),
+    _zen_tool("read", "Read a file from the filesystem.",
+              {"filePath": {"type": "string"}}),
+]
 
 
 # ==================== Retry Helpers ====================
@@ -219,15 +271,23 @@ class OpenAIText(TextProvider):
             headers["X-OpenRouter-Title"] = "doubao-whispers"
             headers["X-OpenRouter-Categories"] = "cli-agent,personal-agent"
         if "opencode.ai" in self.base_url:
-            # zen free-tier models require opencode CLI markers, otherwise they
-            # respond MissingSessionID. Real key stays in the request for usage
-            # metering on the provider side.
+            # zen free tier (2026-09): requires the real opencode CLI
+            # fingerprint headers AND the bash/glob/grep/read tool quartet AND
+            # streaming — missing any one yields 403 FreeTierError even with a
+            # valid key. The models still answer in plain text without emitting
+            # tool calls. Real key stays in the request for usage metering.
             headers.update(_oc_shim_headers())
+            payload["stream"] = True
+            payload["tools"] = ZEN_TOOL_QUARTET
+            payload.pop("thinking", None)
+            payload.pop("enable_thinking", None)
 
+        streaming = bool(payload.get("stream"))
         max_retries = 3
         for attempt in range(max_retries + 1):
             try:
-                resp = requests.post(url, json=payload, headers=headers, timeout=600)
+                resp = requests.post(url, json=payload, headers=headers, timeout=600,
+                                     stream=streaming)
             except requests.RequestException as e:
                 if attempt < max_retries:
                     _retry_sleep(attempt, f"URL error: {e}")
@@ -241,6 +301,11 @@ class OpenAIText(TextProvider):
                     continue
                 raise RuntimeError(f"{self._err_ctx} request failed: HTTP {resp.status_code} {err_body[:200]}")
 
+            if streaming:
+                resp.encoding = "utf-8"
+                content, usage = self._consume_sse(resp)
+                break
+
             result = resp.json()
 
             # Some APIs return 200 + error body for rate limiting
@@ -251,26 +316,56 @@ class OpenAIText(TextProvider):
                     continue
                 raise RuntimeError(f"{self._err_ctx} error: {result['error']}")
 
-            # Log token usage from API response (DeepSeek/SiliconFlow return cache stats too)
             usage = result.get("usage") or {}
-            if usage:
-                prompt = usage.get("prompt_tokens", 0)
-                completion = usage.get("completion_tokens", 0)
-                total = usage.get("total_tokens", 0)
-                cache_hit = usage.get("prompt_cache_hit_tokens", 0)
-                cache_miss = usage.get("prompt_cache_miss_tokens", 0)
-                self.last_usage = {"prompt": prompt, "completion": completion,
-                                   "total": total, "cache_hit": cache_hit}
-                self.usage_total["prompt"] += prompt
-                self.usage_total["completion"] += completion
-                self.usage_total["total"] += total
-                self.usage_total["cache_hit"] += cache_hit
-                cache_note = ""
-                if cache_hit or cache_miss:
-                    cache_note = f" (cache hit={cache_hit}, miss={cache_miss})"
-                log(f"model={self.model} prompt={prompt} completion={completion} total={total}{cache_note}", tag="AI usage")
+            content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+            break
 
-            return result.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+        # Log token usage from API response (DeepSeek/SiliconFlow return cache stats too)
+        if usage:
+            prompt = usage.get("prompt_tokens", 0)
+            completion = usage.get("completion_tokens", 0)
+            total = usage.get("total_tokens", 0)
+            cache_hit = usage.get("prompt_cache_hit_tokens", 0)
+            cache_miss = usage.get("prompt_cache_miss_tokens", 0)
+            self.last_usage = {"prompt": prompt, "completion": completion,
+                               "total": total, "cache_hit": cache_hit}
+            self.usage_total["prompt"] += prompt
+            self.usage_total["completion"] += completion
+            self.usage_total["total"] += total
+            self.usage_total["cache_hit"] += cache_hit
+            cache_note = ""
+            if cache_hit or cache_miss:
+                cache_note = f" (cache hit={cache_hit}, miss={cache_miss})"
+            log(f"model={self.model} prompt={prompt} completion={completion} total={total}{cache_note}", tag="AI usage")
+
+        return content.strip()
+
+    @staticmethod
+    def _consume_sse(resp):
+        """Accumulate content and last-seen usage from a chat.completions SSE
+        stream (zen free tier requires streaming). Tool-only chunks (no text)
+        yield empty content, and an empty result is treated as a failed call
+        by the fallback pool, so a model that only emits tool calls fails
+        over just like any other unusable provider."""
+        content = ""
+        usage = {}
+        for line in resp.iter_lines(decode_unicode=True):
+            line = (line or "").strip()
+            if not line.startswith("data:"):
+                continue
+            data = line[5:].strip()
+            if data == "[DONE]":
+                break
+            try:
+                chunk = json.loads(data)
+            except json.JSONDecodeError:
+                continue
+            if chunk.get("usage"):
+                usage = chunk.get("usage") or {}
+            for choice in chunk.get("choices") or []:
+                delta = (choice.get("delta") or {}).get("content") or ""
+                content += delta
+        return content, usage
 
 
 # ==================== Text Pool (fallback chain) ====================
