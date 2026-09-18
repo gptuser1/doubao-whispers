@@ -1,19 +1,32 @@
 #!/usr/bin/env python3
 """Probe zen free-tier gates (2026-09 change).
 
-Community reverse-engineering (9router #4124 / #4132) found zen now
-fingerprints requests with four gates:
-  1. UA must look like the real opencode client
-  2. session id must be a proper "ses_" shape
-  3. the payload must declare the opencode tool set (0-3 tools -> 403,
-     the bash/glob/grep/read quartet -> 200)
-  4. streaming: `stream:false` -> 403 on both endpoints
+Two hypotheses are tested side by side:
 
-This script tests which case is enough to get a usable text reply (content,
-not tool_calls) for each candidate free model, on the exact
+H1 — "within OpenCode" fingerprint. Zen rejects requests whose headers do
+     not look like the real opencode CLI. The real headers (from
+     sst/opencode @ 1.18.31 source) are:
 
-base the project uses: POST {zen}/chat/completions with the shared shim
-headers from ai_client._oc_shim_headers(). Business logic is NOT touched.
+       User-Agent:            opencode/{channel}/{version}/cli
+                              (channel = npm dist-tag "latest" for stable)
+       x-opencode-session:    ses_ + 26 chars (12 hex of descending(time<<12+counter)
+                              + 14 base62 random)   — NOT ses_+hex-only, NOT a UUID
+       x-opencode-request:    msg_ + 26 chars (same 26-char shape, ascending)
+       x-opencode-client:     cli
+       x-opencode-project:    <project id> (only sent for opencode provider)
+
+H2 — anonymous sentinel. The opencode CLI itself sends
+     `Authorization: Bearer public` when no key is configured, and zen
+     documents 6 models with anonymous access (mimo-v2.5-free,
+     ling-3.0-flash-fin-free, nemotron-3-ultra-free,
+     nemotron-3.5-lightning-free, muse-spark-1.3-contributor-free, big-pickle).
+     A real ZEN_API_KEY + wrong fingerprint currently yields
+     FreeTierError too (Z0 control proved auth isn't the gate).
+
+Each case also picks the right WIRE per model: zen routes chat-protocol
+models to /chat/completions and responses-protocol models (Muse family)
+to /responses. Hitting the wrong wire yields 400/500 noise, not a
+FreeTier verdict.
 
 Usage:
     python probe_zen_fingerprint.py --models ling-3.0-flash-fin-free mimo-v2.5-free
@@ -23,19 +36,32 @@ import json
 import os
 import sys
 import time
-import uuid
 
 import requests
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ai_client import _oc_shim_headers
 
 ZEN_BASE = "https://opencode.ai/zen/v1"
+OC_VERSION = "1.18.31"
+OC_CHANNEL = "latest"
+
+# Model -> wire protocol (from zen docs / @namzu/zen catalogue).
+RESPONSES_MODELS = {
+    "muse-spark-1.3-contributor-free",
+    "muse-spark-1.2-contributor-free",
+}
+ANONYMOUS_MODELS = {
+    "mimo-v2.5-free",
+    "ling-3.0-flash-fin-free",
+    "nemotron-3-ultra-free",
+    "nemotron-3.5-lightning-free",
+    "muse-spark-1.3-contributor-free",
+    "muse-spark-1.2-contributor-free",
+    "big-pickle",
+}
 
 
 # --- opencode tool signatures -------------------------------------------------
-# Names must be exact (fake tool names fail the gate). Schemas are permissive;
-# zen checks the declared tool set, not the schema details.
 
 def _fn(name, desc, props):
     return {
@@ -63,18 +89,43 @@ TOOLS_QUARTET = [
         {"filePath": {"type": "string"}}),
 ]
 
-TOOLS_ALL = TOOLS_QUARTET + [
-    _fn("edit", "Edit a file in place.", {"filePath": {"type": "string"}, "old": {"type": "string"}, "new": {"type": "string"}}),
-    _fn("write", "Write a file to the filesystem.", {"filePath": {"type": "string"}, "content": {"type": "string"}}),
-    _fn("webfetch", "Fetch a URL and return its content.", {"url": {"type": "string"}}),
-    _fn("task", "Run a task in a sub-agent.", {"description": {"type": "string"}}),
-    _fn("todowrite", "Write a todo list for the session.", {"todos": {"type": "array", "items": {"type": "object"}}}),
-    _fn("skill", "Use a skill.", {"skill": {"type": "string"}}),
-]
+
+# --- ID generation from opencode source ---------------------------------------
+
+_ID_LEN = 26
+_ID_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+_ID_HEX = "0123456789abcdef"
 
 
-# --- cases --------------------------------------------------------------------
-# Each case is a dict of payload tweaks relative to the baseline below.
+def _oc_id(prefix, descending=True):
+    """Reproduce opencode's identifier.ts create(): 12 hex chars of
+    (timestamp<<12 | counter) [bitwise-NOT when descending] + 14 random
+    base62 chars."""
+    ts_ms = int(time.time() * 1000)
+    counter = 1
+    current = ts_ms * 0x1000 + counter
+    if descending:
+        current = ~current
+    value = current & ((1 << 64) - 1)  # keep 64 bits; only low 48 are used
+    time_hex = "".join(
+        f"{(value >> (40 - 8 * i)) & 0xFF:02x}" for i in range(6)
+    )
+    rand = "".join(_ID_CHARS[os.urandom(1)[0] % 62] for _ in range(_ID_LEN - 12))
+    return f"{prefix}{time_hex}{rand}"
+
+
+def oc_headers(project="global"):
+    """Exactly what opencode 1.18.31 sends for an opencode provider call."""
+    return {
+        "User-Agent": f"opencode/{OC_CHANNEL}/{OC_VERSION}/cli",
+        "x-opencode-client": "cli",
+        "x-opencode-project": project,
+        "x-opencode-request": _oc_id("msg_", descending=False),
+        "x-opencode-session": _oc_id("ses_", descending=True),
+    }
+
+
+# --- bodies -------------------------------------------------------------------
 
 def build_body(model, tools=None, stream=True, tool_choice=None,
                system=None, user="只用文字回答：ack"):
@@ -95,49 +146,48 @@ def build_body(model, tools=None, stream=True, tool_choice=None,
     return body
 
 
-CASES = [
-    {
-        "name": "A_no_tools_nostream",
-        "desc": "baseline: current ai_client behavior (no tools, stream=false) -> should 403",
-        "body": lambda m: build_body(m, tools=None, stream=False),
-    },
-    {
-        "name": "B_quartet_nostream",
-        "desc": "tools quartet, stream=false -> tests tool gate alone",
-        "body": lambda m: build_body(m, tools=TOOLS_QUARTET, stream=False),
-    },
-    {
-        "name": "C_quartet_stream",
-        "desc": "tools quartet, stream=true -> community-confirmed 200 combo",
-        "body": lambda m: build_body(m, tools=TOOLS_QUARTET, stream=True),
-    },
-    {
-        "name": "D_all_stream",
-        "desc": "full 10-tool set, stream=true",
-        "body": lambda m: build_body(m, tools=TOOLS_ALL, stream=True),
-    },
-    {
-        "name": "E_quartet_stream_choice_none",
-        "desc": "quartet + stream + tool_choice=none -> force text reply",
-        "body": lambda m: build_body(m, tools=TOOLS_QUARTET, stream=True,
-                                     tool_choice="none",
-                                     user="写一句不超过30字的中文问候语。只用文字回答。"),
-    },
-    {
-        "name": "F_quartet_stream_no_call_prompt",
-        "desc": "quartet + stream + prompt forbids tool calls",
-        "body": lambda m: build_body(m, tools=TOOLS_QUARTET, stream=True,
-                                     system="这是一个纯文本回答任务，禁止调用任何工具。",
-                                     user="写一句不超过30字的中文问候语。只用文字回答。"),
-    },
-]
+# --- cases --------------------------------------------------------------------
+# Each entry: (name, desc, auth_mode, headers_mode, wire, body)
+#   auth_mode: "key" | "public" | "none"
+#   headers_mode: "real" | "old"  (old = current ai_client shim)
+#   wire: "auto" (chat or responses by model) | "chat" | "responses"
+
+def cases_for(model):
+    wire_auto = "responses" if model in RESPONSES_MODELS else "chat"
+    cases = [
+        ("G01_real_key_chat_quartet_stream",
+         "real headers + ZEN key + quartet + stream (H1 on chat wire)",
+         "key", "real", "chat", build_body(model, tools=TOOLS_QUARTET, stream=True)),
+        ("G02_real_public_chat_quartet_stream",
+         "real headers + Bearer public + quartet + stream (H2, chat wire)",
+         "public", "real", "chat", build_body(model, tools=TOOLS_QUARTET, stream=True)),
+        ("G03_real_public_chat_notools_stream",
+         "real headers + Bearer public + NO tools + stream (is tool gate still needed?)",
+         "public", "real", "chat", build_body(model, tools=None, stream=True)),
+        ("G04_real_public_chat_notools_nostream",
+         "real headers + Bearer public + NO tools + stream:false (old ai_client payload)",
+         "public", "real", "chat", build_body(model, tools=None, stream=False)),
+        ("G05_old_headers_key_chat_quartet_stream",
+         "OLD shim headers + ZEN key + quartet + stream (must still fail = control)",
+         "key", "old", "chat", build_body(model, tools=TOOLS_QUARTET, stream=True)),
+        ("G06_real_key_chat_quartet_nostream",
+         "real headers + ZEN key + quartet + stream:false (stream gate?)",
+         "key", "real", "chat", build_body(model, tools=TOOLS_QUARTET, stream=False)),
+    ]
+    if wire_auto == "responses":
+        # Muse family routes to /v1/responses with the responses wire format.
+        cases.append(("G07_real_public_responses",
+                      "real headers + Bearer public + quartet + stream on /responses",
+                      "public", "real", "responses",
+                      build_body(model, tools=TOOLS_QUARTET, stream=True)))
+        cases.append(("G08_real_key_responses",
+                      "real headers + ZEN key + quartet + stream on /responses",
+                      "key", "real", "responses",
+                      build_body(model, tools=TOOLS_QUARTET, stream=True)))
+    return cases
 
 
 def parse_response(resp, stream):
-    """Return (status, content, tool_calls_summary, usage, raw_head).
-
-    Handles both SSE (stream=true) and plain JSON (stream=false).
-    """
     ctype = resp.headers.get("Content-Type", "")
     content = ""
     tool_calls = []
@@ -160,13 +210,11 @@ def parse_response(resp, stream):
             choices = obj.get("choices") or []
             if not choices:
                 continue
-            delta = choices[0].get("delta") or {}
-            content += delta.get("content") or ""
-            for tc in delta.get("tool_calls") or []:
+            msg = choices[0].get("delta") or choices[0].get("message") or {}
+            content += msg.get("content") or ""
+            for tc in msg.get("tool_calls") or []:
                 fn = (tc.get("function") or {}) or {}
                 tool_calls.append(fn.get("name") or (fn.get("arguments") or "")[:80])
-            if choices[0].get("finish_reason"):
-                pass
     else:
         try:
             data = resp.json()
@@ -184,35 +232,18 @@ def parse_response(resp, stream):
     return resp.status_code, content, tool_calls, usage, ""
 
 
-def run_case_noauth(model, body, timeout=30):
-    """Control case: same request shape but no Authorization header."""
-    headers = {"Content-Type": "application/json"}
-    headers.update(_oc_shim_headers())
-    url = f"{ZEN_BASE}/chat/completions"
-    start = time.time()
-    try:
-        resp = requests.post(url, json=body, headers=headers, timeout=timeout,
-                             stream=body.get("stream", False))
-    except requests.RequestException as e:
-        return {"error": f"request exception: {e}", "secs": round(time.time() - start, 1)}
-    status, content, tool_calls, usage, raw = parse_response(resp, stream=body.get("stream", False))
-    return {
-        "status": status,
-        "content": content.strip(),
-        "tool_calls": tool_calls,
-        "err_head": resp.text[:200] if status >= 400 else raw[:200],
-        "secs": round(time.time() - start, 1),
-    }
+def run_case(model, apikey, headers_mode, wire, body, timeout=120):
+    if headers_mode == "real":
+        headers = oc_headers()
+    else:
+        headers = _oc_shim_headers()
+    headers["Content-Type"] = "application/json"
+    if apikey == "public":
+        headers["Authorization"] = "Bearer public"
+    elif apikey == "key":
+        headers["Authorization"] = f"Bearer {apikey}"
 
-
-def run_case(model, case, api_key, timeout=120):
-    body = case["body"](model)
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-    headers.update(_oc_shim_headers())
-    url = f"{ZEN_BASE}/chat/completions"
+    url = f"{ZEN_BASE}/chat/completions" if wire == "chat" else f"{ZEN_BASE}/responses"
     start = time.time()
     try:
         resp = requests.post(url, json=body, headers=headers, timeout=timeout,
@@ -233,30 +264,21 @@ def run_case(model, case, api_key, timeout=120):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--models", nargs="+", required=True,
-                    help="zen free model ids to test")
-    ap.add_argument("--cases", nargs="+", choices=[c["name"] for c in CASES],
-                    default=None, help="run only these cases (default: all)")
+    ap.add_argument("--models", nargs="+", required=True)
     ap.add_argument("--api-key-env", default="ZEN_API_KEY")
     args = ap.parse_args()
 
     api_key = os.environ.get(args.api_key_env, "").strip()
     print(f"[zen-probe] {args.api_key_env}: {'set (' + api_key[:6] + '...)' if api_key else 'UNSET'}")
 
-    cases = [c for c in CASES if args.cases is None or c["name"] in args.cases]
-
     for model in args.models:
-        print(f"\n{'#'*70}\n## MODEL: {model}\n{'#'*70}")
-        # Gate-0 control: same body WITHOUT any auth — distinguishes auth failures
-        # (403 FreeTier) from upstream/key failures (500).
-        print("\n--- case: Z0_no_auth_control --- no Authorization header")
-        r = run_case_noauth(model, build_body(model, tools=TOOLS_QUARTET, stream=False))
-        print(f"    status: {r.get('status', 'ERR')} | secs: {r.get('secs')}")
-        print(f"    err: {r.get('err_head', '')[:160]}")
-        for case in cases:
-            print(f"\n--- case: {case['name']} --- {case['desc']}")
-            r = run_case(model, case, api_key)
-            print(f"    status: {r.get('status', 'ERR')} | secs: {r.get('secs')}")
+        print(f"\n{'#'*70}\n## MODEL: {model}  (wire={'responses' if model in RESPONSES_MODELS else 'chat'}"
+              f", anonymous={'yes' if model in ANONYMOUS_MODELS else 'no'})\n{'#'*70}")
+        for name, desc, auth_mode, headers_mode, wire, body in cases_for(model):
+            apikey = "public" if auth_mode == "public" else ("none" if auth_mode == "none" else api_key)
+            print(f"\n--- case: {name} --- {desc}")
+            r = run_case(model, apikey, headers_mode, wire, body)
+            print(f"    status: {r.get('status', 'ERR')} | secs: {r.get('secs')} | wire: {wire} | auth: {auth_mode}")
             if "error" in r:
                 print(f"    ERROR: {r['error']}")
                 continue
@@ -266,7 +288,7 @@ def main():
             print(f"    tool_calls: {r['tool_calls']}")
             print(f"    usage: {r['usage']}")
             print(f"    content: {r['content'][:300]!r}")
-            if r["content"]:
+            if r["content"] or r["tool_calls"]:
                 verdict = "TOOL_CALLS" if r["tool_calls"] else "TEXT_OK"
                 print(f"    verdict: {verdict}")
 
