@@ -146,14 +146,56 @@ def build_body(model, tools=None, stream=True, tool_choice=None,
     return body
 
 
+def build_responses_body(model, tools=None, stream=True,
+                         instructions="这是一个纯文本回答任务，禁止调用任何工具。",
+                         user="只用文字回答：ack"):
+    """OpenAI Responses wire format (zen /v1/responses, Muse family).
+
+    Uses `instructions` + `input` instead of `messages`, and function tools
+    without the chat-style nested `function` wrapper.
+    """
+    body = {
+        "model": model,
+        "instructions": instructions,
+        "input": user,
+        "stream": stream,
+    }
+    if tools is not None:
+        body["tools"] = [
+            {
+                "type": "function",
+                "name": t["function"]["name"],
+                "description": t["function"]["description"],
+                "parameters": t["function"]["parameters"],
+            }
+            for t in tools
+        ]
+    return body
+
+
 # --- cases --------------------------------------------------------------------
 # Each entry: (name, desc, auth_mode, headers_mode, wire, body)
 #   auth_mode: "key" | "public" | "none"
 #   headers_mode: "real" | "old"  (old = current ai_client shim)
-#   wire: "auto" (chat or responses by model) | "chat" | "responses"
+#   wire: "chat" | "responses"
 
 def cases_for(model):
-    wire_auto = "responses" if model in RESPONSES_MODELS else "chat"
+    if model in RESPONSES_MODELS:
+        # Muse family is responses-wire only (chat wire returns 500).
+        return [
+            ("G07_real_public_responses",
+             "responses wire + real headers + Bearer public + quartet + stream",
+             "public", "real", "responses",
+             build_responses_body(model, tools=TOOLS_QUARTET, stream=True)),
+            ("G08_real_key_responses",
+             "responses wire + real headers + ZEN key + quartet + stream",
+             "key", "real", "responses",
+             build_responses_body(model, tools=TOOLS_QUARTET, stream=True)),
+            ("G09_real_public_responses_notools",
+             "responses wire + real headers + Bearer public + NO tools + stream",
+             "public", "real", "responses",
+             build_responses_body(model, tools=None, stream=True)),
+        ]
     cases = [
         ("G01_real_key_chat_quartet_stream",
          "real headers + ZEN key + quartet + stream (H1 on chat wire)",
@@ -187,8 +229,48 @@ def cases_for(model):
     return cases
 
 
-def parse_response(resp, stream):
+def parse_response(resp, stream, wire="chat"):
     ctype = resp.headers.get("Content-Type", "")
+
+    # OpenAI Responses wire: events like response.output_text.delta.
+    if wire == "responses":
+        content = ""
+        usage = {}
+        if stream and "text/event-stream" in ctype:
+            for line in resp.iter_lines(decode_unicode=True):
+                line = (line or "").strip()
+                if not line.startswith("data:"):
+                    continue
+                payload = line[5:].strip()
+                if payload == "[DONE]":
+                    break
+                try:
+                    obj = json.loads(payload)
+                except json.JSONDecodeError:
+                    continue
+                if obj.get("usage"):
+                    usage = obj.get("usage") or {}
+                if obj.get("type") == "response.output_text.delta":
+                    content += obj.get("delta") or ""
+                if obj.get("type") == "response.completed":
+                    item = (obj.get("response") or {}).get("output") or []
+                    for it in item:
+                        if it.get("type") == "function_call":
+                            return resp.status_code, content, [it.get("name", "")], usage, ""
+        else:
+            try:
+                data = resp.json()
+            except json.JSONDecodeError:
+                return resp.status_code, "", [], {}, resp.text[:200]
+            if data.get("usage"):
+                usage = data.get("usage") or {}
+            for it in data.get("output") or []:
+                if it.get("type") == "message":
+                    for c in it.get("content") or []:
+                        if c.get("type") == "output_text":
+                            content += c.get("text") or ""
+        return resp.status_code, content, [], usage, ""
+
     content = ""
     tool_calls = []
     usage = {}
@@ -251,7 +333,8 @@ def run_case(model, apikey, headers_mode, wire, body, timeout=120):
     except requests.RequestException as e:
         return {"error": f"request exception: {e}", "secs": round(time.time() - start, 1)}
 
-    status, content, tool_calls, usage, raw = parse_response(resp, stream=body.get("stream", False))
+    status, content, tool_calls, usage, raw = parse_response(resp, stream=body.get("stream", False),
+                                                             wire=wire)
     return {
         "status": status,
         "content": content.strip(),
