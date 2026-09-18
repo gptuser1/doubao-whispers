@@ -184,6 +184,27 @@ def parse_response(resp, stream):
     return resp.status_code, content, tool_calls, usage, ""
 
 
+def run_case_noauth(model, body, timeout=30):
+    """Control case: same request shape but no Authorization header."""
+    headers = {"Content-Type": "application/json"}
+    headers.update(_oc_shim_headers())
+    url = f"{ZEN_BASE}/chat/completions"
+    start = time.time()
+    try:
+        resp = requests.post(url, json=body, headers=headers, timeout=timeout,
+                             stream=body.get("stream", False))
+    except requests.RequestException as e:
+        return {"error": f"request exception: {e}", "secs": round(time.time() - start, 1)}
+    status, content, tool_calls, usage, raw = parse_response(resp, stream=body.get("stream", False))
+    return {
+        "status": status,
+        "content": content.strip(),
+        "tool_calls": tool_calls,
+        "err_head": resp.text[:200] if status >= 400 else raw[:200],
+        "secs": round(time.time() - start, 1),
+    }
+
+
 def run_case(model, case, api_key, timeout=120):
     body = case["body"](model)
     headers = {
@@ -220,14 +241,18 @@ def main():
     args = ap.parse_args()
 
     api_key = os.environ.get(args.api_key_env, "").strip()
-    if not api_key:
-        print(f"[zen-probe] FATAL: {args.api_key_env} unset", file=sys.stderr)
-        sys.exit(1)
+    print(f"[zen-probe] {args.api_key_env}: {'set (' + api_key[:6] + '...)' if api_key else 'UNSET'}")
 
     cases = [c for c in CASES if args.cases is None or c["name"] in args.cases]
 
     for model in args.models:
         print(f"\n{'#'*70}\n## MODEL: {model}\n{'#'*70}")
+        # Gate-0 control: same body WITHOUT any auth — distinguishes auth failures
+        # (403 FreeTier) from upstream/key failures (500).
+        print("\n--- case: Z0_no_auth_control --- no Authorization header")
+        r = run_case_noauth(model, build_body(model, tools=TOOLS_QUARTET, stream=False))
+        print(f"    status: {r.get('status', 'ERR')} | secs: {r.get('secs')}")
+        print(f"    err: {r.get('err_head', '')[:160]}")
         for case in cases:
             print(f"\n--- case: {case['name']} --- {case['desc']}")
             r = run_case(model, case, api_key)
