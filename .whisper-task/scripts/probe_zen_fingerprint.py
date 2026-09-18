@@ -216,16 +216,6 @@ def cases_for(model):
          "real headers + ZEN key + quartet + stream:false (stream gate?)",
          "key", "real", "chat", build_body(model, tools=TOOLS_QUARTET, stream=False)),
     ]
-    if wire_auto == "responses":
-        # Muse family routes to /v1/responses with the responses wire format.
-        cases.append(("G07_real_public_responses",
-                      "real headers + Bearer public + quartet + stream on /responses",
-                      "public", "real", "responses",
-                      build_body(model, tools=TOOLS_QUARTET, stream=True)))
-        cases.append(("G08_real_key_responses",
-                      "real headers + ZEN key + quartet + stream on /responses",
-                      "key", "real", "responses",
-                      build_body(model, tools=TOOLS_QUARTET, stream=True)))
     return cases
 
 
