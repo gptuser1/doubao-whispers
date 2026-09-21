@@ -286,7 +286,19 @@ def ack_probe(entry, timeout=ACK_TIMEOUT, max_attempts=ACK_MAX_ATTEMPTS):
             if resp.status_code == 200:
                 return True, f"http {resp.status_code}"
 
-            if resp.status_code == 429 or 500 <= resp.status_code < 600:
+            if resp.status_code == 429:
+                # zen free tier: FreeUsageLimitError means temporarily rate
+                # limited, NOT dead. Retrying only amplifies the burst that
+                # caused it, so fail fast and let compile_pool keep the model.
+                if "opencode.ai" in baseurl:
+                    return False, "rate limited: http 429"
+                # Non-zen providers: treat as transient, retry with backoff.
+                if i < max_attempts:
+                    time.sleep(ACK_BASE_DELAY * i)
+                    continue
+                return False, f"http {resp.status_code}:\n{resp.text}"
+
+            if 500 <= resp.status_code < 600:
                 # Transient — retry with backoff before blaming the model.
                 if i < max_attempts:
                     time.sleep(ACK_BASE_DELAY * i)
@@ -372,6 +384,12 @@ def compile_pool():
         ok, detail = ack_probe(entry)
         if ok:
             alive.append((score, entry))
+        elif "rate limited" in detail:
+            # A rate-limited zen model is temporarily throttled, not dead.
+            # Keep it ranked last so a refresh during a quota burst doesn't
+            # wipe the pool; the next refresh re-probes and it recovers.
+            log(f"rate limited, keeping {entry['model']}: {detail}", tag="model-pool")
+            alive.append((score - 1000, entry))
         else:
             dropped += 1
             log(f"ack failed, dropping {entry['model']}: {detail}", tag="model-pool")
