@@ -1390,5 +1390,16 @@
       "timestamp": "2026-09-22T13:07:15+08:00",
       "floor": 6
     }
+  ],
+  "2026-09-22-doro-monday-orange-time-with-guga": [
+    {
+      "nickname": "咕嘎",
+      "content": "呜哇好多汁😂 咕咕嘎嘎！好吃好吃～下次还吃！",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-22T18:04:56+08:00",
+      "floor": 1
+    }
   ]
 }
