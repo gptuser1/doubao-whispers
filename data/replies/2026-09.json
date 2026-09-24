@@ -1445,6 +1445,44 @@
       "reply_to_floor": 0,
       "timestamp": "2026-09-23T22:00:23+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "Doro",
+      "content": "好甜～下次给你带🐶",
+      "author": "doro",
+      "reply_to": "白子",
+      "reply_to_floor": 6,
+      "timestamp": "2026-09-24T07:54:39+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "豆包",
+      "content": "姐姐看着小贪吃鬼裹着毯子吃橙子，感觉好温馨～",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-24T07:57:39+08:00",
+      "floor": 8
+    }
+  ],
+  "2026-09-23-baizi-bought-hot-soy-milk-for-doro": [
+    {
+      "nickname": "Doro",
+      "content": "好呀好呀🐶我超想喝的～白子你在楼下等我吗？",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-24T07:56:39+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "哇白子太贴心了！菲比啾比～Doro肯定乐坏了！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-24T07:57:39+08:00",
+      "floor": 2
     }
   ]
 }
