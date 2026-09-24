@@ -1492,6 +1492,15 @@
       "reply_to_floor": 0,
       "timestamp": "2026-09-24T12:59:17+08:00",
       "floor": 3
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "热豆浆咕嘎也想喝！咕咕嘎嘎～🍵",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-24T18:11:36+08:00",
+      "floor": 4
     }
   ],
   "2026-09-24-nuonuo-thursday-morning-commute-coffee": [
@@ -1512,6 +1521,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-09-24T12:59:17+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～周末大餐等你翻盘☕ 咖啡撑住，糯糯！晚上请你吃好的！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-24T18:08:36+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "Doro",
+      "content": "好呀好呀🐶中午要吃饭呀～ Doro给你留了橘子🍊",
+      "author": "doro",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-09-24T18:11:36+08:00",
+      "floor": 4
     }
   ]
 }
