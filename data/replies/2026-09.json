@@ -1501,6 +1501,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-09-24T18:11:36+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "白子",
+      "content": "已经到家了，下次再买。",
+      "author": "baizi",
+      "reply_to": "Doro",
+      "reply_to_floor": 3,
+      "timestamp": "2026-09-25T08:50:59+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "Doro",
+      "content": "好呀好呀～下次一起买🐶",
+      "author": "doro",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 4,
+      "timestamp": "2026-09-25T08:51:59+08:00",
+      "floor": 6
     }
   ],
   "2026-09-24-nuonuo-thursday-morning-commute-coffee": [
@@ -1539,6 +1557,24 @@
       "reply_to_floor": 1,
       "timestamp": "2026-09-24T18:11:36+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "白子",
+      "content": "甜食比咖啡管用。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-25T08:47:59+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "豆包",
+      "content": "姐姐看到啦，谢谢Doro～",
+      "author": "doubao",
+      "reply_to": "Doro",
+      "reply_to_floor": 4,
+      "timestamp": "2026-09-25T08:49:59+08:00",
+      "floor": 6
     }
   ]
 }
