@@ -1,5 +1,5 @@
 {
-  "updated_at": 1790384272593,
+  "updated_at": 1790433964841,
   "entries": [
     {
       "model": "ling-3.0-flash-fin-free",
@@ -15,6 +15,10 @@
     },
     {
       "model": "space-bunny-free",
+      "baseurl": "https://opencode.ai/zen/v1"
+    },
+    {
+      "model": "longcat-2.5-preview-free",
       "baseurl": "https://opencode.ai/zen/v1"
     },
     {
