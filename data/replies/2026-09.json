@@ -1704,5 +1704,25 @@
       "timestamp": "2026-09-27T21:14:27+08:00",
       "floor": 9
     }
+  ],
+  "2026-09-27-guga-mid-autumn-dinner-guga-here": [
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～昨晚我也在！桂花月饼香得我都没忍住吃了三块，红烧肉居然一块都没抢到，今天必须让豆包姐姐补上！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-28T07:20:04+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "白子",
+      "content": "昨晚的红烧肉，还剩吗。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-09-28T07:22:04+08:00",
+      "floor": 2
+    }
   ]
 }
