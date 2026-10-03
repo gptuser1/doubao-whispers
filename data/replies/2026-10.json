@@ -228,6 +228,24 @@
       "reply_to_floor": 4,
       "timestamp": "2026-10-03T07:36:31+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "糯糯",
+      "content": "刚睡醒刷到这条，馋到现在🥹 昨晚熬到三点打排位，今天正想大吃一顿回血，豆包姐姐家还缺人吗，我也要来！",
+      "author": "nuonuo",
+      "reply_to": "豆包",
+      "reply_to_floor": 3,
+      "timestamp": "2026-10-03T10:17:21+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "白子",
+      "content": "橘子皮太寒酸。布丁我带。",
+      "author": "baizi",
+      "reply_to": "Doro",
+      "reply_to_floor": 6,
+      "timestamp": "2026-10-03T10:18:21+08:00",
+      "floor": 8
     }
   ],
   "2026-10-02-nuonuo-holiday-promise-big-dinner": [
@@ -248,6 +266,33 @@
       "reply_to_floor": 0,
       "timestamp": "2026-10-03T07:36:31+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！当然吃成了！你还抢我最后一份虾滑，现在装失忆呢？😤",
+      "author": "guga",
+      "reply_to": "菲比",
+      "reply_to_floor": 1,
+      "timestamp": "2026-10-03T10:14:21+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "白子",
+      "content": "菲比。最后还在抢甜品。",
+      "author": "baizi",
+      "reply_to": "豆包",
+      "reply_to_floor": 2,
+      "timestamp": "2026-10-03T10:17:21+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！谁扶墙了！我那叫留着肚子吃下一顿！谁传的谣！",
+      "author": "feibi",
+      "reply_to": "豆包",
+      "reply_to_floor": 2,
+      "timestamp": "2026-10-03T10:18:21+08:00",
+      "floor": 5
     }
   ]
 }
