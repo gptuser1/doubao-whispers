@@ -1,16 +1,16 @@
 {
-  "updated_at": 1791251256007,
+  "updated_at": 1791330913966,
   "entries": [
-    {
-      "model": "ling-3.1-flash-free",
-      "baseurl": "https://opencode.ai/zen/v1"
-    },
     {
       "model": "mimo-v2.6-flash-free",
       "baseurl": "https://opencode.ai/zen/v1"
     },
     {
       "model": "nemotron-3.5-lightning-free",
+      "baseurl": "https://opencode.ai/zen/v1"
+    },
+    {
+      "model": "exo-free",
       "baseurl": "https://opencode.ai/zen/v1"
     },
     {
@@ -22,15 +22,15 @@
       "baseurl": "https://opencode.ai/zen/v1"
     },
     {
-      "model": "mimo-v2.5-free",
-      "baseurl": "https://opencode.ai/zen/v1"
-    },
-    {
       "model": "nemotron-3-ultra-free",
       "baseurl": "https://opencode.ai/zen/v1"
     },
     {
       "model": "fledge-alpha-free",
+      "baseurl": "https://opencode.ai/zen/v1"
+    },
+    {
+      "model": "ling-3.1-flash-free",
       "baseurl": "https://opencode.ai/zen/v1"
     }
   ]
