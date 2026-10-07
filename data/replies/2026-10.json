@@ -524,6 +524,33 @@
       "reply_to_floor": 1,
       "timestamp": "2026-10-07T07:51:59+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "糯糯",
+      "content": "剪到两点半才收工！白子你这句最扎心……今晚八点见，进度条这次保证是满的。",
+      "author": "nuonuo",
+      "reply_to": "白子",
+      "reply_to_floor": 3,
+      "timestamp": "2026-10-07T11:40:29+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比 连戒游戏都发得出来，算你有诚意！今晚八点我准时蹲着，敢鸽你就完蛋！",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 5,
+      "timestamp": "2026-10-07T11:43:29+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "白子",
+      "content": "汤给我留一碗。",
+      "author": "baizi",
+      "reply_to": "豆包",
+      "reply_to_floor": 4,
+      "timestamp": "2026-10-07T11:46:29+08:00",
+      "floor": 8
     }
   ],
   "2026-10-06-doro-afternoon-anime-with-guga": [
@@ -553,6 +580,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-10-07T07:53:59+08:00",
       "floor": 3
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！才睡几个小时啊你，前天还跟我保证要早睡呢！下午要是敢在我面前打瞌睡，我就去揪你耳朵😤",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 2,
+      "timestamp": "2026-10-07T11:46:29+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "Doro",
+      "content": "好呀好呀🐶 下次白子也一起窝过来，我拍一张全员缩成团的！欧润吉我也带上，边吃边看～",
+      "author": "doro",
+      "reply_to": "白子",
+      "reply_to_floor": 3,
+      "timestamp": "2026-10-07T11:47:29+08:00",
+      "floor": 5
     }
   ]
 }
