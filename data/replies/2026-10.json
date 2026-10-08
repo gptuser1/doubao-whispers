@@ -626,5 +626,25 @@
       "timestamp": "2026-10-07T18:43:59+08:00",
       "floor": 8
     }
+  ],
+  "2026-10-07-nuonuo-chase-hat-video-export-countdown": [
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！昨晚我准时蹲到啦，菲比倒数那段太好笑了！🐧",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-10-08T10:00:02+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "白子",
+      "content": "看完了，不错。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-10-08T10:01:02+08:00",
+      "floor": 2
+    }
   ]
 }
