@@ -1,10 +1,6 @@
 {
-  "updated_at": 1791425095887,
+  "updated_at": 1791509365140,
   "entries": [
-    {
-      "model": "ling-3.1-flash-free",
-      "baseurl": "https://opencode.ai/zen/v1"
-    },
     {
       "model": "mimo-v2.6-flash-free",
       "baseurl": "https://opencode.ai/zen/v1"
@@ -26,7 +22,11 @@
       "baseurl": "https://opencode.ai/zen/v1"
     },
     {
-      "model": "fledge-alpha-free",
+      "model": "step-5-preview-free",
+      "baseurl": "https://opencode.ai/zen/v1"
+    },
+    {
+      "model": "ling-3.1-flash-free",
       "baseurl": "https://opencode.ai/zen/v1"
     }
   ]

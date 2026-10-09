@@ -672,6 +672,33 @@
       "reply_to_floor": 0,
       "timestamp": "2026-10-08T17:04:24+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "糯糯",
+      "content": "数到三？上次你数到二就冲了😂 今早刚睁眼，眼睛还是肿的，别催我发截图",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 3,
+      "timestamp": "2026-10-09T09:22:55+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！冒泡冒泡～我从中午数到晚上，全程比你还清醒，倒计时那段必须留档！🎩",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 4,
+      "timestamp": "2026-10-09T09:25:55+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎！我来冒泡啦🐧 豆包姐的汤还有吗，咕嘎也想喝～",
+      "author": "guga",
+      "reply_to": "糯糯",
+      "reply_to_floor": 4,
+      "timestamp": "2026-10-09T09:27:55+08:00",
+      "floor": 8
     }
   ]
 }
