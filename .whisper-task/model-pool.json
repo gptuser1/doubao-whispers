@@ -1,8 +1,12 @@
 {
-  "updated_at": 1791590775377,
+  "updated_at": 1791636260898,
   "entries": [
     {
       "model": "step-5-preview-free",
+      "baseurl": "https://opencode.ai/zen/v1"
+    },
+    {
+      "model": "ling-3.1-flash-free",
       "baseurl": "https://opencode.ai/zen/v1"
     },
     {
@@ -23,10 +27,6 @@
     },
     {
       "model": "nemotron-3-ultra-free",
-      "baseurl": "https://opencode.ai/zen/v1"
-    },
-    {
-      "model": "ling-3.1-flash-free",
       "baseurl": "https://opencode.ai/zen/v1"
     }
   ]
