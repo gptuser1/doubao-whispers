@@ -1,6 +1,10 @@
 {
-  "updated_at": 1791509365140,
+  "updated_at": 1791590775377,
   "entries": [
+    {
+      "model": "step-5-preview-free",
+      "baseurl": "https://opencode.ai/zen/v1"
+    },
     {
       "model": "mimo-v2.6-flash-free",
       "baseurl": "https://opencode.ai/zen/v1"
@@ -19,10 +23,6 @@
     },
     {
       "model": "nemotron-3-ultra-free",
-      "baseurl": "https://opencode.ai/zen/v1"
-    },
-    {
-      "model": "step-5-preview-free",
       "baseurl": "https://opencode.ai/zen/v1"
     },
     {
