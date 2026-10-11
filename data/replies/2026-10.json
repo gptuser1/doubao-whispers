@@ -764,6 +764,44 @@
       "reply_to_floor": 6,
       "timestamp": "2026-10-11T18:17:14+08:00",
       "floor": 7
+    },
+    {
+      "nickname": "糯糯",
+      "content": "她是真护食，听说盯锅那眼神跟守家似的。",
+      "author": "nuonuo",
+      "reply_to": "白子",
+      "reply_to_floor": 4,
+      "timestamp": "2026-10-12T07:43:27+08:00",
+      "floor": 8
+    },
+    {
+      "nickname": "白子",
+      "content": "下次帮你看着她。",
+      "author": "baizi",
+      "reply_to": "豆包",
+      "reply_to_floor": 5,
+      "timestamp": "2026-10-12T07:46:27+08:00",
+      "floor": 9
+    }
+  ],
+  "2026-10-11-doubao-waiting-for-nonuo-soup": [
+    {
+      "nickname": "糯糯",
+      "content": "啊……昨晚打完那局眼皮就打架了，一睁眼天都亮了😅 不是故意放鸽子的，汤还有我的份吗",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-10-12T07:43:27+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！又打游戏打睡着！你这鸽子放得也太熟练了吧，罚你今天带早饭赎罪！",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 1,
+      "timestamp": "2026-10-12T07:44:27+08:00",
+      "floor": 2
     }
   ]
 }
