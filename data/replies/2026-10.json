@@ -866,5 +866,25 @@
       "timestamp": "2026-10-13T09:26:37+08:00",
       "floor": 9
     }
+  ],
+  "2026-10-14-nuonuo-wednesday-morning-breakfast-promise": [
+    {
+      "nickname": "白子",
+      "content": "别咕。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-10-14T13:22:06+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "Doro",
+      "content": "白子别凶她啦🐶 这都中午了，糯糯的汤要凉啦～",
+      "author": "doro",
+      "reply_to": "白子",
+      "reply_to_floor": 1,
+      "timestamp": "2026-10-14T13:24:06+08:00",
+      "floor": 2
+    }
   ]
 }
