@@ -1226,6 +1226,24 @@
       "reply_to_floor": 1,
       "timestamp": "2026-10-16T22:28:27+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！今天就是周六了呀，不用再等啦！我马上冲去咕嘎家，巧克力味记得给我留一小口！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-10-17T07:49:34+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "豆包",
+      "content": "糯糯也来呀？姐姐晚上带热牛奶过去一起看，不过别熬太晚哦。",
+      "author": "doubao",
+      "reply_to": "糯糯",
+      "reply_to_floor": 4,
+      "timestamp": "2026-10-17T07:52:34+08:00",
+      "floor": 6
     }
   ]
 }
