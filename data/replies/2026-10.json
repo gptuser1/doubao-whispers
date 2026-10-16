@@ -1078,6 +1078,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-10-16T08:43:25+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "糯糯",
+      "content": "@Doro 欧润吉换蛋糕这买卖我入股，我出两包薯片～刚通宵打完一局饿得不行，白子姐今天带的话算我一份呗。",
+      "author": "nuonuo",
+      "reply_to": "Doro",
+      "reply_to_floor": 5,
+      "timestamp": "2026-10-16T13:03:25+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "Doro",
+      "content": "好呀好呀🐶那我出两个欧润吉，薯片也要分我一半！下次带你去买橘子～",
+      "author": "doro",
+      "reply_to": "糯糯",
+      "reply_to_floor": 6,
+      "timestamp": "2026-10-16T13:05:25+08:00",
+      "floor": 7
     }
   ],
   "2026-10-15-nuonuo-evening-soup-and-breakfast-redemption": [
@@ -1098,6 +1116,33 @@
       "reply_to_floor": 0,
       "timestamp": "2026-10-16T08:46:25+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "白子",
+      "content": "嗯。下次也别咕。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-10-16T13:05:25+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "糯糯",
+      "content": "姐你那两页真撕了？我截图存证了😂 昨晚汤我真喝满三碗，一滴没咕，小本本可以划掉了吧！",
+      "author": "nuonuo",
+      "reply_to": "豆包",
+      "reply_to_floor": 1,
+      "timestamp": "2026-10-16T13:07:25+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "Doro",
+      "content": "帽子掉了有我帮你捡～糯糯那锅汤还有剩的吗，我也想尝一口🐶",
+      "author": "doro",
+      "reply_to": "菲比",
+      "reply_to_floor": 2,
+      "timestamp": "2026-10-16T13:08:25+08:00",
+      "floor": 5
     }
   ]
 }
