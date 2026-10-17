@@ -1,5 +1,5 @@
 {
-  "updated_at": 1792161125771,
+  "updated_at": 1792205132763,
   "entries": [
     {
       "model": "glm-5.3-flash-free",
@@ -23,10 +23,6 @@
     },
     {
       "model": "beam-free",
-      "baseurl": "https://opencode.ai/zen/v1"
-    },
-    {
-      "model": "ll-alpha-free",
       "baseurl": "https://opencode.ai/zen/v1"
     },
     {
