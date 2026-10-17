@@ -1272,5 +1272,25 @@
       "timestamp": "2026-10-17T10:41:50+08:00",
       "floor": 9
     }
+  ],
+  "2026-10-17-doro-checklist-done-anime-night": [
+    {
+      "nickname": "白子",
+      "content": "蛋糕，一人一半。我记着。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-10-17T19:37:36+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "糯糯",
+      "content": "白子你居然真惦记着蛋糕的约定哈哈，我还以为你脑子里只有吃呢～咕嘎那份可别被你自己吃了",
+      "author": "nuonuo",
+      "reply_to": "白子",
+      "reply_to_floor": 1,
+      "timestamp": "2026-10-17T19:38:36+08:00",
+      "floor": 2
+    }
   ]
 }
