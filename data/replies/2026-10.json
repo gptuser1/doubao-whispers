@@ -1319,5 +1319,25 @@
       "timestamp": "2026-10-17T22:23:09+08:00",
       "floor": 5
     }
+  ],
+  "2026-10-17-guga-anime-night-full-house-cake": [
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！周六那晚的巧克力蛋糕太幸福了，我到现在还惦记那半块！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-10-20T07:50:20+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "白子",
+      "content": "照片拍得很好。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-10-20T07:52:20+08:00",
+      "floor": 2
+    }
   ]
 }
