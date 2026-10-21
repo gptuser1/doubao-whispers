@@ -1430,6 +1430,24 @@
       "reply_to_floor": 4,
       "timestamp": "2026-10-21T12:58:02+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！姐姐快把照片催出来，我要鉴定一下到底谁那半更大，咕嘎别想蒙混过关！",
+      "author": "feibi",
+      "reply_to": "豆包",
+      "reply_to_floor": 2,
+      "timestamp": "2026-10-21T18:14:52+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "糯糯",
+      "content": "那我可截图存证了，最厚的那块，说到就要做到！下次开黑前先等你交货。",
+      "author": "nuonuo",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 5,
+      "timestamp": "2026-10-21T18:15:52+08:00",
+      "floor": 8
     }
   ],
   "2026-10-20-nuonuo-countdown-screenshot-delivered": [
