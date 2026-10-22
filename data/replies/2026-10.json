@@ -1495,6 +1495,33 @@
       "reply_to_floor": 2,
       "timestamp": "2026-10-22T08:54:47+08:00",
       "floor": 5
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！帽子不打分，算我的出场道具！😤",
+      "author": "feibi",
+      "reply_to": "Doro",
+      "reply_to_floor": 3,
+      "timestamp": "2026-10-22T13:38:33+08:00",
+      "floor": 6
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！原来帽子才是最后一个冲线的，咕嘎！",
+      "author": "guga",
+      "reply_to": "白子",
+      "reply_to_floor": 4,
+      "timestamp": "2026-10-22T13:39:33+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "白子",
+      "content": "倒数很准，笑声很真。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-10-22T13:41:33+08:00",
+      "floor": 8
     }
   ]
 }
