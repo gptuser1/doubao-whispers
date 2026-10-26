@@ -80,6 +80,8 @@ jobs:
           # Provider API keys, matched by baseurl host in ai_client.BASEURL_KEY_ENV.
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           ZEN_API_KEY: ${{ secrets.ZEN_API_KEY }}
+          # Paid text fallback (SiliconFlow DeepSeek-V4.1-Flash, thinking off).
+          SI_API_KEY: ${{ secrets.SI_API_KEY }}
           # CF Worker/account creds used by the diag KV queue (image replacement).
           CF_DEFAULT_ACCOUNT_ID: ${{ secrets.CF_DEFAULT_ACCOUNT_ID }}
           CF_DEFAULT_API_TOKEN: ${{ secrets.CF_DEFAULT_API_TOKEN }}

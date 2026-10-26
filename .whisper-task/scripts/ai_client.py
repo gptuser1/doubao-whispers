@@ -239,6 +239,11 @@ class OpenAIText(TextProvider):
         if not self.api_key:
             raise ValueError("OpenAI provider requires api_key (inline or OPENAI_API_KEY env)")
 
+        # Optional hard override: when set (true/false) it wins over the
+        # per-call enable_thinking flag. Used by the paid fallback model so it
+        # always runs thinking-off regardless of what callers request.
+        self.forced_thinking = config.get("enable_thinking")
+
         # Token usage tracking: last_usage = most recent call, usage_total = accumulated across all calls
         self.last_usage = None
         self.usage_total = {"prompt": 0, "completion": 0, "total": 0, "cache_hit": 0}
@@ -249,6 +254,8 @@ class OpenAIText(TextProvider):
         return f"OpenAI[{self.model}@{self.base_url}]"
 
     def generate(self, messages, max_tokens=1024, temperature=0.8, enable_thinking=False):
+        if self.forced_thinking is not None:
+            enable_thinking = bool(self.forced_thinking)
         url = f"{self.base_url}/chat/completions"
 
         payload = {
@@ -725,6 +732,7 @@ def create_image_provider(config):
 BASEURL_KEY_ENV = {
     "openrouter.ai": "OPENROUTER_API_KEY",
     "opencode.ai": "ZEN_API_KEY",
+    "api.siliconflow.cn": "SI_API_KEY",
 }
 
 

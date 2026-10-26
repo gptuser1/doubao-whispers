@@ -1,6 +1,13 @@
 {
   "timezone": "Asia/Shanghai",
   "ai": {
+    "text_fallback": {
+      "provider": "openai",
+      "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+      "base_url": "https://api.siliconflow.cn/v1",
+      "api_key_env": "SI_API_KEY",
+      "enable_thinking": false
+    },
     "image": {
       "provider": "workers_ai",
       "model": "@cf/black-forest-labs/flux-2-klein-4b",

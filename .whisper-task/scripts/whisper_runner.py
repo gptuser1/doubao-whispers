@@ -31,9 +31,11 @@ sys.path.insert(0, SCRIPT_DIR)
 
 from log import log
 from ai_client import (
+    FallbackTextProvider,
     create_fallback_text_provider,
     create_image_provider,
     create_pool_text_provider,
+    create_text_provider,
     merge_usage_into_state,
 )
 from refresh_model_pool import is_stale, refresh as refresh_model_pool
@@ -3142,6 +3144,18 @@ def main():
     if global_text_pool is None:
         log("No AI text provider configured (missing/invalid model-pool.json and config.json ai.text)")
         return 1
+
+    # Paid fallback (config ai.text_fallback): appended LAST so it is only
+    # reached when every free model failed — e.g. zen free-tier quota exhausted.
+    fallback_cfg = config.get("ai", {}).get("text_fallback")
+    if fallback_cfg:
+        try:
+            chain = list(getattr(global_text_pool, "providers", [global_text_pool]))
+            chain.append(create_text_provider(fallback_cfg))
+            global_text_pool = FallbackTextProvider(chain, name="model-pool")
+            log(f"AI text pool with paid fallback: {global_text_pool}")
+        except Exception as e:
+            log(f"text fallback unavailable, free pool only: {e}")
 
     # Single shared pool for all text tasks. Kept as a 1-item namespace so the
     # rest of main() stays simple and prompt/image logic reuses the same pool.
