@@ -121,7 +121,19 @@ _RATE_LIMIT_KEYWORDS = (
 
 
 def _should_retry(status_code=None, body=""):
-    """Check if an error response warrants a retry."""
+    """Check if an error response warrants a retry.
+
+    Free-tier quota exhaustion is checked first: zen returns it as a plain 429
+    with a "Free usage limit reached" body, but it is deterministic for the
+    current quota window (hours/days), so retrying only burns more requests
+    and adds ~14s of backoff per model. Transient 429s keep retrying.
+    """
+    body_lower = str(body or "").lower()
+
+    # Quota exhausted — retrying cannot help.
+    if "free usage limit" in body_lower:
+        return False
+
     # Rate limiting
     if status_code == 429:
         return True
@@ -129,7 +141,6 @@ def _should_retry(status_code=None, body=""):
     if status_code and 500 <= status_code < 600:
         return True
     # Rate-limit keywords in body
-    body_lower = body.lower()
     return any(kw in body_lower for kw in _RATE_LIMIT_KEYWORDS)
 
 
