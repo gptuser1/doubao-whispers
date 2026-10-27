@@ -408,6 +408,8 @@ class FallbackTextProvider(TextProvider):
         self.last_identity = ""
         self.last_usage = None
         self.usage_total = {"prompt": 0, "completion": 0, "total": 0, "cache_hit": 0}
+        # Per-provider snapshot of usage already folded into usage_total.
+        self._absorbed = {}
 
     def _model_label(self, provider):
         return getattr(provider, "model", "?")
@@ -442,12 +444,23 @@ class FallbackTextProvider(TextProvider):
         )
 
     def _absorb_usage(self, provider):
-        """Merge a provider's usage into the pool aggregate."""
+        """Fold only the usage added since the last call into the pool aggregate.
+
+        Providers expose a cumulative ``usage_total``, so adding it wholesale on
+        every call would re-count earlier calls and inflate the run total
+        quadratically. Keep a per-provider snapshot and add the delta."""
         provider_usage = getattr(provider, "usage_total", None)
         if not provider_usage:
             return
+        seen = self._absorbed.setdefault(
+            id(provider), {"prompt": 0, "completion": 0, "total": 0, "cache_hit": 0}
+        )
         for key in self.usage_total:
-            self.usage_total[key] += provider_usage.get(key, 0)
+            current = provider_usage.get(key, 0)
+            delta = current - seen.get(key, 0)
+            if delta > 0:
+                self.usage_total[key] += delta
+            seen[key] = current
 
     def __str__(self):
         return f"FallbackTextProvider[{self.name}]({' -> '.join(self._model_label(p) for p in self.providers)})"
