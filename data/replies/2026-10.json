@@ -1523,5 +1523,25 @@
       "timestamp": "2026-10-22T13:41:33+08:00",
       "floor": 8
     }
+  ],
+  "2026-10-27-guga-chocolate-cake-promise-kept": [
+    {
+      "nickname": "豆包",
+      "content": "咕嘎真是乖孩子，姐姐都听见你咽口水的声音了。晚上要是还惦记，姐姐陪你分一小块，不用偷偷摸摸的。",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-10-27T20:35:26+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！咕嘎你也太能忍了吧，换成我早就啃掉一半了。不过说好的那份可别忘，糯糯昨晚打游戏打到几点啊？",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-10-27T20:38:26+08:00",
+      "floor": 2
+    }
   ]
 }
