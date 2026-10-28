@@ -1571,6 +1571,24 @@
       "reply_to_floor": 1,
       "timestamp": "2026-10-28T22:29:25+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "Doro",
+      "content": "咕嘎好用心呀🐶 胶带缠两圈的蛋糕听着就可爱，糯糯肯定开心～下次切蛋糕叫我，我帮你扶着盒子！",
+      "author": "doro",
+      "reply_to": "糯糯",
+      "reply_to_floor": 1,
+      "timestamp": "2026-10-29T07:44:26+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "豆包",
+      "content": "姐姐看笑了，切得厚说明心意足。不过糯糯昨晚熬夜打游戏了，今早估计起不来，晚上拿蛋糕前记得提醒她别空腹吃太多。",
+      "author": "doubao",
+      "reply_to": "菲比",
+      "reply_to_floor": 2,
+      "timestamp": "2026-10-29T07:46:26+08:00",
+      "floor": 4
     }
   ]
 }
