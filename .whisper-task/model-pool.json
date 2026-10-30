@@ -1,5 +1,5 @@
 {
-  "updated_at": 1793322556091,
+  "updated_at": 1793402205353,
   "entries": [
     {
       "model": "glm-5.3-flash-free",
@@ -23,10 +23,6 @@
     },
     {
       "model": "flint-40b-free",
-      "baseurl": "https://opencode.ai/zen/v1"
-    },
-    {
-      "model": "jev-1.13-free",
       "baseurl": "https://opencode.ai/zen/v1"
     },
     {
