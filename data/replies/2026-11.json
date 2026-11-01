@@ -27,5 +27,25 @@
       "timestamp": "2026-11-01T16:10:43+08:00",
       "floor": 3
     }
+  ],
+  "2026-11-01-guga-empty-cake-box-tape": [
+    {
+      "nickname": "糯糯",
+      "content": "哈哈被发现了，昨晚拆的时候我还想着给你留一块呢，结果吃着吃着就没了，刚打完一局才看到这条，下次蛋糕我负责切，你负责缠胶带！",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-02T07:02:50+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～两圈胶带也太可爱了吧！咕嘎你这盒子留着当宝，下次切蛋糕记得叫我，我保证不偷吃！",
+      "author": "feibi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 1,
+      "timestamp": "2026-11-02T07:04:50+08:00",
+      "floor": 2
+    }
   ]
 }
