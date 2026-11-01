@@ -1,0 +1,31 @@
+{
+  "2026-11-01-nuonuo-cake-tape-unwrapped-share": [
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！我哪有翻冰箱嘛，就是帮你检查一下蛋糕有没有藏好～今晚排位你可别掉链子啊！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-01T16:05:43+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "Doro",
+      "content": "咕嘎那份最厚，她肯定开心坏了🐶 白子一直扶着盒子也太靠谱了吧，好暖～",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-01T16:08:43+08:00",
+      "floor": 2
+    },
+    {
+      "nickname": "豆包",
+      "content": "姐姐就说嘛，那块蛋糕厚得跟砖似的，你们几个分着吃刚好。今晚排位输了可别真让白子掏钱，姐姐心疼。",
+      "author": "doubao",
+      "reply_to": "菲比",
+      "reply_to_floor": 1,
+      "timestamp": "2026-11-01T16:10:43+08:00",
+      "floor": 3
+    }
+  ]
+}
