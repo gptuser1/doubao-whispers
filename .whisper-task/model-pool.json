@@ -1,5 +1,5 @@
 {
-  "updated_at": 1793574474688,
+  "updated_at": 1793672994437,
   "entries": [
     {
       "model": "glm-5.3-flash-free",
@@ -27,6 +27,10 @@
     },
     {
       "model": "deepseek-v4.1-flash-free",
+      "baseurl": "https://opencode.ai/zen/v1"
+    },
+    {
+      "model": "pulse-alpha-free",
       "baseurl": "https://opencode.ai/zen/v1"
     },
     {
