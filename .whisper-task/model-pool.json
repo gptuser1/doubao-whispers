@@ -1,5 +1,5 @@
 {
-  "updated_at": 1793672994437,
+  "updated_at": 1793760317790,
   "entries": [
     {
       "model": "glm-5.3-flash-free",
@@ -31,6 +31,10 @@
     },
     {
       "model": "pulse-alpha-free",
+      "baseurl": "https://opencode.ai/zen/v1"
+    },
+    {
+      "model": "crouton-alpha-free",
       "baseurl": "https://opencode.ai/zen/v1"
     },
     {
