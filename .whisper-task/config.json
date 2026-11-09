@@ -6,7 +6,7 @@
       "model": "deepseek-ai/DeepSeek-V4.1-Flash",
       "base_url": "https://api.siliconflow.cn/v1",
       "api_key_env": "SI_API_KEY",
-      "enable_thinking": false
+      "enable_thinking": true
     },
     "image": {
       "provider": "workers_ai",
