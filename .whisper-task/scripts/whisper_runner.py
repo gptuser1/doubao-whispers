@@ -1175,7 +1175,8 @@ def _build_time_context(now_dt, whisper_data=None):
 
 
 def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
-                         authors_data, recent_topics_summary, pending_block=""):
+                         authors_data, recent_topics_summary, pending_block="",
+                         banned_authors=None):
     """
     Build system and user prompts for whisper generation.
     AI selects the character AND generates content in one call.
@@ -1194,33 +1195,43 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
     now_block_with_day = f"{now_block}，{day_desc}"
 
     # Build character list for AI to choose from
+    banned = [c for c in (banned_authors or []) if c in authors_data]
     char_list = []
     for char_id, info in authors_data.items():
-        char_list.append(f"- {info.get('name', char_id)}（ID: {char_id}）: {info.get('desc', '')}")
+        mark = "（本轮禁选）" if char_id in banned else ""
+        char_list.append(f"- {info.get('name', char_id)}（ID: {char_id}）{mark}: {info.get('desc', '')}")
     char_list_text = "\n".join(char_list)
 
-    # Character-selection policy. When the promise detector found an unfulfilled
-    # promise, we give the promiser a boosted (but not forced) weight — explicit
-    # guard clauses keep every post from becoming debt-repayment. When nothing is
-    # pending, fall back to the plain routine rules.
+    if banned:
+        banned_text = "、".join(f"{authors_data[c].get('name', c)}（{c}）" for c in banned)
+        ban_rule = (
+            f"- 【硬性禁选】本轮不得选择：{banned_text}（最近 2 条动态已由他们发布）。"
+            "即使承诺清单里出现他们的名字，也必须换别人发，把该承诺留到之后。\n"
+        )
+    else:
+        ban_rule = ""
+
+    # Character-selection policy. Promises are only a soft reference — never the
+    # goal. Recent authors are hard-excluded in code (banned list above), not
+    # merely suggested, because the model ignored the soft rule under
+    # high-urgency promise weighting.
     if pending_block.strip():
         choice_rules = (
-            "选择角色的原则（承诺只提供高权重候选，不必每条都为承诺）：\n"
-            "- 【高权重·未兑现承诺】综合下面的【未兑现承诺清单】，优先考虑承诺者角色："
-            "承诺被多人期待、拖得较久（urgency=high）时权重最高；urgency=medium 是次一档。\n"
-            "- 【重要·不要每条都为还承诺】承诺只是选角的加权因素，不是唯一目标。"
-            "若承诺者最近刚发过动态、当前时机或场景与其承诺明显不符、或连续让同一角色发布会造成刷屏，"
-            "可正常选择其他角色，把该承诺留到更合适的时刻。目标是剧情自然连贯，而不是刻意为还债而发。\n"
-            "- 根据角色性格和当前场景，谁最自然就选谁\n"
-            "- 避免和最近2条动态的作者重复\n"
+            "选择角色的原则（承诺只是参考权重，不必每条都为承诺）：\n"
+            f"{ban_rule}"
+            "- 【参考·未兑现承诺】可参考下面的【未兑现承诺清单】，在场景自然、且作者未被禁选时，"
+            "可以把承诺者作为候选之一；urgency=high 时略作倾斜，但不要为还债而硬写。\n"
+            "- 【重要·不要每条都为还承诺】承诺不是选角目标。同一话题刚被写过一次后，"
+            "下一次不要再让同一批角色接着写，避免承诺链自我循环。\n"
+            "- 必须从可选角色列表里选，优先选最近没有出现过的角色，谁自然就选谁\n"
             "- 考虑角色之间的关系和互动，内容要和最近动态逻辑一致，不能前后矛盾\n"
             "- 如果最近有人在聊某个话题，可以延续或回应，但不要复读"
         )
     else:
         choice_rules = (
             "选择角色的原则：\n"
-            "- 根据角色性格和当前场景，谁最自然就选谁\n"
-            "- 避免和最近2条动态的作者重复\n"
+            f"{ban_rule}"
+            "- 必须从可选角色列表里选，优先选最近没有出现过的角色，谁自然就选谁\n"
             "- 考虑角色之间的关系和互动，内容要和最近动态逻辑一致，不能前后矛盾\n"
             "- 如果最近有人在聊某个话题，可以延续或回应，但不要复读"
         )
@@ -1248,6 +1259,7 @@ def build_publish_prompt(characters_md, timeline_text, day_info, now_dt,
 6. 【重要】不要和最近动态主题重复或雷同——参考下方"各角色最近动态主题"清单，新动态的场景、事件、关键用词必须与之有明显区别，但也不是绝对，要综合考虑，比如某天的某件事可能上午发个动态，下午也可能发个动态，比如上午遇到一个bug，下午解决了，再比如去旅游，完全可以连发好几个旅游玩耍相关动态，当然我只是举例，需要你综合来考虑。尤其避免复读同一角色的近期内容，但是动态从时间线上以及逻辑上也要连贯合理
 7. 角色的标志性爱好是性格的一部分，但不要每次都出现，更不要每条都围绕它写。一个爱好连续出现2次后，第3次必须换别的内容
 8. 不要涉及任何真实个人隐私
+9. 【重要】结尾不要埋新的承诺或未完成事项（如"下次请你""等我发""说好的""还没""回头给你"）。一条动态把当前这件事讲完整、自然收束即可；只有正文确实在兑现旧承诺时可以提到它，但兑现后不要再顺手欠下新的
 
 格式规范（必须严格遵守）：
 1. content 必须用换行分段：至少有1个空行（\\n\\n）把内容分成2-4段，不能整段不换行
@@ -1308,13 +1320,14 @@ _DETECT_SYSTEM = """你是"悄悄话小站"的承诺/伏笔检测器。你的唯
 
 【严格定义"承诺"——只认这些】
 - 角色自己说的话里，明确表达出意图或约定，例如："我说好明天发""答应带给你""说好一起""回头发你""回头给你看""等我""改天请你""我会……""到时候发……"
-- 该承诺到现在【尚未兑现】（例如说"明天发"但照片还没发）
-- 且【保留了期待】——其他角色正在催或等（如"照片呢""怎么还不发""等你呢""说好的呢"），或承诺者自己仍处在"还没发"的语境里
+- 该承诺到现在【尚未兑现】（例如说"明天发"但照片确实还没发）
+- 且【有其他角色在等或催】——别人明确追问、等待（如"照片呢""怎么还不发""等你呢""说好的呢"）。只有承诺者自己提一句"还没发"、没有任何别人催促的，不算承诺，不要报
+- 已经兑现的（后续动态或回复里已经做了、已经给了、已经发了）一律不报
 
 【判定倾向】
-- 宁可多报、不要漏报。只要看出"某个角色答应过要做某事、现在还没做"，就算可能有点模糊，也要报出来，把判定交给后续。
-- 角色自己亲口说"我答应/说好/回头发/明天发/还没发"+ 之后有人催"照片呢/怎么还不发/等你呢"——这是最强信号，直接判为 high 承诺，不要因为措辞委婉就忽略。
-- 角色明确自称"说好明天发群里照片，还没发呢"，且同一话题下多人追问时，核心承诺就是"发照片/发出来"，如实描述。
+- 宁缺毋滥：只报真正明确、且确实有人等着兑现的约定。模糊猜测、礼貌寒暄、玩笑、随口一提，一律不报。
+- 角色自己亲口说"我答应/说好/回头发/明天发"，且之后有人催"照片呢/怎么还不发/等你呢"——这才是明确信号，判为 high。
+- 同一话题最多报 1 条；整个结果最多 3 条。若最近一条动态已经兑现了某承诺，不要再报它。
 
 【不算承诺——剔除】
 - 随口一提、无明确约定的闲聊
@@ -1323,8 +1336,9 @@ _DETECT_SYSTEM = """你是"悄悄话小站"的承诺/伏笔检测器。你的唯
 - 过度脑补、或"似乎像要约"的模糊猜测
 
 紧迫度（urgency）：
-- high：承诺被多人点名等待、或拖得较久、或承诺者自己仍提"还没发"
-- medium：有一句明确约定，但暂时无人催促、也不紧急
+- high：被多人点名等待，或已跨天仍未兑现
+- medium：有一个明确约定 + 至少一个角色在等，但不紧急
+- 无人催促的一律不输出（不算承诺）
 - 只有先确认"这确实是承诺"，才谈得上 urgency；不满足承诺定义的直接不输出
 
 只输出一个 JSON 数组，不要任何其他文字，不要 markdown 代码块。
@@ -1426,7 +1440,7 @@ def format_pending_block(promises, authors_data):
     if not promises:
         return ""
     name = lambda cid: authors_data.get(cid, {}).get("name", cid)
-    lines = ["未兑现承诺清单（作为选角高权重依据，需综合场景判断是否由承诺者来发）："]
+    lines = ["未兑现承诺清单（仅供参考，不强求由承诺者来发；若该作者在本轮禁选名单内则忽略）："]
     for p in promises:
         exp = "、".join(name(x) for x in p.get("expectations") or []) or "（暂无人点名）"
         base = f"- {name(p['promiser'])}（{p['promiser']}）承诺：{p['promise']}"
@@ -1435,6 +1449,57 @@ def format_pending_block(promises, authors_data):
         base += f"，期待者：{exp}，紧迫度：{p.get('urgency', 'medium')}"
         lines.append(base)
     return "\n".join(lines)
+
+
+PROMISE_STATE_PATH = os.path.join(PROJECT_ROOT, ".whisper-task", "promise_state.json")
+MAX_CONSECUTIVE_PROMISE_INJECTIONS = 2
+
+
+def _update_promise_cooldown(promises, now_dt):
+    """Track promise state across runs and decide whether to cool down.
+
+    Returns (skip, reason). skip=True means the caller should NOT inject the
+    pending list this round. State is always updated, including the
+    consecutive-injection counter and current promise keys, so the next run
+    can detect a promise that just got fulfilled.
+    """
+    state = {}
+    try:
+        if os.path.exists(PROMISE_STATE_PATH):
+            state = load_json(PROMISE_STATE_PATH) or {}
+    except Exception as e:
+        log(f"promise state load failed: {e}", tag="promise")
+
+    prev_keys = {(p.get("promiser", ""), p.get("promise", ""))
+                 for p in state.get("promises", []) if isinstance(p, dict)}
+    cur_keys = {(p.get("promiser", ""), p.get("promise", "")) for p in promises}
+    consecutive = int(state.get("consecutive", 0) or 0)
+
+    reason = ""
+    if prev_keys and cur_keys and (prev_keys - cur_keys):
+        reason = "a tracked promise just got fulfilled"
+    elif prev_keys and not cur_keys:
+        reason = "all tracked promises resolved"
+    if not reason and cur_keys and consecutive >= MAX_CONSECUTIVE_PROMISE_INJECTIONS:
+        reason = f"{consecutive} consecutive promise-driven posts"
+
+    skip = bool(reason) and bool(cur_keys)
+    if cur_keys:
+        new_consecutive = 0 if skip else consecutive + 1
+    else:
+        new_consecutive = 0
+
+    try:
+        save_json(PROMISE_STATE_PATH, {
+            "promises": [{"promiser": p.get("promiser", ""), "promise": p.get("promise", "")}
+                         for p in promises],
+            "consecutive": new_consecutive,
+            "updated_at": now_dt.isoformat(),
+        })
+    except Exception as e:
+        log(f"promise state save failed: {e}", tag="promise")
+
+    return skip, reason
 
 
 def generate_whisper_content(text_provider, characters_md, timeline_text,
@@ -1449,17 +1514,30 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
     recent_whispers = load_recent_whispers(count=15)
     recent_topics_summary = build_recent_topics_summary(recent_whispers, authors_data)
 
-    # Run the promise detector once up front. If it surfaces any unfulfilled
-    # promises, feed them to the selection prompt as a high-weight (not forced)
-    # factor. Any detector failure degrades to an empty block — never block
-    # publishing over the detector.
+    # Hard author cooldown: the last 2 authors are excluded in code, not just
+    # suggested in the prompt (the model ignored the soft rule before).
+    banned_authors = [w.get("author", "") for w in recent_whispers[:2] if w.get("author")]
+    banned_authors = list(dict.fromkeys(banned_authors))
+    banned_authors = [c for c in banned_authors if c in authors_data]
+    if len(banned_authors) >= len(authors_data):
+        banned_authors = []
+
+    # Promise detector runs on a short window (8 posts). A 15-post window kept
+    # old promises alive long after they were settled, and every post that paid
+    # a debt spawned a new one, closing the loop.
     pending_block = ""
     try:
-        promises = detect_pending_promises(text_provider, timeline_text, authors_data, now_dt)
+        detect_timeline = get_timeline_text(8) or timeline_text
+        promises = detect_pending_promises(text_provider, detect_timeline, authors_data, now_dt)
         if promises:
-            pending_block = format_pending_block(promises, authors_data)
-            log(f"{len(promises)} pending promise(s) fed to selection", tag="promise")
+            skip, reason = _update_promise_cooldown(promises, now_dt)
+            if skip:
+                log(f"promise block cooled down ({reason})", tag="promise")
+            else:
+                pending_block = format_pending_block(promises, authors_data)
+                log(f"{len(promises)} pending promise(s) fed to selection", tag="promise")
         else:
+            _update_promise_cooldown([], now_dt)
             log("detector returned no pending promises", tag="promise")
     except Exception as e:
         log(f"detection skipped (empty block): {e}", tag="promise")
@@ -1468,7 +1546,8 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
         """Single generation attempt. Returns parsed dict or None."""
         system_prompt, user_prompt = build_publish_prompt(
             characters_md, timeline_text, day_info, now_dt, authors_data,
-            recent_topics_summary, pending_block=pending_block
+            recent_topics_summary, pending_block=pending_block,
+            banned_authors=banned_authors
         )
         messages = [
             {"role": "system", "content": system_prompt},
@@ -1508,6 +1587,10 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
             if character not in authors_data:
                 log(f"Warning: AI returned unknown character '{character}'")
                 return None
+            if banned_authors and character in banned_authors:
+                log(f"AI picked banned author '{character}' (posted within last 2), rejecting",
+                    tag="author-guard")
+                return None
 
             # Parse model-provided metadata (with fallbacks)
             result = {
@@ -1534,8 +1617,13 @@ def generate_whisper_content(text_provider, characters_md, timeline_text,
             log(f"Response: {response[:200]}")
             return None
 
-    # First attempt
+    # First attempt. A banned-author rejection or parse failure gets one more
+    # try; if it still fails the caller falls back to select_character, which
+    # also excludes the last 2 authors.
     result = _generate_once()
+    if not result:
+        log("first attempt rejected or failed, retrying once", tag="author-guard")
+        result = _generate_once()
     if not result:
         return None
 
@@ -2759,7 +2847,8 @@ def _fallback_generate(text_provider, character_id, character_name,
 4. 可以带1-2个emoji
 5. 内容要符合当前场景（时间场景在用户消息中给出）
 6. 不要和最近动态主题完全重复
-7. 只输出JSON格式
+7. 结尾不要埋新的承诺或未完成事项（如"下次请你""等我发""还没"），把当前这件事讲完整即可
+8. 只输出JSON格式
 
 输出格式（严格JSON）：
 {"character": "角色ID", "title": "一句话标题", "content": "碎碎念正文"}""".replace("{characters_md}", characters_md)
