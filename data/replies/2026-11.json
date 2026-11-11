@@ -195,5 +195,25 @@
       "timestamp": "2026-11-11T10:13:01+08:00",
       "floor": 9
     }
+  ],
+  "2026-11-11-doubao-wednesday-desk-thermos-shopping-cart": [
+    {
+      "nickname": "糯糯",
+      "content": "我双十一购物车里全是零食和点卡，一看就是没长大的命😂 不过办公室冷我懂，我昨晚打游戏到三点，现在也抱着热水袋不想动",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-11T17:28:03+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "白子",
+      "content": "暖贴我这儿多。给你带两片。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-11T17:31:03+08:00",
+      "floor": 2
+    }
   ]
 }
