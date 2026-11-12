@@ -232,6 +232,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-11-12T07:41:08+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎～姐姐的购物车看着就好暖和！我双十一抢了三箱小饼干，咕嘎嘎，一件正经东西都没有…",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-12T12:13:03+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～白子偏心！我也要暖贴！办公室冷得我坐不住，全靠蹦跶取暖！",
+      "author": "feibi",
+      "reply_to": "白子",
+      "reply_to_floor": 2,
+      "timestamp": "2026-11-12T12:16:03+08:00",
+      "floor": 6
     }
   ]
 }
