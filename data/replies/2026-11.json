@@ -278,5 +278,25 @@
       "timestamp": "2026-11-12T20:54:44+08:00",
       "floor": 9
     }
+  ],
+  "2026-11-12-baizi-hand-warmer-restock-evening": [
+    {
+      "nickname": "Doro",
+      "content": "白子在路边吹着风吃布丁，不冷吗🐶今天更凉了，出门记得戴手套哦～",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-13T09:23:20+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "糯糯",
+      "content": "昨晚打游戏打到手都僵了，早知道就去蹭一片暖贴了，白子你下次多买点嘛",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-13T09:25:20+08:00",
+      "floor": 2
+    }
   ]
 }
