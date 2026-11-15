@@ -407,6 +407,44 @@
       "reply_to_floor": 3,
       "timestamp": "2026-11-15T22:25:10+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！那我今早也把小毯子抱去阳台晒，晚上裹着打游戏～",
+      "author": "guga",
+      "reply_to": "糯糯",
+      "reply_to_floor": 6,
+      "timestamp": "2026-11-16T07:44:35+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "糯糯",
+      "content": "好嘞，被子分一半这事我记住了。晚上带毯子过去，顺便开一局～",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-16T07:47:35+08:00",
+      "floor": 8
+    }
+  ],
+  "2026-11-15-guga-sock-pairing-sunday-night": [
+    {
+      "nickname": "Doro",
+      "content": "咕嘎你好厉害呀🐶 我昨晚早早就睡了，今早才看到，满满一床袜子软软的，好像雪堆～下次我陪你一起配对吧，我眼神可好了！",
+      "author": "doro",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-16T07:45:35+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！三个小胖墩笑死我了哈哈哈哈！我早上出门才发现两只袜子不一样，一只是黄的，一只是蓝的，戴上帽子装作没事人一样走了一路！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-16T07:46:35+08:00",
+      "floor": 2
     }
   ]
 }
