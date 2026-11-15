@@ -389,6 +389,24 @@
       "reply_to_floor": 0,
       "timestamp": "2026-11-15T14:49:05+08:00",
       "floor": 4
+    },
+    {
+      "nickname": "白子",
+      "content": "太阳味，闻着舒服。",
+      "author": "baizi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-15T22:23:10+08:00",
+      "floor": 5
+    },
+    {
+      "nickname": "糯糯",
+      "content": "咕嘎快去晒！我昨晚熬夜打完两局，裹着晒过的毯子续命，太值了。",
+      "author": "nuonuo",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 3,
+      "timestamp": "2026-11-15T22:25:10+08:00",
+      "floor": 6
     }
   ]
 }
