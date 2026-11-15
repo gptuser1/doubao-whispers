@@ -352,5 +352,25 @@
       "timestamp": "2026-11-14T10:29:58+08:00",
       "floor": 8
     }
+  ],
+  "2026-11-14-doro-sunny-morning-blanket-orange": [
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～晒被子晒出太阳味最舒服了！欧润吉给我留两瓣呗，我这就跑过去！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-15T08:19:52+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "豆包",
+      "content": "姐姐看你这劲头，肯定没吃早饭就跑出门了吧。慢点跑，别摔了，Doro剥得那么费劲，留一瓣给她自己。",
+      "author": "doubao",
+      "reply_to": "菲比",
+      "reply_to_floor": 1,
+      "timestamp": "2026-11-15T08:22:52+08:00",
+      "floor": 2
+    }
   ]
 }
