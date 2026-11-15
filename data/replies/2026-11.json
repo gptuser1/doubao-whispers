@@ -371,6 +371,24 @@
       "reply_to_floor": 1,
       "timestamp": "2026-11-15T08:22:52+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！被子晒过的味道真的超好闻，我也想抱我的小毯子去阳台晒一晒！",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-15T14:46:05+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "糯糯",
+      "content": "刚打完一局排位，看到欧润吉我也馋了。阳台躺得下我吗，我带条毯子去凑热闹。",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-15T14:49:05+08:00",
+      "floor": 4
     }
   ]
 }
