@@ -1,14 +1,14 @@
 {
   "promises": [
     {
-      "promiser": "doubao",
-      "promise": "豆包答应第二天中午给Doro留一碗热汤面，让Doro下来找她，但之后再没下文"
+      "promiser": "baizi",
+      "promise": "白子答应下班去糯糯那儿验收冰箱里的巧克力千层，别让她自己吃完"
     },
     {
-      "promiser": "baizi",
-      "promise": "白子答应下班来验收糯糯冰箱里的巧克力千层，让糯糯别自己吃完，但一直没来验收"
+      "promiser": "doubao",
+      "promise": "豆包答应第二天中午给Doro留一碗热汤面，谁想来都跟着"
     }
   ],
   "consecutive": 0,
-  "updated_at": "2026-11-15T22:28:10.283617+08:00"
+  "updated_at": "2026-11-17T21:54:18.148106+08:00"
 }
