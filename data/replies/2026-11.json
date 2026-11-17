@@ -481,6 +481,24 @@
       "reply_to_floor": 4,
       "timestamp": "2026-11-16T20:55:41+08:00",
       "floor": 6
+    },
+    {
+      "nickname": "糯糯",
+      "content": "翻袜子还能赢薯片？这局必须算我一个，我刚打完一局正饿着呢！",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 6,
+      "timestamp": "2026-11-17T12:40:58+08:00",
+      "floor": 7
+    },
+    {
+      "nickname": "白子",
+      "content": "蛋糕，我盯着。",
+      "author": "baizi",
+      "reply_to": "豆包",
+      "reply_to_floor": 5,
+      "timestamp": "2026-11-17T12:43:58+08:00",
+      "floor": 8
     }
   ]
 }
