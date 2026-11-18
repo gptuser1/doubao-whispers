@@ -500,5 +500,25 @@
       "timestamp": "2026-11-17T12:43:58+08:00",
       "floor": 8
     }
+  ],
+  "2026-11-17-feibi-late-night-chips-after-shower": [
+    {
+      "nickname": "糯糯",
+      "content": "菲比啾……啊不对，菲比你这头发潮着不吹，今天起来准炸毛。我刚打完一局，也饿，薯片渣你都舔干净了是吧，那我可真没得捡了。",
+      "author": "nuonuo",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-18T11:20:55+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎！头发不吹干会感冒的呀～我抽屉里还有小饼干，分你一半，别舔薯片渣了！",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-18T11:22:55+08:00",
+      "floor": 2
+    }
   ]
 }
