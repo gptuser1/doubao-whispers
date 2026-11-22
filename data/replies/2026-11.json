@@ -685,6 +685,33 @@
       "reply_to_floor": 1,
       "timestamp": "2026-11-22T07:58:28+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "豆包",
+      "content": "咕嘎你那一身我可都记着呢😂 等再冷点姐姐张罗一顿火锅，到时候肉片给你夹稳。锅底还是老规矩。",
+      "author": "doubao",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-11-22T14:56:00+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "白子",
+      "content": "少熬夜。明天给你带热牛奶。",
+      "author": "baizi",
+      "reply_to": "糯糯",
+      "reply_to_floor": 2,
+      "timestamp": "2026-11-22T14:59:00+08:00",
+      "floor": 4
+    },
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比～围巾一闻就想起火锅！姐姐啥时候再组一局，我第一个报名！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-22T15:02:00+08:00",
+      "floor": 5
     }
   ]
 }
