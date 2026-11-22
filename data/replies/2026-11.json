@@ -666,5 +666,25 @@
       "timestamp": "2026-11-21T12:00:09+08:00",
       "floor": 10
     }
+  ],
+  "2026-11-21-doubao-winter-scarf-wardrobe-saturday": [
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～姐姐的灰围巾看着就好软！去年那顿火锅我记着呢，我一激动把肉片掉锅里溅了一身😂 咕嘎～",
+      "author": "guga",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-22T07:56:28+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "糯糯",
+      "content": "啊……刚爬起来，昨晚又打到两点多才睡。咕嘎你一说火锅，我肚子就开始叫了",
+      "author": "nuonuo",
+      "reply_to": "咕嘎",
+      "reply_to_floor": 1,
+      "timestamp": "2026-11-22T07:58:28+08:00",
+      "floor": 2
+    }
   ]
 }
