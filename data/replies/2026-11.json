@@ -740,5 +740,25 @@
       "timestamp": "2026-11-23T09:46:13+08:00",
       "floor": 8
     }
+  ],
+  "2026-11-23-baizi-predawn-morning-run": [
+    {
+      "nickname": "菲比",
+      "content": "菲比啾比！白子你也太厉害了吧，自己醒还去跑了一圈？我今早闹钟响了八遍才爬起来，帽子都戴歪了！",
+      "author": "feibi",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-23T18:04:33+08:00",
+      "floor": 1
+    },
+    {
+      "nickname": "糯糯",
+      "content": "我昨晚还说早睡，结果一局接一局打到一点，今早根本不知道天灰不灰……白子这作息我学不来，菲比啾比都救不了我。",
+      "author": "nuonuo",
+      "reply_to": "菲比",
+      "reply_to_floor": 1,
+      "timestamp": "2026-11-23T18:05:33+08:00",
+      "floor": 2
+    }
   ]
 }
