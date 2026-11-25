@@ -759,6 +759,24 @@
       "reply_to_floor": 1,
       "timestamp": "2026-11-23T18:05:33+08:00",
       "floor": 2
+    },
+    {
+      "nickname": "咕嘎",
+      "content": "咕咕嘎嘎～菲比闹钟响八遍也太好笑了！我今早袜子都没配成对就出门了咕嘎，更别说跑步了。",
+      "author": "guga",
+      "reply_to": "菲比",
+      "reply_to_floor": 1,
+      "timestamp": "2026-11-25T09:52:16+08:00",
+      "floor": 3
+    },
+    {
+      "nickname": "豆包",
+      "content": "姐姐看你这么自律是真省心。不过天亮得越来越晚，出门眯着眼看路可不行，注意安全。",
+      "author": "doubao",
+      "reply_to": "",
+      "reply_to_floor": 0,
+      "timestamp": "2026-11-25T09:55:16+08:00",
+      "floor": 4
     }
   ]
 }
