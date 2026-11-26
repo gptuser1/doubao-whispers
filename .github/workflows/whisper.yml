@@ -1,12 +1,7 @@
 name: Whisper Runner
 
 on:
-  schedule:
-    # Every 25 minutes. The script enforces Beijing-time active hours
-    # (7:00-23:00) and per-task min_interval_minutes gates, so a denser cron
-    # just lets those gates fire closer to on-time instead of being rounded
-    # up to the next hour.
-    - cron: '*/25 * * * *'
+  # Scheduled runs are paused (project on hold). Manual runs remain available.
   workflow_dispatch: # Allow manual trigger
     inputs:
       force_publish:
